@@ -11,9 +11,48 @@ import {
 
 /* Commands */
 
-// Subscribe: Allows the User to Subscribe to a Category
-export async function handleSubscribeCommand(ctx: Context) {
-  return ctx.reply(SUBSCRIBE_MESSAGE, Markup.inlineKeyboard(SUBSCRIBE_BUTTONS));
+export async function handleStartCommand(ctx: Context) {
+  const address = "0xasdf";
+
+  const inlineKeyboard = Markup.inlineKeyboard([
+    [
+      {
+        text: "🔔 Subscriptions",
+        callback_data: `start_subscriptions`,
+      },
+      {
+        text: "🔥 Trade",
+        callback_data: `start_trade`,
+      },
+    ],
+    [
+      {
+        text: "🤖 AutoTrade",
+        callback_data: `start_autotrade`,
+      },
+      {
+        text: "⚙️ Settings",
+        callback_data: `start_settings`,
+      },
+    ],
+  ]).reply_markup;
+
+  const message = `
+Welcome back to Polymarket Bot!
+
+Your wallet: <code>${address}</code>
+Balance: 0 USDC
+
+How to use:
+1. 📢 Set Alerts for Market Categories
+2. ⚡ Open a Position in Just 2 Clicks
+3. 🤖 AutoTrade (Copytrading)
+`;
+
+  return ctx.reply(message, {
+    parse_mode: "HTML",
+    reply_markup: inlineKeyboard,
+  });
 }
 
 // Unsubscribe: Allows the User to Unsubscribe from a Category
@@ -49,6 +88,58 @@ export async function handleMySubscriptionsCommand(ctx: Context) {
 export async function handleCallbackQuery(ctx: Context) {
   const data = (ctx.callbackQuery as any).data as string;
   const userId = ctx.from!.id.toString();
+
+  if (data.startsWith("start_")) {
+    const action = data.split("_")[1];
+
+    await ctx.editMessageReplyMarkup(undefined).catch(() => {});
+
+    if (action === "subscriptions") {
+      return ctx.reply(
+        SUBSCRIBE_MESSAGE,
+        Markup.inlineKeyboard(SUBSCRIBE_BUTTONS)
+      );
+    } else if (action === "trade") {
+      return ctx.reply(
+        "Trade Menu:",
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback("⚡ Open Position", "Open a New Position"),
+            Markup.button.callback(
+              "📈 View Positions",
+              "View your Open Positions"
+            ),
+          ],
+          [Markup.button.callback("🔎 Top Markets", "View Top Markets")],
+        ])
+      );
+    } else if (action === "autotrade") {
+      return ctx.reply(
+        "AutoTrade Menu:",
+        Markup.inlineKeyboard([
+          [
+            Markup.button.callback("➕ Add Wallet", "Adds a New Wallet"),
+            Markup.button.callback("🗑️ Delete Wallet", "Delete your wallet"),
+          ],
+          [
+            Markup.button.callback(
+              "✅ Enable CopyTrade",
+              "Turn on CopyTrading"
+            ),
+          ],
+          [Markup.button.callback("❌ Close", "Close Menu")],
+        ])
+      );
+    } else if (action === "settings") {
+      return ctx.reply(
+        "Settings Menu:",
+        Markup.inlineKeyboard([
+          [Markup.button.callback("💼 Wallet Settings", "Manage your Wallet")],
+          [Markup.button.callback("❌ Close", "Close Menu")],
+        ])
+      );
+    }
+  }
 
   if (data.startsWith("subscribe_")) {
     const category = data.split("_")[1];

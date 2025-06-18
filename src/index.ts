@@ -5,7 +5,7 @@ import { botCommands } from "./constants/telegram";
 import {
   handleCallbackQuery,
   handleMySubscriptionsCommand,
-  handleSubscribeCommand,
+  handleStartCommand,
   handleUnsubscribeCommand,
 } from "./config/bot-commands";
 import { pollNewMarkets } from "./utils/poll-new-markets";
@@ -14,15 +14,15 @@ export const bot = new Telegraf(TG_BOT_TOKEN);
 
 bot.telegram.setMyCommands(botCommands);
 
-bot.command("subscribe", handleSubscribeCommand);
+bot.command("start", handleStartCommand);
 bot.command("unsubscribe", handleUnsubscribeCommand);
 bot.command("mysubscriptions", handleMySubscriptionsCommand);
 bot.on("callback_query", handleCallbackQuery);
 
 // Interval to Fetch new Markets
-setInterval(() => {
-  pollNewMarkets().catch(console.error);
-}, 5_000);
+// setInterval(() => {
+//   pollNewMarkets().catch(console.error);
+// }, 5_000);
 
 // Initialize Telegram Bot Webhook
 bot.launch(
