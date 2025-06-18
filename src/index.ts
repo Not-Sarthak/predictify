@@ -1,12 +1,12 @@
 import { Telegraf } from "telegraf";
-import { TG_BOT_TOKEN, SECRET_TOKEN, WEBHOOK_DOMAIN } from "./src/config/env";
-import { PORT } from "./src/constants/server";
-import { botCommands } from "./src/constants/telegram";
+import { TG_BOT_TOKEN, SECRET_TOKEN, WEBHOOK_DOMAIN } from "./config/env";
+import { PORT } from "./constants/server";
+import { botCommands } from "./constants/telegram";
 import { 
   handleMySubscriptionsCommand, 
   handleSubscribeCommand, 
   handleUnsubscribeCommand 
-} from "./src/config/bot-commands";
+} from "./config/bot-commands";
 
 const bot = new Telegraf(TG_BOT_TOKEN);
 
@@ -27,6 +27,6 @@ bot.launch(
     },
   },
   () => {
-    console.log("Bot is running");
+    console.log("Bot is Running");
   }
 );
