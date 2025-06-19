@@ -7,6 +7,6 @@ export const getUserPosition = async (request: UserPositionRequest) => {
     return response.data;
 }
 
-getUserPosition({
-    user: "0xecb14ac6e9ca447ce2f2912e6217b43d7b655da3"
-});
+// getUserPosition({
+//     user: "0xecb14ac6e9ca447ce2f2912e6217b43d7b655da3"
+// });
