@@ -1,28 +1,18 @@
-import { Telegraf } from "telegraf";
-import { TG_BOT_TOKEN, SECRET_TOKEN, WEBHOOK_DOMAIN } from "./config/env";
-import { PORT } from "./constants/server";
-import { botCommands } from "./constants/telegram";
-import {
-  handleCallbackQuery,
-  handleMySubscriptionsCommand,
-  handleStartCommand,
-  handleUnsubscribeCommand,
-} from "./config/bot-commands";
+import { SECRET_TOKEN, WEBHOOK_DOMAIN } from "./config/env";
+import { API_SERVER_PORT, PORT } from "./constants/server";
 import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
-
-export const bot = new Telegraf(TG_BOT_TOKEN);
-
-bot.telegram.setMyCommands(botCommands);
-
-bot.command("start", handleStartCommand);
-bot.command("unsubscribe", handleUnsubscribeCommand);
-bot.command("mysubscriptions", handleMySubscriptionsCommand);
-bot.on("callback_query", handleCallbackQuery);
+import { server } from "./api";
+import { bot } from "./config/bot";
 
 // Interval to Fetch new Markets
 // setInterval(() => {
 //   pollNewMarkets().catch(console.error);
 // }, 5_000);
+
+// Starts the API Server
+server.listen({ port: API_SERVER_PORT }, () => {
+  console.log("API Server is listening...");
+});
 
 // Initialize Telegram Bot Webhook
 bot.launch(

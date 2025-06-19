@@ -1,23 +1,23 @@
 Database:
 User
+
 - TG ID [index]
 - TG Username
 - Wallet Address
 - Pvt Key [Encrypt]
 - API Creds
 - Fees Total
-- Positions []
-- Copy Wallets[] -> 3 Max
-
 
 Positions
+
 - TG ID from User [FK]
 - Wallet address
 - market/condition id
 - market slug
 - question
 - description
-- open/close and yes/no token id
+- is_open true | false
+- token id
 - buys array
 - sells array
 - amount [total volume]
@@ -25,15 +25,14 @@ Positions
 - pnl for all position
 - fees [0.1%]
 
+Copy Wallet[3 max per user]
 
-Copy Wallet[3]
 - user tg id [User] [FK]
 - id
 - Name for wallet address
 - Wallet address[index]
 - % ratio
-- type enabled | disabled
-
+- is_enabled true | false
 
 Endpoints:
 /user [POST] -> create
@@ -42,7 +41,5 @@ Endpoints:
 /trade[GET] -> get all active positions of user
 /watch-wallet[GET] -> watch wallet copy trade | by default disabled /// On enable starts copy-trading
 
-
-
 /user-subscriptions[GET] -> get active subscriptions of user [in Redis]
-/user-subscriptions[POST] -> subscribe/unsubscribe + categories  [in Redis]
+/user-subscriptions[POST] -> subscribe/unsubscribe + categories [in Redis]

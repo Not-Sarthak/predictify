@@ -1,8 +1,4 @@
 import { Context, Markup } from "telegraf";
-import {
-  UNSUBSCRIBE_BUTTONS,
-  UNSUBSCRIBE_MESSAGE,
-} from "../constants/telegram";
 import { getUserBalance } from "../helpers/get-user-balance";
 import { generateAPIKeyAndWallet } from "../utils/polymarket/generate-user";
 import { HOST, CHAIN_ID } from "../constants/polymarket";
@@ -33,7 +29,11 @@ export async function handleStartCommand(ctx: Context) {
       generateMainMenuButtons()
     ).reply_markup;
 
-    const message = formatWelcomeMessage(address, balance.toString(), walletData.apiCreds);
+    const message = formatWelcomeMessage(
+      address,
+      balance.toString(),
+      walletData.apiCreds
+    );
 
     return ctx.reply(message, {
       parse_mode: "HTML",
@@ -45,17 +45,9 @@ export async function handleStartCommand(ctx: Context) {
   }
 }
 
-export async function handleUnsubscribeCommand(ctx: Context) {
-  return ctx.reply(
-    UNSUBSCRIBE_MESSAGE,
-    Markup.inlineKeyboard(UNSUBSCRIBE_BUTTONS)
-  );
-}
-
 export async function handleMySubscriptionsCommand(ctx: Context) {
   return handleMySubscriptionsDisplay(ctx);
 }
-
 
 /* Callback Query Handler */
 export async function handleCallbackQuery(ctx: Context) {
