@@ -1,4 +1,4 @@
-import { bot } from "../..";
+import { bot } from "../../config/bot";
 import { Markup } from "telegraf";
 import type { MarketData } from "../../types/market-data";
 import { truncate } from "../../helpers/truncate";
