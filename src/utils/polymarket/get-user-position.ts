@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { UserPositionRequest, UserPositionResponse } from '../types/user-position';
+import type { UserPositionRequest, UserPositionResponse } from '../../types/user-position';
 
 export const getUserPosition = async (request: UserPositionRequest) => {
     const response = await axios.get<UserPositionResponse>(`https://data-api.polymarket.com/positions?user=${request.user}`);

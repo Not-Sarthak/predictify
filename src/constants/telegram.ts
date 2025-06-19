@@ -1,9 +1,9 @@
 import type { BotCommand } from "telegraf/types";
-import { generateButtons } from "../utils/generate-buttons";
+import { generateSubscriptionButtons } from "../utils/telegram";
 
 // Buttons
-export const SUBSCRIBE_BUTTONS = generateButtons("subscribe");
-export const UNSUBSCRIBE_BUTTONS = generateButtons("unsubscribe");
+export const SUBSCRIBE_BUTTONS = generateSubscriptionButtons("subscribe");
+export const UNSUBSCRIBE_BUTTONS = generateSubscriptionButtons("unsubscribe");
 
 // Messages
 export const SUBSCRIBE_MESSAGE = "Choose a Category to Subscribe to";

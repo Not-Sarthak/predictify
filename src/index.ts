@@ -8,7 +8,7 @@ import {
   handleStartCommand,
   handleUnsubscribeCommand,
 } from "./config/bot-commands";
-import { pollNewMarkets } from "./utils/poll-new-markets";
+import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
 export const bot = new Telegraf(TG_BOT_TOKEN);
 

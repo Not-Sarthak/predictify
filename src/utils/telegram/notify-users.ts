@@ -1,10 +1,8 @@
-import { bot } from "..";
+import { bot } from "../..";
 import { Markup } from "telegraf";
-import type { MarketData } from "../types/market-data";
-
-function truncate(text: string, maxLength: number): string {
-  return text.length > maxLength ? text.slice(0, maxLength - 3) + "..." : text;
-}
+import type { MarketData } from "../../types/market-data";
+import { truncate } from "../../helpers/truncate";
+import { generateTradeButtons } from "./button-generators";
 
 export async function sendNotification(
   userId: string,
@@ -29,18 +27,9 @@ ${truncate(market.description, 500)}
   )}">🔗 View Full Market</a>
 `.trim();
 
-  const inlineKeyboard = Markup.inlineKeyboard([
-    [
-      {
-        text: "✅ Buy Yes",
-        callback_data: `buy_yes:${market.id}`,
-      },
-      {
-        text: "❌ Buy No",
-        callback_data: `buy_no:${market.id}`,
-      },
-    ],
-  ]).reply_markup;
+  const inlineKeyboard = Markup.inlineKeyboard(
+    generateTradeButtons(market.id)
+  ).reply_markup;
 
   try {
     await bot.telegram.sendPhoto(userId, market.image, {
@@ -49,6 +38,6 @@ ${truncate(market.description, 500)}
       reply_markup: inlineKeyboard,
     });
   } catch (error) {
-    console.error(`❌ Failed to send photo to ${userId}:`, error);
+    console.error(`Failed to Send Photo to ${userId}:`, error);
   }
 }

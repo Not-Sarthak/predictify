@@ -1,10 +1,12 @@
 import { ClobClient } from "@polymarket/clob-client"
-import type { APIKeyRequest } from "../types/api-key"
+import type { APIKeyRequest, GeneratedWallet } from "../../types/api-key"
 import { Wallet, JsonRpcProvider } from "ethers"
 
-export async function generateAPIKey(request: APIKeyRequest) {
+export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<GeneratedWallet> {
     const provider = new JsonRpcProvider(request.host)
-    const wallet = new Wallet(request.privateKey).connect(provider)
+    
+    // Generate a new random wallet
+    const wallet = Wallet.createRandom().connect(provider)
 
     const walletWithLegacyMethods = {
         ...wallet,
@@ -20,9 +22,17 @@ export async function generateAPIKey(request: APIKeyRequest) {
     const client = new ClobClient(request.host, request.chainId, walletWithLegacyMethods as any)
 
     try {
-        const apiKey = await client.deriveApiKey();
-        console.log('API Key:', apiKey);
-        return apiKey;
+        // Create a new API key for the new wallet instead of deriving
+        const apiCreds = await client.createApiKey();
+        console.log('Generated Wallet Address:', wallet.address);
+        console.log('Generated Private Key:', wallet.privateKey);
+        console.log('API Credentials:', apiCreds);
+        
+        return {
+            address: wallet.address,
+            privateKey: wallet.privateKey,
+            apiCreds: apiCreds
+        };
     } catch (error) {
         console.error('Error:', error)
         throw error
