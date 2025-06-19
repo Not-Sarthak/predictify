@@ -11,7 +11,7 @@ import { bot } from "./config/bot";
 
 // Starts the API Server
 server.listen({ port: API_SERVER_PORT }, () => {
-  console.log("API Server is listening...");
+  console.log("API Server Started");
 });
 
 // Initialize Telegram Bot Webhook
