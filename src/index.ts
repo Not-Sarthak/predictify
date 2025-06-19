@@ -20,9 +20,9 @@ bot.command("mysubscriptions", handleMySubscriptionsCommand);
 bot.on("callback_query", handleCallbackQuery);
 
 // Interval to Fetch new Markets
-setInterval(() => {
-  pollNewMarkets().catch(console.error);
-}, 5_000);
+// setInterval(() => {
+//   pollNewMarkets().catch(console.error);
+// }, 5_000);
 
 // Initialize Telegram Bot Webhook
 bot.launch(

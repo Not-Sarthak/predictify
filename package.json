@@ -3,7 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "bun run --watch src/index.ts"
+    "start": "bun run src/index.ts",
+    "lfg": "bun run src/utils/polymarket-socket/connection.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
