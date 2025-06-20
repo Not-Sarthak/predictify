@@ -11,12 +11,49 @@ import {
   handleUnsubscriptionCallbacks,
   handleTradeCallbacks,
   handleCloseMenu,
-  handleMySubscriptionsDisplay,
+  handleWalletSettingsMenuCallbacks,
 } from "../utils/telegram";
+import { supabase } from "./supabase";
+import { handleExportPrivateKey } from "../helpers/export-user-private-key";
 
 /* Command Handlers */
 export async function handleStartCommand(ctx: Context) {
   try {
+    const userId = ctx.from?.id;
+    const userName = ctx.from?.username;
+
+    const { data: existingUser, error: fetchError } = await supabase
+      .from("Users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 = No rows found; safe to ignore
+      console.error("Error checking existing user:", fetchError);
+      return ctx.reply("❌ Something went wrong. Please try again later.");
+    }
+
+    if (existingUser) {
+      // User already exists
+      const balance = await getUserBalance(existingUser.wallet_address);
+
+      const message = formatWelcomeMessage(
+        existingUser.wallet_address,
+        balance.toString(),
+        JSON.parse(existingUser.api_credentials)
+      );
+
+      const inlineKeyboard = Markup.inlineKeyboard(
+        generateMainMenuButtons()
+      ).reply_markup;
+
+      return ctx.reply(message, {
+        parse_mode: "HTML",
+        reply_markup: inlineKeyboard,
+      });
+    }
+
     const walletData = await generateAPIKeyAndWallet({
       host: HOST,
       chainId: CHAIN_ID,
@@ -24,6 +61,21 @@ export async function handleStartCommand(ctx: Context) {
 
     const address = walletData.address;
     const balance = await getUserBalance(address);
+
+    const { error } = await supabase.from("Users").insert([
+      {
+        id: userId,
+        telegram_username: userName,
+        wallet_address: address,
+        private_key: walletData.privateKey,
+        api_credentials: JSON.stringify(walletData.apiCreds),
+      },
+    ]);
+
+    if (error) {
+      console.error("Error inserting new user:", error);
+      return ctx.reply("❌ There was an error creating your account.");
+    }
 
     const inlineKeyboard = Markup.inlineKeyboard(
       generateMainMenuButtons()
@@ -45,14 +97,9 @@ export async function handleStartCommand(ctx: Context) {
   }
 }
 
-export async function handleMySubscriptionsCommand(ctx: Context) {
-  return handleMySubscriptionsDisplay(ctx);
-}
-
 /* Callback Query Handler */
 export async function handleCallbackQuery(ctx: Context) {
   const data = (ctx.callbackQuery as any).data as string;
-  const userId = ctx.from!.id.toString();
 
   // Handle Start Menu
   if (data.startsWith("start_")) {
@@ -87,6 +134,14 @@ export async function handleCallbackQuery(ctx: Context) {
   if (data.startsWith("buy_no:")) {
     const marketId = data.split(":")[1];
     return handleTradeCallbacks(ctx, "no", marketId);
+  }
+
+  if (data === "wallet_settings_menu") {
+    return handleWalletSettingsMenuCallbacks(ctx);
+  }
+
+  if (data === "export_private_key") {
+    return handleExportPrivateKey(ctx);
   }
 
   // Handle Close Menu
