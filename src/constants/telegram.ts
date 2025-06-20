@@ -19,15 +19,7 @@ export const ACTIVE_SUBSCRIPTIONS_MESSAGE = (categories: string[]) =>
 // Commands
 export const botCommands: BotCommand[] = [
   {
-    command: "subscribe",
-    description: "Select a Category to Subscribe To",
-  },
-  {
-    command: "unsubscribe",
-    description: "Select a Category to Unsubscribe From",
-  },
-  {
-    command: "mysubscriptions",
-    description: "View your Active Subscriptions",
+    command: "start",
+    description: "Start the bot",
   },
 ];
