@@ -6,7 +6,7 @@ import { createLegacyWallet } from "../../constants/legacy-ethers";
 
 interface CancelOrderRequest {
   privateKey: string;
-  orderId: string;
+  orderIds: string[];
   creds: ApiKeyCreds;
 }
 
@@ -23,9 +23,7 @@ export const cancelOrder = async (cancelOrderRequest: CancelOrderRequest) => {
     cancelOrderRequest.creds // API credentials
   );
 
-  const response = await clobClient.cancelOrder({
-    orderID: cancelOrderRequest.orderId,
-  });
+  const response = await clobClient.cancelOrders(cancelOrderRequest.orderIds);
   console.log("Response:", response);
 
   return response;
@@ -33,7 +31,7 @@ export const cancelOrder = async (cancelOrderRequest: CancelOrderRequest) => {
 
 // cancelOrder({
 //   privateKey: PRIVATE_KEY,
-//   orderId: "0x0000000000000000000000000000000000000000000000000000000000000000",
+//   orderIds: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
 //   creds: {
 //     key: "f3e137a7-3a85-d6fa-292a-3db867dcd441",
 //     secret: "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",

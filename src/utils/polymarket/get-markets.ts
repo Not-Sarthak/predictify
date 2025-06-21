@@ -1,5 +1,9 @@
+import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 import axios from "axios";
-import { getTokenIdsForMarket } from "./get-current-market-details";
+import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { CHAIN_ID } from "../../constants/polymarket";
+import { CLOB_API_URL } from "../../config/env";
+import { ethers } from "ethers";
 
 interface Market {
   id: string;
@@ -65,7 +69,7 @@ export async function fetchMarkets(): Promise<Market[]> {
 // });
 
 // Get Market by Slug
-async function getMarketBySlug(slug: string) {
+export async function getMarketBySlug(slug: string) {
   try {
     const response = await fetch(
       `https://gamma-api.polymarket.com/markets?slug=${slug}`
@@ -90,3 +94,46 @@ async function getMarketBySlug(slug: string) {
 //   return getTokenIdsForMarket(result?.conditionId);
 // });
 
+export async function getTokenIdsForMarket(conditionId: string): Promise<any> {
+  try {
+    const response = await fetch(
+      `https://gamma-api.polymarket.com/markets?condition_ids=${conditionId}`
+    );
+    const markets = await response.json();
+
+    if (markets && markets.length > 0) {
+      const market = markets[0];
+      const tokenIds = JSON.parse(market.clobTokenIds);
+      return {
+        yesTokenId: tokenIds[0],
+        noTokenId: tokenIds[1],
+        marketInfo: market,
+      };
+    }
+  } catch (error) {
+    console.error("Error Fetching Token IDs for Market:", error);
+    throw error;
+  }
+}
+
+// getTokenIdsForMarket("0x896d1877ca71ffa3d43c046fdacd4470f1a8c0cf91e14ed66d9d0e0b3099dfe5").then((result) => {
+//   console.log(result?.yesTokenId);
+//   console.log(result?.noTokenId);
+// });
+
+interface GetMarketsRequest {
+  privateKey: string;
+  creds: ApiKeyCreds;
+}
+
+export async function getMarkets(getMarketsRequest: GetMarketsRequest) {
+  const wallet = new ethers.Wallet(getMarketsRequest.privateKey);
+  const clobClient = new ClobClient(
+    CLOB_API_URL,
+    CHAIN_ID,
+    createLegacyWallet(wallet) as any,
+    getMarketsRequest.creds
+  );
+  const response = await clobClient.getMarkets();
+  return response;
+}

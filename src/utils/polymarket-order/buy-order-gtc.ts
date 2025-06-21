@@ -6,7 +6,7 @@ import { setUSDCAllowance } from "../polymarket/set-allowance";
 import { createLegacyWallet } from "../../constants/legacy-ethers";
 import { PRIVATE_KEY } from "../../config/env";
 
-interface OrderRequest {
+interface BuyOrderGTCRequest {
     size: number;
     price: number;
     orderType: OrderType;
@@ -17,7 +17,7 @@ interface OrderRequest {
     privateKey: string;
 }
 
-export async function buyOrder(orderRequest: OrderRequest) {
+export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     try {
         const wallet = new ethers.Wallet(orderRequest.privateKey);
         const walletAddress = await wallet.getAddress();
@@ -75,7 +75,7 @@ const creds: ApiKeyCreds = {
     passphrase: process.env.CLOB_PASS_PHRASE || "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
 };
 
-buyOrder({
+buyOrderGTC({
     // Minimum Size = $1
     size: 3,
     // Minimum = 0.001 and Maximum = 0.999 
