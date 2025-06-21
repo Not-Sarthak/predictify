@@ -1,4 +1,4 @@
-import { Context } from "telegraf";
+import { Context, Markup } from "telegraf";
 import { redisClient } from "../../config/redis";
 import {
   handleSubscriptionsMenu,
@@ -11,6 +11,8 @@ import {
 } from "./menu-handlers";
 import { formatActiveSubscriptionsMessage } from "./message-formatters";
 import { NO_SUBSCRIPTIONS_MESSAGE } from "../../constants/telegram";
+import { awaitingWalletDetailsInputSet } from "../../config/bot";
+import { supabase } from "../../config/supabase";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
   await ctx.editMessageReplyMarkup(undefined).catch(() => {});
@@ -106,6 +108,111 @@ export async function handleTradeCallbacks(
 
 export async function handleWalletSettingsMenuCallbacks(ctx: Context) {
   return handleWalletSettingsMenu(ctx);
+}
+
+export async function handleAddNewWalletCallback(ctx: Context) {
+  const userId = ctx.from?.id.toString();
+
+  try {
+    const { count, error: countError } = await supabase
+      .from("Copy_Wallets")
+      .select("*", { count: "exact" })
+      .eq("user_id", userId!);
+
+    if (countError)
+      throw new Error(countError.message, { cause: countError.cause });
+
+    if (count === 3)
+      return ctx.reply(`❌ You have reached your Maximum Wallet Limit`);
+  } catch (error) {
+    console.error("Error fetching user copy wallets details: ", error);
+    return ctx.reply(
+      `❌ There was an error fetching your details! Please try again.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  }
+
+  awaitingWalletDetailsInputSet.add(userId!);
+
+  const message = `🧾 *Add Wallet Instructions*
+
+Please enter your wallet in the following format:
+
+\`<wallet_name> <wallet_address>\`
+
+📌 *Example:*  
+\`my_wallet 0x56687bf447db6ffa42ffe2204a05edaa20f55839\`
+`;
+
+  return ctx.reply(message, { parse_mode: "Markdown" });
+}
+
+export async function handleDeleteWalletCallback(ctx: Context) {
+  const userId = ctx.from?.id.toString();
+
+  try {
+    const { data, error: countError } = await supabase
+      .from("Copy_Wallets")
+      .select("*")
+      .eq("user_id", userId!);
+
+    if (countError)
+      throw new Error(countError.message, { cause: countError.cause });
+
+    if (!data.length) return ctx.reply(`⚠️ You don't have any added Wallets!`);
+
+    const deleteWalletButtons = Markup.inlineKeyboard(
+      data.map((wallet) => {
+        return [
+          Markup.button.callback(
+            `${wallet.wallet_name} (${wallet.wallet_address})`,
+            `delete_copy_wallet:${wallet.wallet_address}`
+          ),
+        ];
+      })
+    );
+
+    return ctx.reply(`Your Wallets: `, deleteWalletButtons);
+
+    // const deleteWalletButtons = Markup.inlineKeyboard([]);
+  } catch (error) {
+    console.error("Error fetching user copy wallets details: ", error);
+    return ctx.reply(
+      `❌ There was an error fetching your wallet details! Please try again later.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  }
+}
+
+export async function handleDeleteUserWallet(
+  ctx: Context,
+  walletAddress: string
+) {
+  const userId = ctx.from?.id.toString()!;
+
+  try {
+    const { error } = await supabase
+      .from("Copy_Wallets")
+      .delete()
+      .filter("user_id", "eq", userId)
+      .filter("wallet_address", "eq", walletAddress);
+
+    if (error) throw new Error(error.message, { cause: error.cause });
+
+    ctx.reply("✅ Wallet was Successfully deleted!");
+  } catch (error) {
+    console.error("Error deleting user copy wallet: ", error);
+    return ctx.reply(
+      `❌ There was an error deleting copy wallet! Please try again later.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  }
 }
 
 export async function handleCloseMenu(ctx: Context) {

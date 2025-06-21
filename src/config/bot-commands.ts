@@ -12,9 +12,13 @@ import {
   handleTradeCallbacks,
   handleCloseMenu,
   handleWalletSettingsMenuCallbacks,
+  handleAddNewWalletCallback,
+  handleDeleteWalletCallback,
+  handleDeleteUserWallet,
 } from "../utils/telegram";
 import { supabase } from "./supabase";
 import { handleExportPrivateKey } from "../helpers/export-user-private-key";
+import { awaitingWalletDetailsInputSet } from "./bot";
 
 /* Command Handlers */
 export async function handleStartCommand(ctx: Context) {
@@ -97,6 +101,47 @@ export async function handleStartCommand(ctx: Context) {
   }
 }
 
+export async function handleUserTextMessage(ctx: Context) {
+  const textMessage = ctx.text?.trim();
+  if (!textMessage) return;
+
+  const userId = ctx.from?.id.toString();
+  if (!userId || !awaitingWalletDetailsInputSet.has(userId)) return;
+
+  const [walletName, walletAddress] = textMessage?.split(/\s+/);
+
+  if (!walletName || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+    return ctx.reply(
+      "❌ Invalid format. Try again using:\n\n`<wallet_name> <wallet_address>`"
+    );
+  }
+
+  try {
+    const { error } = await supabase.from("Copy_Wallets").insert([
+      {
+        user_id: userId,
+        wallet_name: walletName,
+        wallet_address: walletAddress,
+      },
+    ]);
+
+    if (error) throw new Error(error.message, { cause: error.cause });
+
+    awaitingWalletDetailsInputSet.delete(userId!);
+    return ctx.reply(`✅ Wallet *${walletName}* saved successfully!`, {
+      parse_mode: "Markdown",
+    });
+  } catch (error) {
+    console.error("Error adding user wallet in DB:", error);
+    return ctx.reply(
+      `❌ There was an error adding your wallet! Please try again later.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  }
+}
+
 /* Callback Query Handler */
 export async function handleCallbackQuery(ctx: Context) {
   const data = (ctx.callbackQuery as any).data as string;
@@ -136,12 +181,28 @@ export async function handleCallbackQuery(ctx: Context) {
     return handleTradeCallbacks(ctx, "no", marketId);
   }
 
+  if (data.startsWith("delete_copy_wallet:")) {
+    const walletAddress = data.split(":")[1];
+    return handleDeleteUserWallet(ctx, walletAddress);
+  }
+
   if (data === "wallet_settings_menu") {
     return handleWalletSettingsMenuCallbacks(ctx);
   }
 
+  // Handle Exporting Private Key
   if (data === "export_private_key") {
     return handleExportPrivateKey(ctx);
+  }
+
+  // Handle Add New Wallet
+  if (data === "add_new_wallet") {
+    return handleAddNewWalletCallback(ctx);
+  }
+
+  // Handle Delete Wallet Callback
+  if (data === "delete_wallet") {
+    return handleDeleteWalletCallback(ctx);
   }
 
   // Handle Close Menu
