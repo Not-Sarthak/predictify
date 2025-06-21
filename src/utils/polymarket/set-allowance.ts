@@ -1,58 +1,49 @@
-import { getContractConfig } from "@polymarket/clob-client";
 import { ethers } from "ethers";
+import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../constants/polymarket";
 import { getWallet } from "../../helpers/get-wallet-address";
-import type { BigNumberish } from "ethers";
-import {
-  getCtfContract,
-  getUsdcContract,
-} from "../../helpers/contract-utilities";
 
-export async function setAllowance(mainnet: boolean) {
-  const wallet = getWallet(mainnet);
-  const chainId = mainnet ? 137 : 80002;
-  const contractConfig = getContractConfig(chainId);
-  const USDC = getUsdcContract(mainnet, wallet);
-  const CTF = getCtfContract(mainnet, wallet);
+const WRAPPED_USDC_ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address account) external view returns (uint256)"
+];
 
-  const usdcAllowanceCTF = (await USDC.allowance(
-    wallet.address,
-    CTF.target
-  )) as BigNumberish;
-  const usdcAllowanceExchange = (await USDC.allowance(
-    wallet.address,
-    contractConfig.exchange
-  )) as BigNumberish;
-  const conditionalTokensAllowanceExchange = (await CTF.isApprovedForAll(
-    wallet.address,
-    contractConfig.exchange
-  )) as BigNumberish;
-
-  let txn;
-
-  if (ethers.toBigInt(usdcAllowanceCTF) === 0n) {
-    txn = await USDC.approve(
-      contractConfig.conditionalTokens,
-      ethers.MaxUint256,
-      {
-        gasPrice: 100_000_000_000,
-        gasLimit: 200_000,
+export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
+  try {
+      const provider = new ethers.JsonRpcProvider("https://polygon-rpc.com");
+      const connectedWallet = wallet.connect(provider);
+      
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, WRAPPED_USDC_ABI, connectedWallet);
+      
+      const currentAllowance = await usdcContract.allowance(
+          await wallet.getAddress(),
+          EXCHANGE_ADDRESS
+      );
+      
+      const currentAllowanceFormatted = ethers.formatUnits(currentAllowance, 6);
+      
+      const amountInUnits = ethers.parseUnits(amount, 6);
+      
+      if (currentAllowance < amountInUnits) {
+          
+          const allowanceAmount = ethers.parseUnits(amount, 6); // 1M USDC allowance
+          
+          const tx = await usdcContract.approve(EXCHANGE_ADDRESS, allowanceAmount);
+          
+          const receipt = await tx.wait();
+          console.log("Transaction Receipt for Wallet `", wallet.address, "`: ", receipt);
+          
+          return true;
+      } else {
+          return true;
       }
-    );
-    // console.log(`Setting USDC Allowance for CTF: ${txn.hash}`);
+      
+  } catch (error) {
+      console.error("Error Setting USDC Allowance for Wallet: ", wallet.address, error);
+      throw error;
   }
-  if (ethers.toBigInt(usdcAllowanceExchange) === 0n) {
-    txn = await USDC.approve(contractConfig.exchange, ethers.MaxUint256, {
-      gasPrice: 100_000_000_000,
-      gasLimit: 200_000,
-    });
-    // console.log(`Setting USDC Allowance for Exchange: ${txn.hash}`);
-  }
-  if (!conditionalTokensAllowanceExchange) {
-    txn = await CTF.setApprovalForAll(contractConfig.exchange, true, {
-      gasPrice: 100_000_000_000,
-      gasLimit: 200_000,
-    });
-    // console.log(`Setting Conditional Tokens Allowance for Exchange: ${txn.hash}`);
-  }
-  // console.log("Allowances Set");
 }
+
+setUSDCAllowance(getWallet(true), "1000000").then((result) => {
+  console.log(result);
+});

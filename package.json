@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "lfg": "bun run src/utils/polymarket-socket/connection.ts"
+    "lfg": "bun run src/utils/polymarket-order/sell-order.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

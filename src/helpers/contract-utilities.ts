@@ -9,11 +9,8 @@ export function getUsdcContract(
   mainnet: boolean,
   wallet: ethers.Wallet
 ): ethers.Contract {
-  console.log("Getting USDC contract");
   const chainId = mainnet ? 137 : 80002;
   const contractConfig = getContractConfig(chainId);
-  console.log("Contract config: ", contractConfig);
-  console.log("Wallet: ", wallet);
   return new ethers.Contract(contractConfig.collateral, USDC_ABI, wallet);
 }
 

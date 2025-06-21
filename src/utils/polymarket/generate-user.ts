@@ -5,7 +5,6 @@ import { Wallet, JsonRpcProvider } from "ethers"
 export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<GeneratedWallet> {
     const provider = new JsonRpcProvider(request.host)
     
-    // Generate a new random wallet
     const wallet = Wallet.createRandom().connect(provider)
 
     const walletWithLegacyMethods = {
@@ -22,8 +21,8 @@ export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<G
     const client = new ClobClient(request.host, request.chainId, walletWithLegacyMethods as any)
 
     try {
-        // Create a new API key for the new wallet instead of deriving
-        const apiCreds = await client.createApiKey();
+        const apiCreds = await client.createOrDeriveApiKey();
+
         console.log('Generated Wallet Address:', wallet.address);
         console.log('Generated Private Key:', wallet.privateKey);
         console.log('API Credentials:', apiCreds);

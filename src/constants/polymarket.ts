@@ -1,8 +1,6 @@
 import type { ContractConfig } from "@polymarket/clob-client";
 
 export const HOST = "https://clob.polymarket.com";
-export const PRIVATE_KEY =
-  "0xeab6ea12ac89da994f74828b4e0a2a4b71798390a4ce4bb67d568760b8cb6df5";
 export const CHAIN_ID = 137;
 
 export const CATEGORY_LIST = [
@@ -31,3 +29,6 @@ export const MATIC_CONTRACTS: ContractConfig = {
   collateral: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
   conditionalTokens: "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045",
 };
+
+export const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"; // USDC on Polygon
+export const EXCHANGE_ADDRESS = "0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E"; // Polymarket Exchange Contract
