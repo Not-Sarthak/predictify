@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { MAINNET_RPC_URL, USDC_CONTRACT_ADDRESS } from '../config/env';
 import { USDC_ADDRESS } from '../constants/polymarket';
 
-const USDC_ABI = ['function balanceOf(address owner) view returns (uint256)'];
+const USDC_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 
 export const getUserUSDCBalance = async (address: string): Promise<number> => {
     const rpcProvider = new ethers.JsonRpcProvider(MAINNET_RPC_URL);
@@ -14,15 +14,12 @@ export const getUserUSDCBalance = async (address: string): Promise<number> => {
 
 export const getUserWrappedUSDCBalance = async (address: string): Promise<number> => {
     const rpcProvider = new ethers.JsonRpcProvider(MAINNET_RPC_URL);
-    console.log(address);
     const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, rpcProvider);
     const balance_usdc = await usdcContract.balanceOf(address);
-    console.log(balance_usdc);
     const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
-    console.log(balance_usdc_real);
     return parseFloat(balance_usdc_real);
 };
 
-getUserWrappedUSDCBalance("0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB").then((result) => {
-    console.log(result);
-});
+// getUserWrappedUSDCBalance("0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB").then((result) => {
+//     console.log(result);
+// });

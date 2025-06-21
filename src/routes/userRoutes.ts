@@ -14,7 +14,7 @@ export async function userRoutes(server: FastifyInstance) {
 
     const { data, error } = await supabase
       .from("Users")
-      .select("id, telegram_username, wallet_address, fees_total")
+      .select("*")
       .eq("id", id)
       .single();
 
