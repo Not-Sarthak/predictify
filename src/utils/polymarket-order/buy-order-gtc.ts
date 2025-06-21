@@ -17,6 +17,7 @@ interface BuyOrderGTCRequest {
     privateKey: string;
 }
 
+// GTC -> Good Till Canceled. Order Stays Active until you Manually Cancel it or it gets Filled
 export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     try {
         const wallet = new ethers.Wallet(orderRequest.privateKey);

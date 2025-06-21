@@ -21,6 +21,7 @@ interface OrderGTDRequest {
   side: Side; // Side.BUY or Side.SELL
 }
 
+// GTD -> Good Till Date. Order Stays active until the Expiration Time, then Auto-Cancels.
 export async function orderGTD(orderGTDRequest: OrderGTDRequest) {
   const wallet = new ethers.Wallet(orderGTDRequest.privateKey);
   const chainId = CHAIN_ID;
