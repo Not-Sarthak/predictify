@@ -13,3 +13,8 @@ getNofications.ts
 implemented but not tested:
 marketBuyOrder.ts
 marketSellOrder.ts
+
+
+Tag bot and give info
+
+solana address

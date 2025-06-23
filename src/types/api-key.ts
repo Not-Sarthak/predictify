@@ -12,5 +12,7 @@ export type ApiKeyCreds = {
 export type GeneratedWallet = {
     address: string;
     privateKey: string;
+    solanaAddress: string;
+    solanaPrivateKey: string;
     apiCreds: ApiKeyCreds;
 }

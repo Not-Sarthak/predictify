@@ -31,3 +31,7 @@ export const SUPABASE_SERVICE_ROLE_KEY = env
   .get("SUPABASE_SERVICE_ROLE_KEY")
   .required()
   .asString();
+
+export const DEBRIDGE_API_URL =
+  process.env.DEBRIDGE_API_URL || "https://dln.debridge.finance/v1.0/";
+export const DEBRIDGE_API_KEY = process.env.DEBRIDGE_API_KEY || "";
