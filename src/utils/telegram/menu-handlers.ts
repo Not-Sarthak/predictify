@@ -1,6 +1,6 @@
 import { Context, Markup } from "telegraf";
 import {
-  getUserBalance,
+  getUserWrappedUSDCBalance,
   getUserTotalBalance,
 } from "../../helpers/get-user-balance";
 import { supabase } from "../../config/supabase";
@@ -89,7 +89,7 @@ export async function handleWalletSettingsMenu(ctx: Context) {
 
     const walletAddress = user.wallet_address;
 
-    const usdcBalance = await getUserBalance(walletAddress);
+    const usdcBalance = await getUserWrappedUSDCBalance(walletAddress);
     const totalBalance = await getUserTotalBalance(walletAddress);
 
     const message =

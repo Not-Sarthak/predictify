@@ -1,5 +1,5 @@
 import { Context, Markup } from "telegraf";
-import { getUserBalance } from "../helpers/get-user-balance";
+import { getUserWrappedUSDCBalance } from "../helpers/get-user-balance";
 import { generateAPIKeyAndWallet } from "../utils/polymarket/generate-user";
 import { HOST, CHAIN_ID } from "../constants/polymarket";
 import {
@@ -33,14 +33,13 @@ export async function handleStartCommand(ctx: Context) {
       .single();
 
     if (fetchError && fetchError.code !== "PGRST116") {
-      // PGRST116 = No rows found; safe to ignore
-      console.error("Error checking existing user:", fetchError);
-      return ctx.reply("❌ Something went wrong. Please try again later.");
+      console.error("Error Checking Existing User:", fetchError);
+      return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
     }
 
     if (existingUser) {
       // User already exists
-      const balance = await getUserBalance(existingUser.wallet_address);
+      const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
 
       const message = formatWelcomeMessage(
         existingUser.wallet_address,
@@ -64,7 +63,7 @@ export async function handleStartCommand(ctx: Context) {
     });
 
     const address = walletData.address;
-    const balance = await getUserBalance(address);
+    const balance = await getUserWrappedUSDCBalance(address);
 
     const { error } = await supabase.from("Users").insert([
       {
@@ -77,8 +76,8 @@ export async function handleStartCommand(ctx: Context) {
     ]);
 
     if (error) {
-      console.error("Error inserting new user:", error);
-      return ctx.reply("❌ There was an error creating your account.");
+      console.error("Error Inserting New User:", error);
+      return ctx.reply("❌ There Was an Error Creating Your Account.");
     }
 
     const inlineKeyboard = Markup.inlineKeyboard(
@@ -96,8 +95,8 @@ export async function handleStartCommand(ctx: Context) {
       reply_markup: inlineKeyboard,
     });
   } catch (error) {
-    console.error("Error generating wallet:", error);
-    return ctx.reply("❌ Failed to generate wallet. Please try again.");
+    console.error("Error Generating Wallet:", error);
+    return ctx.reply("❌ Failed to Generate Wallet. Please Try Again.");
   }
 }
 
@@ -132,9 +131,9 @@ export async function handleUserTextMessage(ctx: Context) {
       parse_mode: "Markdown",
     });
   } catch (error) {
-    console.error("Error adding user wallet in DB:", error);
+    console.error("Error Adding User Wallet in DB:", error);
     return ctx.reply(
-      `❌ There was an error adding your wallet! Please try again later.`,
+      `❌ There Was an Error Adding Your Wallet! Please Try Again Later.`,
       {
         parse_mode: "Markdown",
       }

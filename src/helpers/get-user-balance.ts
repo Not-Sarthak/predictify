@@ -23,3 +23,7 @@ export const getUserWrappedUSDCBalance = async (address: string): Promise<number
 // getUserWrappedUSDCBalance("0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB").then((result) => {
 //     console.log(result);
 // });
+
+export const getUserTotalBalance = async (address: string): Promise<number> => {
+    return 0;
+}
