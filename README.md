@@ -15,3 +15,7 @@ marketSellOrder.ts
 --- BOT INTEGRATION for Open/Close Position ---
 
 - Trade Button -> Top Markets Button (Calls `getTopMarkets()`)
+
+Tag bot and give info
+
+solana address

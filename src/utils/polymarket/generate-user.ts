@@ -1,6 +1,7 @@
 import { ClobClient } from "@polymarket/clob-client"
 import type { APIKeyRequest, GeneratedWallet } from "../../types/api-key"
 import { Wallet, JsonRpcProvider } from "ethers"
+import { Keypair } from "@solana/web3.js"
 
 export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<GeneratedWallet> {
     const provider = new JsonRpcProvider(request.host)
@@ -18,19 +19,27 @@ export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<G
         provider: provider
     }
 
+    const solanaKeypair = Keypair.generate()
+    const solanaAddress = solanaKeypair.publicKey.toString()
+    const solanaPrivateKey = Buffer.from(solanaKeypair.secretKey).toString('base64')
+
     const client = new ClobClient(request.host, request.chainId, walletWithLegacyMethods as any)
 
     try {
         const apiCreds = await client.createOrDeriveApiKey();
 
-        console.log('Generated Wallet Address:', wallet.address);
-        console.log('Generated Private Key:', wallet.privateKey);
+        console.log('Generated Ethereum Wallet Address:', wallet.address);
+        console.log('Generated Ethereum Private Key:', wallet.privateKey);
+        console.log('Generated Solana Wallet Address:', solanaAddress);
+        console.log('Generated Solana Private Key:', solanaPrivateKey);
         console.log('API Credentials:', apiCreds);
         
         return {
             address: wallet.address,
             privateKey: wallet.privateKey,
-            apiCreds: apiCreds
+            apiCreds: apiCreds,
+            solanaAddress: solanaAddress,
+            solanaPrivateKey: solanaPrivateKey
         };
     } catch (error) {
         console.error('Error:', error)
