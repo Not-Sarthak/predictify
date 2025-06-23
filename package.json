@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "lfg": "bun run src/utils/polymarket-order/buy-order.ts"
+    "open": "bun run src/utils/polymarket-order/buy-order-gtc.ts",
+    "close": "bun run src/utils/polymarket-order/sell-order.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
