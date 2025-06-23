@@ -15,10 +15,24 @@ import {
   handleAddNewWalletCallback,
   handleDeleteWalletCallback,
   handleDeleteUserWallet,
+  handleViewTradePositions,
+  handleFetchMarketWithOffsetCallback,
+  handleSelectedMarketCallback,
+  handleManageTradePositionsCallback,
 } from "../utils/telegram";
 import { supabase } from "./supabase";
 import { handleExportPrivateKey } from "../helpers/export-user-private-key";
-import { awaitingWalletDetailsInputSet } from "./bot";
+import {
+  awaitingMarketTermInputSet,
+  awaitingOrderDetailsInputSet,
+  awaitingWalletDetailsInputSet,
+} from "./bot";
+import { redisClient } from "./redis";
+import {
+  handleMarketTermTextMessage,
+  handleOrderDetailsTextMessage,
+  handleWalletDetailsTextMessage,
+} from "../utils/telegram/text-handlers";
 
 /* Command Handlers */
 export async function handleStartCommand(ctx: Context) {
@@ -39,7 +53,9 @@ export async function handleStartCommand(ctx: Context) {
 
     if (existingUser) {
       // User already exists
-      const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
+      const balance = await getUserWrappedUSDCBalance(
+        existingUser.wallet_address
+      );
 
       const message = formatWelcomeMessage(
         existingUser.wallet_address,
@@ -105,39 +121,18 @@ export async function handleUserTextMessage(ctx: Context) {
   if (!textMessage) return;
 
   const userId = ctx.from?.id.toString();
-  if (!userId || !awaitingWalletDetailsInputSet.has(userId)) return;
+  if (!userId) return;
 
-  const [walletName, walletAddress] = textMessage?.split(/\s+/);
-
-  if (!walletName || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-    return ctx.reply(
-      "❌ Invalid format. Try again using:\n\n`<wallet_name> <wallet_address>`"
-    );
+  if (awaitingWalletDetailsInputSet.has(userId)) {
+    return handleWalletDetailsTextMessage(ctx, textMessage, userId);
   }
 
-  try {
-    const { error } = await supabase.from("Copy_Wallets").insert([
-      {
-        user_id: userId,
-        wallet_name: walletName,
-        wallet_address: walletAddress,
-      },
-    ]);
+  if (awaitingMarketTermInputSet.has(userId)) {
+    return handleMarketTermTextMessage(ctx, textMessage, userId);
+  }
 
-    if (error) throw new Error(error.message, { cause: error.cause });
-
-    awaitingWalletDetailsInputSet.delete(userId!);
-    return ctx.reply(`✅ Wallet *${walletName}* saved successfully!`, {
-      parse_mode: "Markdown",
-    });
-  } catch (error) {
-    console.error("Error Adding User Wallet in DB:", error);
-    return ctx.reply(
-      `❌ There Was an Error Adding Your Wallet! Please Try Again Later.`,
-      {
-        parse_mode: "Markdown",
-      }
-    );
+  if (awaitingOrderDetailsInputSet.has(userId)) {
+    return handleOrderDetailsTextMessage(ctx, textMessage, userId);
   }
 }
 
@@ -180,11 +175,74 @@ export async function handleCallbackQuery(ctx: Context) {
     return handleTradeCallbacks(ctx, "no", marketId);
   }
 
+  // Handle Fetching Previous and Next Markets
+  if (data.startsWith("fetch_markets:")) {
+    const [queryText, action, offset] = data.split(":").splice(1);
+    return handleFetchMarketWithOffsetCallback(
+      ctx,
+      queryText,
+      action as "next" | "prev",
+      Number(offset)
+    );
+  }
+
+  // Handle Selected Market
+  if (data.startsWith("selected_market:")) {
+    const marketId = data.split(":")[1];
+    return handleSelectedMarketCallback(ctx, marketId);
+  }
+
+  // Handle Selected Order
+  if (data.startsWith("selected_order:")) {
+    const userId = ctx.from?.id.toString()!;
+    const [marketId, orderType] = data.split(":").splice(1);
+
+    await redisClient.hSet(`user:order_context:${userId}`, {
+      marketId,
+      orderType,
+    });
+    awaitingOrderDetailsInputSet.add(userId);
+
+    await ctx.reply(
+      `✍️ Send Order Details in this format:
+
+<yes OR no> <price> <size>
+
+Example:
+yes 123.45 100
+`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+
+    await ctx.answerCbQuery();
+  }
+
+  // Handle View Open Trade Positions
+  if (data === "trade_position_view") {
+    return handleViewTradePositions(ctx);
+  }
+
+  // Handle Open/Close Trade Positions (Open = Buy, Close = Sell)
+  if (data === "trade_position_open") {
+    const action = data.split("_")[2];
+    return handleManageTradePositionsCallback(ctx, action);
+  }
+
+  // Handle Close Trade Position (Sell)
+  if (data === "trade_position_close") {
+    const action = data.split("_")[2];
+    return handleManageTradePositionsCallback(ctx, action);
+  }
+
+  // Handle Delete User Wallet
   if (data.startsWith("delete_copy_wallet:")) {
     const walletAddress = data.split(":")[1];
     return handleDeleteUserWallet(ctx, walletAddress);
   }
 
+  // Handle Wallet Settings Menu Callback
   if (data === "wallet_settings_menu") {
     return handleWalletSettingsMenuCallbacks(ctx);
   }

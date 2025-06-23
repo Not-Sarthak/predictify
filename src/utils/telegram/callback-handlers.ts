@@ -9,10 +9,19 @@ import {
   handleUnsubscribeMenu,
   handleWalletSettingsMenu,
 } from "./menu-handlers";
-import { formatActiveSubscriptionsMessage } from "./message-formatters";
+import {
+  formatActiveSubscriptionsMessage,
+  formatCurrentTradePositionsMessage,
+} from "./message-formatters";
 import { NO_SUBSCRIPTIONS_MESSAGE } from "../../constants/telegram";
-import { awaitingWalletDetailsInputSet } from "../../config/bot";
+import {
+  awaitingMarketTermInputSet,
+  awaitingWalletDetailsInputSet,
+} from "../../config/bot";
 import { supabase } from "../../config/supabase";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { getUserPosition } from "../polymarket/get-user-position";
+import type { InlineKeyboardButton } from "telegraf/types";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
   await ctx.editMessageReplyMarkup(undefined).catch(() => {});
@@ -213,6 +222,142 @@ export async function handleDeleteUserWallet(
       }
     );
   }
+}
+
+export async function handleViewTradePositions(ctx: Context) {
+  const userId = ctx.from?.id!;
+  const userAddress = await getUserAddressFromId(userId);
+
+  if (!userAddress) {
+    return ctx.reply(
+      "⚠️ No associated wallet address found with your account!"
+    );
+  }
+
+  const userPositions = await getUserPosition({
+    user: "0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB",
+  }); // REPLACE THIS WITH THE BELOW LINE
+  // const userPositions = await getUserPosition({ user: userAddress });
+
+  const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(
+    userPositions.slice(0, 2)
+  );
+
+  for (const message of formattedUserPositionsMessages) {
+    await ctx.reply(message, { parse_mode: "Markdown" });
+  }
+}
+
+export async function handleManageTradePositionsCallback(
+  ctx: Context,
+  action: string
+) {
+  const userId = ctx.from?.id!;
+
+  awaitingMarketTermInputSet.add(userId.toString());
+  await redisClient.hSet(`user:order_action:${userId}`, {
+    action: action === "open" ? "OPEN" : "CLOSE",
+  });
+
+  return ctx.reply(
+    `✍️ *Enter a term to search*\n\n` +
+      `<term>\n\n` +
+      `Example:\n\`basketball\`\n\n` +
+      `You can enter any keyword to get relevant results.`,
+    { parse_mode: "Markdown" }
+  );
+}
+
+export async function handleFetchMarketWithOffsetCallback(
+  ctx: Context,
+  queryText: string,
+  action: "next" | "prev",
+  offset: number
+) {
+  const newOffset = action === "next" ? offset + 5 : offset - 5;
+
+  const response = await fetch(
+    `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=${newOffset}`
+  );
+  const marketData = await response.json();
+
+  if (marketData.length == 0) {
+    return ctx.reply("⚠️ There are no more markets!");
+  }
+
+  const marketTitleButtons: InlineKeyboardButton[][] = [];
+
+  for (const market of marketData) {
+    marketTitleButtons.push([
+      Markup.button.callback(market.title, `selected_market:${market.id}`),
+    ]);
+  }
+
+  const offsetButtons: InlineKeyboardButton[] = [];
+
+  if (newOffset >= 5) {
+    offsetButtons.push(
+      Markup.button.callback(
+        "⏮️ Prev",
+        `fetch_markets:${queryText}:prev:${offset - 5}`
+      )
+    );
+  }
+
+  offsetButtons.push(
+    Markup.button.callback(
+      "Next ⏭️",
+      `fetch_markets:${queryText}:next:${offset + 5}`
+    )
+  );
+
+  marketTitleButtons.push(offsetButtons);
+
+  await ctx.editMessageText("Markets: ", {
+    reply_markup: Markup.inlineKeyboard(marketTitleButtons).reply_markup,
+  });
+
+  await ctx.answerCbQuery();
+}
+
+export async function handleSelectedMarketCallback(
+  ctx: Context,
+  marketId: string
+) {
+  const userId = ctx.from?.id.toString()!;
+
+  const orderTypeButtons: InlineKeyboardButton[][] = [
+    [
+      Markup.button.callback(
+        "Good Till Cancel",
+        `selected_order:${marketId}:gtc`
+      ),
+    ],
+    [
+      Markup.button.callback(
+        "Good Till Date",
+        `selected_order:${marketId}:gtd`
+      ),
+    ],
+    [
+      Markup.button.callback(
+        "Fill or Kill Order",
+        `selected_order:${marketId}:fok`
+      ),
+    ],
+    [
+      Markup.button.callback(
+        "Fill and Kill Order",
+        `selected_order:${marketId}:fak`
+      ),
+    ],
+  ];
+
+  await ctx.editMessageText("Select Order Type: ", {
+    reply_markup: Markup.inlineKeyboard(orderTypeButtons).reply_markup,
+  });
+
+  await ctx.answerCbQuery();
 }
 
 export async function handleCloseMenu(ctx: Context) {

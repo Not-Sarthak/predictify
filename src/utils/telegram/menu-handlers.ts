@@ -41,10 +41,11 @@ export async function handleUnsubscribeMenu(ctx: Context) {
 export async function handleTradeMenu(ctx: Context) {
   const tradeButtons = [
     [
-      Markup.button.callback("⚡ Open Position", "Open a New Position"),
-      Markup.button.callback("📈 View Positions", "View your Open Positions"),
+      Markup.button.callback("⚡ Open Position", "trade_position_open"),
+      Markup.button.callback("🌂 Close Position", "trade_position_close"),
     ],
-    [Markup.button.callback("🔎 Top Markets", "View Top Markets")],
+    [Markup.button.callback("📈 View Positions", "trade_position_view")],
+    [Markup.button.callback("🔎 Top Markets", "trade_top_markets_view")],
   ];
 
   return ctx.reply("Trade Menu:", Markup.inlineKeyboard(tradeButtons));
@@ -88,9 +89,10 @@ export async function handleWalletSettingsMenu(ctx: Context) {
     }
 
     const walletAddress = user.wallet_address;
-
-    const usdcBalance = await getUserWrappedUSDCBalance(walletAddress);
-    const totalBalance = await getUserTotalBalance(walletAddress);
+    const [usdcBalance, totalBalance] = await Promise.all([
+      getUserWrappedUSDCBalance(walletAddress),
+      getUserTotalBalance(walletAddress),
+    ]);
 
     const message =
       `🔑 <b>Your wallet address:</b>\n<code>${walletAddress}</code>\n\n` +

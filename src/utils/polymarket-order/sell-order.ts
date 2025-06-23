@@ -91,18 +91,18 @@ export async function sellOrder(sellOrderDetails: SellOrderDetailsInterface) {
   }
 }
 
-sellOrder({
-  tokenId:
-    "25009308950201377351599447846248861147611469669632550804193755818060327719237",
-  price: 0.03,
-  size: 6,
-  orderType: OrderType.GTC,
-  creds: {
-    key: process.env.CLOB_API_KEY || "f3e137a7-3a85-d6fa-292a-3db867dcd441",
-    secret:
-      process.env.CLOB_SECRET || "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
-    passphrase:
-      process.env.CLOB_PASS_PHRASE ||
-      "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
-  },
-});
+// sellOrder({
+//   tokenId:
+//     "25009308950201377351599447846248861147611469669632550804193755818060327719237",
+//   price: 0.03,
+//   size: 6,
+//   orderType: OrderType.GTC,
+//   creds: {
+//     key: process.env.CLOB_API_KEY || "f3e137a7-3a85-d6fa-292a-3db867dcd441",
+//     secret:
+//       process.env.CLOB_SECRET || "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
+//     passphrase:
+//       process.env.CLOB_PASS_PHRASE ||
+//       "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
+//   },
+// });
