@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
+    "start:watch": "bun run --watch src/index.ts",
     "open": "bun run src/utils/polymarket-order/buy-order-gtc.ts",
     "close": "bun run src/utils/polymarket-order/sell-order.ts"
   },
