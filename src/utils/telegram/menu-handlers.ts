@@ -53,8 +53,8 @@ export async function handleTradeMenu(ctx: Context) {
 export async function handleAutoTradeMenu(ctx: Context) {
   const autoTradeButtons = [
     [
-      Markup.button.callback("➕ Add Wallet", "Adds a New Wallet"),
-      Markup.button.callback("🗑️ Delete Wallet", "Delete your wallet"),
+      Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
+      Markup.button.callback("🗑️ Delete Wallet", "delete_wallet"),
     ],
     [Markup.button.callback("✅ Enable CopyTrade", "Turn on CopyTrading")],
     [Markup.button.callback("❌ Close", "close_menu")],
