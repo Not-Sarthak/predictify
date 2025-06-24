@@ -224,13 +224,13 @@ yes 123.45 100
     return handleViewTradePositions(ctx);
   }
 
-  // Handle Open/Close Trade Positions (Open = Buy, Close = Sell)
+  // Handle Open Trade Positions (Open = Buy)
   if (data === "trade_position_open") {
     const action = data.split("_")[2];
     return handleManageTradePositionsCallback(ctx, action);
   }
 
-  // Handle Close Trade Position (Sell)
+  // Handle Close Trade Position (Close = Sell)
   if (data === "trade_position_close") {
     const action = data.split("_")[2];
     return handleManageTradePositionsCallback(ctx, action);

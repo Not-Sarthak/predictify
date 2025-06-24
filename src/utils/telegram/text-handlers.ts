@@ -221,5 +221,5 @@ export async function handleOrderDetailsTextMessage(
     redisClient.del(`user:order_action:${userId}`),
   ]);
 
-  ctx.reply("Good");
+  ctx.reply("✅ Your Order is Placed!");
 }
