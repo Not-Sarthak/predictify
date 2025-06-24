@@ -13,6 +13,7 @@ import { OrderType, Side } from "@polymarket/clob-client";
 import { orderGTD } from "../polymarket-order/buy-and-sell-order-gtd";
 import { marketBuyOrder } from "../polymarket-order/market-buy-order";
 import { getTokenId } from "../../helpers/get-token-id";
+import { PRIVATE_KEY } from "../../config/env";
 
 export async function handleWalletDetailsTextMessage(
   ctx: Context,
@@ -102,8 +103,6 @@ export async function handleOrderDetailsTextMessage(
   ]);
 
   if (
-    !orderContext ||
-    !orderAction ||
     !orderContext.marketId ||
     !orderContext.orderType ||
     !orderAction.action
@@ -128,93 +127,100 @@ export async function handleOrderDetailsTextMessage(
   const { private_key, api_credentials } = userDetails;
   const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
 
-  if (orderType === "gtc") {
-    action === "OPEN"
-      ? await buyOrderGTC({
-          size: Number(size),
-          price: Number(price),
-          orderType: OrderType.GTC,
-          tokenId,
-          side: Side.BUY,
-          feeRateBps: 0,
-          apiCreds,
-          privateKey: private_key, // NEED TO CHECK, WHICH PRIVATE KEY TO USE - FROM USER DATA OR ENV VARIABLE
-        })
-      : await buyOrderGTC({
-          size: Number(size),
-          price: Number(price),
-          orderType: OrderType.GTC,
-          tokenId,
-          side: Side.SELL,
-          feeRateBps: 0,
-          apiCreds,
-          privateKey: private_key,
-        });
-  } else if (orderType === "gtd") {
-    action === "OPEN"
-      ? await orderGTD({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          price: Number(price),
-          size: Number(size),
-          expiration: 1000,
-          side: Side.BUY,
-        })
-      : await orderGTD({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          price: Number(price),
-          size: Number(size),
-          expiration: 1000,
-          side: Side.SELL,
-        });
-  } else if (orderType === "fok") {
-    action === "OPEN"
-      ? await marketBuyOrder({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          amount: Number(price),
-          side: Side.BUY,
-          orderType: OrderType.FOK,
-        })
-      : await marketBuyOrder({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          amount: Number(price),
-          side: Side.SELL,
-          orderType: OrderType.FOK,
-        });
-  } else if (orderType === "fak") {
-    action === "OPEN"
-      ? await marketBuyOrder({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          amount: Number(price),
-          side: Side.BUY,
-          orderType: OrderType.FAK,
-        })
-      : await marketBuyOrder({
-          privateKey: private_key,
-          creds: apiCreds,
-          tokenId,
-          amount: Number(price),
-          side: Side.SELL,
-          orderType: OrderType.FAK,
-        });
-  } else {
-    return ctx.reply("❌ Invalid Order Type!");
+  try {
+    if (orderType === "gtc") {
+      action === "OPEN"
+        ? await buyOrderGTC({
+            size: Number(size),
+            price: Number(price),
+            orderType: OrderType.GTC,
+            tokenId,
+            side: Side.BUY,
+            feeRateBps: 0,
+            apiCreds,
+            privateKey: PRIVATE_KEY, // NEED TO CHECK, WHICH PRIVATE KEY TO USE - FROM USER DATA OR ENV VARIABLE
+          })
+        : await buyOrderGTC({
+            size: Number(size),
+            price: Number(price),
+            orderType: OrderType.GTC,
+            tokenId,
+            side: Side.SELL,
+            feeRateBps: 0,
+            apiCreds,
+            privateKey: private_key,
+          });
+    } else if (orderType === "gtd") {
+      action === "OPEN"
+        ? await orderGTD({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            price: Number(price),
+            size: Number(size),
+            expiration: 1000,
+            side: Side.BUY,
+          })
+        : await orderGTD({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            price: Number(price),
+            size: Number(size),
+            expiration: 1000,
+            side: Side.SELL,
+          });
+    } else if (orderType === "fok") {
+      action === "OPEN"
+        ? await marketBuyOrder({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            amount: Number(price),
+            side: Side.BUY,
+            orderType: OrderType.FOK,
+          })
+        : await marketBuyOrder({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            amount: Number(price),
+            side: Side.SELL,
+            orderType: OrderType.FOK,
+          });
+    } else if (orderType === "fak") {
+      action === "OPEN"
+        ? await marketBuyOrder({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            amount: Number(price),
+            side: Side.BUY,
+            orderType: OrderType.FAK,
+          })
+        : await marketBuyOrder({
+            privateKey: private_key,
+            creds: apiCreds,
+            tokenId,
+            amount: Number(price),
+            side: Side.SELL,
+            orderType: OrderType.FAK,
+          });
+    } else {
+      return ctx.reply("❌ Invalid Order Type!");
+    }
+
+    ctx.reply("✅ Your Order is Placed!");
+  } catch (error) {
+    console.error("Error placing the order: ", error);
+    return ctx.reply(
+      "❌ There was an error placing your order! Please contact the bot owner."
+    );
+  } finally {
+    awaitingOrderDetailsInputSet.delete(userId);
+    await Promise.all([
+      redisClient.del(`user:order_context:${userId}`),
+      redisClient.del(`user:order_action:${userId}`),
+    ]);
   }
-
-  awaitingOrderDetailsInputSet.delete(userId);
-  await Promise.all([
-    redisClient.del(`user:order_context:${userId}`),
-    redisClient.del(`user:order_action:${userId}`),
-  ]);
-
-  ctx.reply("✅ Your Order is Placed!");
 }
