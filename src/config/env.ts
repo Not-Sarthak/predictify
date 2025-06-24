@@ -17,6 +17,7 @@ export const USDC_CONTRACT_ADDRESS = env
   .asString();
 
 export const MAINNET_RPC_URL = env.get("MAINNET_RPC_URL").required().asString();
+
 export const TESTNET_RPC_URL = env.get("TESTNET_RPC_URL").required().asString();
 
 export const PRIVATE_KEY = env.get("PRIVATE_KEY").required().asString();
@@ -32,6 +33,13 @@ export const SUPABASE_SERVICE_ROLE_KEY = env
   .required()
   .asString();
 
-export const DEBRIDGE_API_URL =
-  process.env.DEBRIDGE_API_URL || "https://dln.debridge.finance/v1.0/";
-export const DEBRIDGE_API_KEY = process.env.DEBRIDGE_API_KEY || "";
+export const DEBRIDGE_API_URL = env
+  .get("DEBRIDGE_API_URL")
+  .default("https://dln.debridge.finance/v1.0/")
+  .required()
+  .asString();
+export const DEBRIDGE_API_KEY = env
+  .get("DEBRIDGE_API_KEY")
+  .default("-")
+  .required()
+  .asString();

@@ -12,6 +12,7 @@ import { buyOrderGTC } from "../polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { orderGTD } from "../polymarket-order/buy-and-sell-order-gtd";
 import { marketBuyOrder } from "../polymarket-order/market-buy-order";
+import { getTokenId } from "../../helpers/get-token-id";
 
 export async function handleWalletDetailsTextMessage(
   ctx: Context,
@@ -100,37 +101,31 @@ export async function handleOrderDetailsTextMessage(
     redisClient.hGetAll(`user:order_action:${userId}`),
   ]);
 
-  if (!orderContext || !orderContext.marketId || !orderContext.orderType) {
+  if (
+    !orderContext ||
+    !orderAction ||
+    !orderContext.marketId ||
+    !orderContext.orderType ||
+    !orderAction.action
+  ) {
     return ctx.reply(
       "❌ Something went wrong. Please try placing your order again."
     );
   }
 
-  if (!orderAction || !orderAction.action) {
-    return ctx.reply(
-      "❌ Something went wrong. Please try placing your order again."
-    );
-  }
-
-  let tokenId;
   const { marketId, orderType } = orderContext;
   const { action } = orderAction;
 
-  try {
-    const response = await fetch(
-      `https://gamma-api.polymarket.com/markets?id=${marketId}`
-    );
-    const data = await response.json();
-    const marketData = data[0];
-    const tokenIds = JSON.parse(marketData.clobTokenIds);
+  const [tokenId, userDetails] = await Promise.all([
+    getTokenId(decision, marketId),
+    getUserDetails(Number(userId)),
+  ]);
 
-    tokenId = decision === "yes" ? tokenIds[0] : tokenIds[1];
-  } catch (error) {
-    console.error("Error fetching Token IDs: ", error);
+  if (!tokenId) {
     return ctx.reply("⚠️ Error placing your order! Please try again later.");
   }
 
-  const { private_key, api_credentials } = await getUserDetails(Number(userId));
+  const { private_key, api_credentials } = userDetails;
   const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
 
   if (orderType === "gtc") {
