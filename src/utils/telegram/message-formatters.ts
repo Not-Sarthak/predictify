@@ -57,7 +57,7 @@ export function formatCurrentTradePositionsMessage(
     } = position;
 
     const isProfit = cashPnl > 0;
-    const pnlEmoji = isProfit ? "🔺" : "🔻";
+    const pnlEmoji = isProfit ? "📈" : "📉";
     const outcomeEmoji = outcome === "Yes" ? "🟢" : "🔴";
 
     const message = `📊 *${title}*

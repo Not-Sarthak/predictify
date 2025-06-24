@@ -138,7 +138,7 @@ export async function handleOrderDetailsTextMessage(
             side: Side.BUY,
             feeRateBps: 0,
             apiCreds,
-            privateKey: PRIVATE_KEY, // NEED TO CHECK, WHICH PRIVATE KEY TO USE - FROM USER DATA OR ENV VARIABLE
+            privateKey: private_key,
           })
         : await buyOrderGTC({
             size: Number(size),
