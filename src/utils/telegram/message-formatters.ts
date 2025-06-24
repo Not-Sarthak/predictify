@@ -10,7 +10,8 @@ function formatDate(dateString: string): string {
 }
 
 export function formatWelcomeMessage(
-  address: string,
+  evm_address: string,
+  solana_address: string,
   balance: string,
   apiCreds: { key: string; secret: string; passphrase: string }
 ): string {
@@ -18,10 +19,12 @@ export function formatWelcomeMessage(
 Welcome back to Polymarket Bot!
 
 🔐 Your New Wallet:
-Address: <code>${address}</code>
+EVM Address: <code>${evm_address}</code>
+Solana Address: <code>${solana_address || "N/A"}</code>
+
 Balance: ${balance} USDC
 
-🔑 API Credentials:
+🔑 Credentials:
 Key: <code>${apiCreds.key}</code>
 Secret: <code>${apiCreds.secret}</code>
 Passphrase: <code>${apiCreds.passphrase}</code>

@@ -9,6 +9,8 @@ import {
 import { CHAIN_ID } from "../../constants/polymarket";
 import { CLOB_API_URL } from "../../config/env";
 import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { setUSDCAllowance } from "../polymarket/set-allowance";
 
 interface OrderGTDRequest {
   privateKey: string;
@@ -33,35 +35,59 @@ export async function orderGTD(orderGTDRequest: OrderGTDRequest) {
     orderGTDRequest.creds
   );
 
+  const balance = await getUserWrappedUSDCBalance(wallet.address);
+  const totalCost = orderGTDRequest.price * orderGTDRequest.size;
+
+  if (balance < totalCost) {
+    return {
+      response: null,
+      error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
+    };
+  }
+
+  try {
+    await setUSDCAllowance(wallet, totalCost.toString());
+  } catch (error) {
+    console.error("Error setting USDC Allowance: ", error);
+    return {
+      response: null,
+      error: "Error setting USDC Allowance",
+    };
+  }
+
   // Eg Time: const oneMinute = parseInt(((new Date().getTime() + 60 * 1000 + 10 * 1000) / 1000).toString());
 
-  if (orderGTDRequest.side === Side.BUY) {
-    const order = await clobClient.createOrder({
-      tokenID: orderGTDRequest.tokenId,
-      price: orderGTDRequest.price,
-      side: orderGTDRequest.side, // Side.BUY or Side.SELL
-      size: orderGTDRequest.size,
-      expiration: orderGTDRequest.expiration,
-    });
-    console.log("Created Order", order);
-
-    const resp = await clobClient.postOrder(order, OrderType.GTD);
-    console.log(resp);
-  } else if (orderGTDRequest.side === Side.SELL) {
-    const resp2 = await clobClient.createAndPostOrder(
-      {
+  try {
+    if (orderGTDRequest.side === Side.BUY) {
+      const order = await clobClient.createOrder({
         tokenID: orderGTDRequest.tokenId,
         price: orderGTDRequest.price,
-        side: orderGTDRequest.side,
+        side: orderGTDRequest.side, // Side.BUY or Side.SELL
         size: orderGTDRequest.size,
         expiration: orderGTDRequest.expiration,
-      },
-      { tickSize: orderGTDRequest.tickSize },
-      OrderType.GTD
-    );
-    console.log(resp2);
-  } else {
-    console.log("Invalid Side");
+      });
+
+      const response = await clobClient.postOrder(order, OrderType.GTD);
+
+      return { response, error: null };
+    } else if (orderGTDRequest.side === Side.SELL) {
+      const response = await clobClient.createAndPostOrder(
+        {
+          tokenID: orderGTDRequest.tokenId,
+          price: orderGTDRequest.price,
+          side: orderGTDRequest.side,
+          size: orderGTDRequest.size,
+          expiration: orderGTDRequest.expiration,
+        },
+        { tickSize: orderGTDRequest.tickSize },
+        OrderType.GTD
+      );
+
+      return { response, error: null };
+    }
+  } catch (error) {
+    console.error("Error placing GTD Order: ", error);
+    return { response: null, error };
   }
 }
 

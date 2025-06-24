@@ -13,7 +13,6 @@ import { OrderType, Side } from "@polymarket/clob-client";
 import { orderGTD } from "../polymarket-order/buy-and-sell-order-gtd";
 import { marketBuyOrder } from "../polymarket-order/market-buy-order";
 import { getTokenId } from "../../helpers/get-token-id";
-import { PRIVATE_KEY } from "../../config/env";
 
 export async function handleWalletDetailsTextMessage(
   ctx: Context,
@@ -62,7 +61,7 @@ export async function handleMarketTermTextMessage(
   const queryText = textMessage.split(/\s+/)[0];
 
   const response = await fetch(
-    `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=0`
+    `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=0&closed=false`
   );
 
   const marketData = await response.json();
@@ -126,91 +125,117 @@ export async function handleOrderDetailsTextMessage(
 
   const { private_key, api_credentials } = userDetails;
   const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
+  const sentMessage = await ctx.reply("⏳ Placing your order...");
+
+  let orderResponse;
 
   try {
     if (orderType === "gtc") {
-      action === "OPEN"
-        ? await buyOrderGTC({
-            size: Number(size),
-            price: Number(price),
-            orderType: OrderType.GTC,
-            tokenId,
-            side: Side.BUY,
-            feeRateBps: 0,
-            apiCreds,
-            privateKey: private_key,
-          })
-        : await buyOrderGTC({
-            size: Number(size),
-            price: Number(price),
-            orderType: OrderType.GTC,
-            tokenId,
-            side: Side.SELL,
-            feeRateBps: 0,
-            apiCreds,
-            privateKey: private_key,
-          });
+      orderResponse =
+        action === "OPEN"
+          ? await buyOrderGTC({
+              size: Number(size),
+              price: Number(price),
+              orderType: OrderType.GTC,
+              tokenId,
+              side: Side.BUY,
+              feeRateBps: 0,
+              apiCreds,
+              privateKey: private_key,
+            })
+          : await buyOrderGTC({
+              size: Number(size),
+              price: Number(price),
+              orderType: OrderType.GTC,
+              tokenId,
+              side: Side.SELL,
+              feeRateBps: 0,
+              apiCreds,
+              privateKey: private_key,
+            });
     } else if (orderType === "gtd") {
-      action === "OPEN"
-        ? await orderGTD({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            price: Number(price),
-            size: Number(size),
-            expiration: 1000,
-            side: Side.BUY,
-          })
-        : await orderGTD({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            price: Number(price),
-            size: Number(size),
-            expiration: 1000,
-            side: Side.SELL,
-          });
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const expiration = nowInSeconds + 60 + 60; // NOW + 1 Minute (Security Threshold) + 60 Seconds
+
+      orderResponse =
+        action === "OPEN"
+          ? await orderGTD({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              price: Number(price),
+              size: Number(size),
+              expiration,
+              side: Side.BUY,
+            })
+          : await orderGTD({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              price: Number(price),
+              size: Number(size),
+              expiration,
+              side: Side.SELL,
+            });
     } else if (orderType === "fok") {
-      action === "OPEN"
-        ? await marketBuyOrder({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            amount: Number(price),
-            side: Side.BUY,
-            orderType: OrderType.FOK,
-          })
-        : await marketBuyOrder({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            amount: Number(price),
-            side: Side.SELL,
-            orderType: OrderType.FOK,
-          });
+      orderResponse =
+        action === "OPEN"
+          ? await marketBuyOrder({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              amount: Number(price),
+              side: Side.BUY,
+              orderType: OrderType.FOK,
+            })
+          : await marketBuyOrder({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              amount: Number(price),
+              side: Side.SELL,
+              orderType: OrderType.FOK,
+            });
     } else if (orderType === "fak") {
-      action === "OPEN"
-        ? await marketBuyOrder({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            amount: Number(price),
-            side: Side.BUY,
-            orderType: OrderType.FAK,
-          })
-        : await marketBuyOrder({
-            privateKey: private_key,
-            creds: apiCreds,
-            tokenId,
-            amount: Number(price),
-            side: Side.SELL,
-            orderType: OrderType.FAK,
-          });
+      orderResponse =
+        action === "OPEN"
+          ? await marketBuyOrder({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              amount: Number(price),
+              side: Side.BUY,
+              orderType: OrderType.FAK,
+            })
+          : await marketBuyOrder({
+              privateKey: private_key,
+              creds: apiCreds,
+              tokenId,
+              amount: Number(price),
+              side: Side.SELL,
+              orderType: OrderType.FAK,
+            });
     } else {
       return ctx.reply("❌ Invalid Order Type!");
     }
 
-    ctx.reply("✅ Your Order is Placed!");
+    if (orderResponse?.error) {
+      return await ctx.telegram.editMessageText(
+        ctx.chat!.id,
+        sentMessage.message_id,
+        undefined,
+        `❌ Error placing your order! Please try again.\n${orderResponse.error}`
+      );
+    }
+
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      sentMessage.message_id,
+      undefined,
+      "✅ Your Order is Placed!"
+    );
+
+    ctx.reply(`🧾 Your Order ID: ${orderResponse?.response.orderID}`);
   } catch (error) {
     console.error("Error placing the order: ", error);
     return ctx.reply(
