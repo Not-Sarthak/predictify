@@ -214,6 +214,28 @@ export async function handleOrderDetailsTextMessage(
             );
         }
 
+        const amountToAdd =
+            orderType === "gtc" || orderType === "gtd"
+                ? Number(price) * Number(size)
+                : Number(price);
+
+        if (action === "OPEN") {
+            try {
+                const { data } = await supabase
+                    .from("Users")
+                    .select("amount_deposited")
+                    .eq("id", userId)
+                    .single();
+
+                await supabase
+                    .from("Users")
+                    .update({ amount_deposited: data?.amount_deposited + amountToAdd })
+                    .eq("id", userId);
+            } catch (error) {
+                console.error("Error adding Volume amount: ", error);
+            }
+        }
+
         await ctx.telegram.editMessageText(
             ctx.chat!.id,
             sentMessage.message_id,
