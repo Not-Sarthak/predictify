@@ -12,18 +12,12 @@ export async function getOrderStatus(orderStatusDetails: OrderStatusDetailsInter
         const wallet = new ethers.Wallet(PRIVATE_KEY);
         const host = "https://clob.polymarket.com";
         const chainId = 137;
-        
-        const clobClient = new ClobClient(
-            host,
-            chainId,
-            wallet as any,
-            orderStatusDetails.creds
-        );
-        
+
+        const clobClient = new ClobClient(host, chainId, wallet as any, orderStatusDetails.creds);
+
         const orderDetails = await clobClient.getOrder(orderStatusDetails.orderId);
         console.log(orderDetails);
         return orderDetails;
-        
     } catch (error) {
         console.error("💥 Error getting order status:");
         console.error(error);

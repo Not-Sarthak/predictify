@@ -9,6 +9,6 @@ export function createLegacyWallet(wallet: ethers.Wallet) {
         },
         getAddress: async () => wallet.address,
         signMessage: async (message: string) => wallet.signMessage(message),
-        provider: wallet.provider
+        provider: wallet.provider,
     };
 }

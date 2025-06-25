@@ -1,94 +1,81 @@
 import { ethers } from "ethers";
 import { CLOB_API_URL, PRIVATE_KEY } from "../../config/env";
-import {
-  ClobClient,
-  OrderType,
-  Side,
-  type ApiKeyCreds,
-} from "@polymarket/clob-client";
+import { ClobClient, OrderType, Side, type ApiKeyCreds } from "@polymarket/clob-client";
 import { createLegacyWallet } from "../../constants/legacy-ethers";
 import { CHAIN_ID } from "../../constants/polymarket";
 import { fetchClobPriceHistory } from "../polymarket/get-token-marketprice";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 
 interface SellOrderDetailsInterface {
-  tokenId: string;
-  size: number;
-  price: number;
-  orderType: OrderType;
-  creds: ApiKeyCreds;
+    tokenId: string;
+    size: number;
+    price: number;
+    orderType: OrderType;
+    creds: ApiKeyCreds;
 }
 
 export async function sellOrder(sellOrderDetails: SellOrderDetailsInterface) {
-  try {
-    const wallet = new ethers.Wallet(PRIVATE_KEY);
+    try {
+        const wallet = new ethers.Wallet(PRIVATE_KEY);
 
-    const host = CLOB_API_URL;
-    const chainId = CHAIN_ID;
+        const host = CLOB_API_URL;
+        const chainId = CHAIN_ID;
 
-    const clobClient = new ClobClient(
-      host,
-      chainId,
-      createLegacyWallet(wallet) as any,
-      sellOrderDetails.creds // API credentials
-    );
+        const clobClient = new ClobClient(
+            host,
+            chainId,
+            createLegacyWallet(wallet) as any,
+            sellOrderDetails.creds // API credentials
+        );
 
-    const priceRange = await fetchClobPriceHistory(sellOrderDetails.tokenId);
+        const priceRange = await fetchClobPriceHistory(sellOrderDetails.tokenId);
 
-    if (priceRange && priceRange.length > 0) {
-      let currentMarketPrice = null;
-      for (const interval of priceRange) {
-        if (
-          interval.data &&
-          interval.data.history &&
-          interval.data.history.length > 0
-        ) {
-          const latestPrice =
-            interval.data.history[interval.data.history.length - 1];
-          currentMarketPrice = latestPrice.p;
-          break;
+        if (priceRange && priceRange.length > 0) {
+            let currentMarketPrice = null;
+            for (const interval of priceRange) {
+                if (interval.data && interval.data.history && interval.data.history.length > 0) {
+                    const latestPrice = interval.data.history[interval.data.history.length - 1];
+                    currentMarketPrice = latestPrice.p;
+                    break;
+                }
+            }
+
+            if (currentMarketPrice !== null) {
+                const priceThreshold = 0.5;
+                const minAcceptablePrice = currentMarketPrice * (1 - priceThreshold);
+                const maxAcceptablePrice = currentMarketPrice * (1 + priceThreshold);
+
+                if (sellOrderDetails.price < minAcceptablePrice) {
+                    console.log("Price too Low");
+                }
+
+                if (sellOrderDetails.price > maxAcceptablePrice) {
+                    console.log("Price too High");
+                }
+            }
         }
-      }
 
-      if (currentMarketPrice !== null) {
-        const priceThreshold = 0.5;
-        const minAcceptablePrice = currentMarketPrice * (1 - priceThreshold);
-        const maxAcceptablePrice = currentMarketPrice * (1 + priceThreshold);
+        const userBalance = await getUserWrappedUSDCBalance(wallet.address);
 
-        if (sellOrderDetails.price < minAcceptablePrice) {
-          console.log("Price too Low");
+        if (userBalance < sellOrderDetails.price * sellOrderDetails.size) {
+            console.log("Insufficient Balance");
         }
 
-        if (sellOrderDetails.price > maxAcceptablePrice) {
-          console.log("Price too High");
-        }
-      }
+        const order = await clobClient.createOrder({
+            tokenID: sellOrderDetails.tokenId,
+            price: sellOrderDetails.price,
+            side: Side.SELL,
+            size: sellOrderDetails.size,
+            feeRateBps: 0,
+        });
+
+        const response = await clobClient.postOrder(order, sellOrderDetails.orderType);
+        console.log("Sell Order Response:", response);
+        return response;
+    } catch (error) {
+        console.error("Error Selling Order:", error);
+        throw error;
     }
-
-    const userBalance = await getUserWrappedUSDCBalance(wallet.address);
-
-    if (userBalance < sellOrderDetails.price * sellOrderDetails.size) {
-      console.log("Insufficient Balance");
-    }
-
-    const order = await clobClient.createOrder({
-      tokenID: sellOrderDetails.tokenId,
-      price: sellOrderDetails.price,
-      side: Side.SELL,
-      size: sellOrderDetails.size,
-      feeRateBps: 0,
-    });
-
-    const response = await clobClient.postOrder(
-      order,
-      sellOrderDetails.orderType
-    );
-    console.log("Sell Order Response:", response);
-    return response;
-  } catch (error) {
-    console.error("Error Selling Order:", error);
-    throw error;
-  }
 }
 
 // sellOrder({

@@ -1,6 +1,6 @@
-import { ethers } from 'ethers';
-import { MAINNET_RPC_URL, USDC_CONTRACT_ADDRESS } from '../config/env';
-import { USDC_ADDRESS } from '../constants/polymarket';
+import { ethers } from "ethers";
+import { MAINNET_RPC_URL, USDC_CONTRACT_ADDRESS } from "../config/env";
+import { USDC_ADDRESS } from "../constants/polymarket";
 
 const USDC_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 
@@ -26,4 +26,4 @@ export const getUserWrappedUSDCBalance = async (address: string): Promise<number
 
 export const getUserTotalBalance = async (address: string): Promise<number> => {
     return 0;
-}
+};

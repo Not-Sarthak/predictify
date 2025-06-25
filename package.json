@@ -5,12 +5,13 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "start:watch": "bun run --watch src/index.ts",
-    "open": "bun run src/utils/polymarket-order/buy-order-gtc.ts",
-    "close": "bun run src/utils/polymarket-order/sell-order.ts"
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/ws": "^8.5.10"
+    "@types/ws": "^8.5.10",
+    "prettier": "3.6.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

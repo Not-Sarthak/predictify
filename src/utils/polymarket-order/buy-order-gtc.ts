@@ -1,9 +1,4 @@
-import {
-  type ApiKeyCreds,
-  ClobClient,
-  Side,
-  OrderType,
-} from "@polymarket/clob-client";
+import { type ApiKeyCreds, ClobClient, Side, OrderType } from "@polymarket/clob-client";
 import { ethers } from "ethers";
 import { checkNetworkConnection } from "../../helpers/network";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
@@ -13,88 +8,85 @@ import { PRIVATE_KEY } from "../../config/env";
 import type { Context } from "telegraf";
 
 interface BuyOrderGTCRequest {
-  size: number;
-  price: number;
-  orderType: OrderType;
-  tokenId: string;
-  side: Side;
-  feeRateBps: number;
-  apiCreds: ApiKeyCreds;
-  privateKey: string;
+    size: number;
+    price: number;
+    orderType: OrderType;
+    tokenId: string;
+    side: Side;
+    feeRateBps: number;
+    apiCreds: ApiKeyCreds;
+    privateKey: string;
 }
 
 // GTC -> Good Till Canceled. Order Stays Active until you Manually Cancel it or it gets Filled
 export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
-  try {
-    const wallet = new ethers.Wallet(orderRequest.privateKey);
-    const walletAddress = await wallet.getAddress();
-
-    const networkOk = await checkNetworkConnection();
-    if (!networkOk) {
-      console.error("Network Connection Failed");
-      return { response: null, error: "Internal Server Error" };
-    }
-
-    const balance = await getUserWrappedUSDCBalance(walletAddress);
-    const totalCost = orderRequest.price * orderRequest.size;
-
-    if (balance < totalCost) {
-      return {
-        response: null,
-        error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
-      };
-    }
-
     try {
-      await setUSDCAllowance(wallet, totalCost.toString());
+        const wallet = new ethers.Wallet(orderRequest.privateKey);
+        const walletAddress = await wallet.getAddress();
+
+        const networkOk = await checkNetworkConnection();
+        if (!networkOk) {
+            console.error("Network Connection Failed");
+            return { response: null, error: "Internal Server Error" };
+        }
+
+        const balance = await getUserWrappedUSDCBalance(walletAddress);
+        const totalCost = orderRequest.price * orderRequest.size;
+
+        if (balance < totalCost) {
+            return {
+                response: null,
+                error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
+            };
+        }
+
+        try {
+            await setUSDCAllowance(wallet, totalCost.toString());
+        } catch (error) {
+            console.error("Error setting USDC Allowance: ", error);
+            return {
+                response: null,
+                error: "Error setting USDC Allowance",
+            };
+        }
+
+        const host = "https://clob.polymarket.com";
+        const chainId = 137;
+
+        const clobClient = new ClobClient(
+            host,
+            chainId,
+            createLegacyWallet(wallet) as any,
+            orderRequest.apiCreds // API Credentials
+        );
+
+        try {
+            const order = await clobClient.createOrder({
+                tokenID: orderRequest.tokenId,
+                price: orderRequest.price,
+                side: orderRequest.side,
+                size: orderRequest.size,
+                feeRateBps: 0,
+            });
+
+            const response = await clobClient.postOrder(order, orderRequest.orderType);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            return { response, error: null };
+        } catch (error) {
+            console.error("Error Creating GTC Order: ", error);
+            return {
+                response: null,
+                error: error,
+            };
+        }
     } catch (error) {
-      console.error("Error setting USDC Allowance: ", error);
-      return {
-        response: null,
-        error: "Error setting USDC Allowance",
-      };
+        console.error("Error Placing GTC Order:");
+        console.error(error);
     }
-
-    const host = "https://clob.polymarket.com";
-    const chainId = 137;
-
-    const clobClient = new ClobClient(
-      host,
-      chainId,
-      createLegacyWallet(wallet) as any,
-      orderRequest.apiCreds // API Credentials
-    );
-
-    try {
-      const order = await clobClient.createOrder({
-        tokenID: orderRequest.tokenId,
-        price: orderRequest.price,
-        side: orderRequest.side,
-        size: orderRequest.size,
-        feeRateBps: 0,
-      });
-
-      const response = await clobClient.postOrder(
-        order,
-        orderRequest.orderType
-      );
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      return { response, error: null };
-    } catch (error) {
-      console.error("Error Creating GTC Order: ", error);
-      return {
-        response: null,
-        error: error,
-      };
-    }
-  } catch (error) {
-    console.error("Error Placing GTC Order:");
-    console.error(error);
-  }
 }
 
 // const creds: ApiKeyCreds = {

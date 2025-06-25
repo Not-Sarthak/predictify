@@ -5,28 +5,28 @@ import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 import { createLegacyWallet } from "../../constants/legacy-ethers";
 
 interface CancelOrderRequest {
-  privateKey: string;
-  orderIds: string[];
-  creds: ApiKeyCreds;
+    privateKey: string;
+    orderIds: string[];
+    creds: ApiKeyCreds;
 }
 
 export const cancelOrder = async (cancelOrderRequest: CancelOrderRequest) => {
-  const wallet = new ethers.Wallet(PRIVATE_KEY);
+    const wallet = new ethers.Wallet(PRIVATE_KEY);
 
-  const host = CLOB_API_URL;
-  const chainId = CHAIN_ID;
+    const host = CLOB_API_URL;
+    const chainId = CHAIN_ID;
 
-  const clobClient = new ClobClient(
-    host,
-    chainId,
-    createLegacyWallet(wallet) as any,
-    cancelOrderRequest.creds // API credentials
-  );
+    const clobClient = new ClobClient(
+        host,
+        chainId,
+        createLegacyWallet(wallet) as any,
+        cancelOrderRequest.creds // API credentials
+    );
 
-  const response = await clobClient.cancelOrders(cancelOrderRequest.orderIds);
-  console.log("Response:", response);
+    const response = await clobClient.cancelOrders(cancelOrderRequest.orderIds);
+    console.log("Response:", response);
 
-  return response;
+    return response;
 };
 
 // cancelOrder({

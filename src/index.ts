@@ -11,20 +11,20 @@ import { bot } from "./config/bot";
 
 // Starts the API Server
 server.listen({ port: API_SERVER_PORT }, () => {
-  console.log("API Server Started");
+    console.log("API Server Started");
 });
 
 // Initialize Telegram Bot Webhook
 bot.launch(
-  {
-    webhook: {
-      domain: WEBHOOK_DOMAIN,
-      port: Number(PORT),
-      path: "/telegram/webhook",
-      secretToken: SECRET_TOKEN,
+    {
+        webhook: {
+            domain: WEBHOOK_DOMAIN,
+            port: Number(PORT),
+            path: "/telegram/webhook",
+            secretToken: SECRET_TOKEN,
+        },
     },
-  },
-  () => {
-    console.log("Bot is Running");
-  }
+    () => {
+        console.log("Bot is Running");
+    }
 );

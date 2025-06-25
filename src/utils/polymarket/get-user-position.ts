@@ -1,18 +1,15 @@
 import axios from "axios";
-import type {
-  UserPositionRequest,
-  UserPositionResponse,
-} from "../../types/user-position";
+import type { UserPositionRequest, UserPositionResponse } from "../../types/user-position";
 
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
 import { Wallet } from "ethers";
 
 export const getUserPosition = async (request: UserPositionRequest) => {
-  const response = await axios.get<UserPositionResponse[]>(
-    `https://data-api.polymarket.com/positions?user=${request.user}`
-  );
+    const response = await axios.get<UserPositionResponse[]>(
+        `https://data-api.polymarket.com/positions?user=${request.user}`
+    );
 
-  return response.data;
+    return response.data;
 };
 
 // getUserPosition({
@@ -20,11 +17,11 @@ export const getUserPosition = async (request: UserPositionRequest) => {
 // });
 
 export const getAllUserHistory = async (request: UserPositionRequest) => {
-  const response = await axios.get<UserPositionResponse>(
-    `https://data-api.polymarket.com/activity?user=${request.user}`
-  );
-  console.log(response.data);
-  return response.data;
+    const response = await axios.get<UserPositionResponse>(
+        `https://data-api.polymarket.com/activity?user=${request.user}`
+    );
+    console.log(response.data);
+    return response.data;
 };
 
 // getAllUserHistory({
@@ -32,40 +29,28 @@ export const getAllUserHistory = async (request: UserPositionRequest) => {
 // });
 
 interface GetOpenOrdersProps {
-  mainnet: boolean;
-  apiKey: string;
-  secret: string;
-  passphrase: string;
+    mainnet: boolean;
+    apiKey: string;
+    secret: string;
+    passphrase: string;
 }
 
-export async function getOpenOrders({
-  mainnet,
-  apiKey,
-  secret,
-  passphrase,
-}: GetOpenOrdersProps) {
-  const chainId = mainnet ? 137 : 80002;
+export async function getOpenOrders({ mainnet, apiKey, secret, passphrase }: GetOpenOrdersProps) {
+    const chainId = mainnet ? 137 : 80002;
 
-  const creds: ApiKeyCreds = {
-    key: apiKey,
-    secret,
-    passphrase,
-  };
+    const creds: ApiKeyCreds = {
+        key: apiKey,
+        secret,
+        passphrase,
+    };
 
-  const wallet = new Wallet(
-    "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3"
-  );
+    const wallet = new Wallet("0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3");
 
-  const clobClient = new ClobClient(
-    "http://clob.polymarket.com/",
-    chainId,
-    wallet as any,
-    creds
-  );
+    const clobClient = new ClobClient("http://clob.polymarket.com/", chainId, wallet as any, creds);
 
-  const resp = await clobClient.getOpenOrders();
-  console.log(resp);
-  console.log(`Done!`);
+    const resp = await clobClient.getOpenOrders();
+    console.log(resp);
+    console.log(`Done!`);
 }
 
 // getOpenOrders({

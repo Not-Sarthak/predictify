@@ -1,130 +1,105 @@
 import { Context, Markup } from "telegraf";
-import {
-  getUserWrappedUSDCBalance,
-  getUserTotalBalance,
-} from "../../helpers/get-user-balance";
+import { getUserWrappedUSDCBalance, getUserTotalBalance } from "../../helpers/get-user-balance";
 import { supabase } from "../../config/supabase";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
-  const subscriptionButtons = [
-    [
-      Markup.button.callback("🔔 Subscribe", "subscription_subscribe"),
-      Markup.button.callback("🔕 Unsubscribe", "subscription_unsubscribe"),
-    ],
-    [Markup.button.callback("📋 My Subscriptions", "subscription_manage")],
-    [Markup.button.callback("❌ Close", "close_menu")],
-  ];
+    const subscriptionButtons = [
+        [
+            Markup.button.callback("🔔 Subscribe", "subscription_subscribe"),
+            Markup.button.callback("🔕 Unsubscribe", "subscription_unsubscribe"),
+        ],
+        [Markup.button.callback("📋 My Subscriptions", "subscription_manage")],
+        [Markup.button.callback("❌ Close", "close_menu")],
+    ];
 
-  return ctx.reply(
-    "📢 Subscription Management:",
-    Markup.inlineKeyboard(subscriptionButtons)
-  );
+    return ctx.reply("📢 Subscription Management:", Markup.inlineKeyboard(subscriptionButtons));
 }
 
 export async function handleSubscribeMenu(ctx: Context) {
-  const { SUBSCRIBE_MESSAGE, SUBSCRIBE_BUTTONS } = await import(
-    "../../constants/telegram"
-  );
-  return ctx.reply(SUBSCRIBE_MESSAGE, Markup.inlineKeyboard(SUBSCRIBE_BUTTONS));
+    const { SUBSCRIBE_MESSAGE, SUBSCRIBE_BUTTONS } = await import("../../constants/telegram");
+    return ctx.reply(SUBSCRIBE_MESSAGE, Markup.inlineKeyboard(SUBSCRIBE_BUTTONS));
 }
 
 export async function handleUnsubscribeMenu(ctx: Context) {
-  const { UNSUBSCRIBE_MESSAGE, UNSUBSCRIBE_BUTTONS } = await import(
-    "../../constants/telegram"
-  );
-  return ctx.reply(
-    UNSUBSCRIBE_MESSAGE,
-    Markup.inlineKeyboard(UNSUBSCRIBE_BUTTONS)
-  );
+    const { UNSUBSCRIBE_MESSAGE, UNSUBSCRIBE_BUTTONS } = await import("../../constants/telegram");
+    return ctx.reply(UNSUBSCRIBE_MESSAGE, Markup.inlineKeyboard(UNSUBSCRIBE_BUTTONS));
 }
 
 export async function handleTradeMenu(ctx: Context) {
-  const tradeButtons = [
-    [
-      Markup.button.callback("⚡ Open Position", "trade_position_open"),
-      Markup.button.callback("🌂 Close Position", "trade_position_close"),
-    ],
-    [Markup.button.callback("📈 View Positions", "trade_position_view")],
-    [Markup.button.callback("🔎 Top Markets", "trade_top_markets_view")],
-  ];
+    const tradeButtons = [
+        [
+            Markup.button.callback("⚡ Open Position", "trade_position_open"),
+            Markup.button.callback("🌂 Close Position", "trade_position_close"),
+        ],
+        [Markup.button.callback("📈 View Positions", "trade_position_view")],
+        [Markup.button.callback("🔎 Top Markets", "trade_top_markets_view")],
+    ];
 
-  return ctx.reply("Trade Menu:", Markup.inlineKeyboard(tradeButtons));
+    return ctx.reply("Trade Menu:", Markup.inlineKeyboard(tradeButtons));
 }
 
 export async function handleAutoTradeMenu(ctx: Context) {
-  const autoTradeButtons = [
-    [
-      Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
-      Markup.button.callback("🗑️ Delete Wallet", "delete_wallet"),
-    ],
-    [Markup.button.callback("✅ Enable CopyTrade", "Turn on CopyTrading")],
-    [Markup.button.callback("❌ Close", "close_menu")],
-  ];
+    const autoTradeButtons = [
+        [
+            Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
+            Markup.button.callback("🗑️ Delete Wallet", "delete_wallet"),
+        ],
+        [Markup.button.callback("✅ Enable CopyTrade", "Turn on CopyTrading")],
+        [Markup.button.callback("❌ Close", "close_menu")],
+    ];
 
-  return ctx.reply("AutoTrade Menu:", Markup.inlineKeyboard(autoTradeButtons));
+    return ctx.reply("AutoTrade Menu:", Markup.inlineKeyboard(autoTradeButtons));
 }
 
 export async function handleSettingsMenu(ctx: Context) {
-  const settingsButtons = [
-    [Markup.button.callback("💼 Wallet Settings", "wallet_settings_menu")],
-    [Markup.button.callback("❌ Close", "close_menu")],
-  ];
+    const settingsButtons = [
+        [Markup.button.callback("💼 Wallet Settings", "wallet_settings_menu")],
+        [Markup.button.callback("❌ Close", "close_menu")],
+    ];
 
-  return ctx.reply("Settings Menu:", Markup.inlineKeyboard(settingsButtons));
+    return ctx.reply("Settings Menu:", Markup.inlineKeyboard(settingsButtons));
 }
 
 export async function handleWalletSettingsMenu(ctx: Context) {
-  try {
-    const userId = ctx.from?.id;
+    try {
+        const userId = ctx.from?.id;
 
-    const { data: user, error } = await supabase
-      .from("Users")
-      .select("*")
-      .eq("id", userId)
-      .single();
+        const { data: user, error } = await supabase
+            .from("Users")
+            .select("*")
+            .eq("id", userId)
+            .single();
 
-    if (error || !user) {
-      console.error("Failed to fetch user wallet:", error);
-      return ctx.reply("❌ Unable to retrieve wallet info.");
+        if (error || !user) {
+            console.error("Failed to fetch user wallet:", error);
+            return ctx.reply("❌ Unable to retrieve wallet info.");
+        }
+
+        const evmWalletAddress = user.wallet_address;
+        const solanaWalletAddress = user.solana_address;
+        const [usdcBalance, totalBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(evmWalletAddress),
+            getUserTotalBalance(evmWalletAddress),
+        ]);
+
+        const message =
+            `🔑 <b>Your EVM Wallet Address:</b>\n<code>${evmWalletAddress}</code>\n\n` +
+            `🔑 <b>Your Solana Wallet Address:</b>\n<code>${solanaWalletAddress || "N/A"}</code>\n\n` +
+            `💵 <b>USDC Balance:</b> $${usdcBalance}\n` +
+            `💰 <b>Total Balance (All tokens):</b> $${totalBalance}`;
+
+        const walletSettingsMenu = Markup.inlineKeyboard([
+            [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
+            [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
+            [Markup.button.callback("❌ Close", "close_menu")],
+        ]);
+
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+            reply_markup: walletSettingsMenu.reply_markup,
+        });
+    } catch (err) {
+        console.error("Error in wallet settings menu:", err);
+        return ctx.reply("❌ Something went wrong. Please try again.");
     }
-
-    const evmWalletAddress = user.wallet_address;
-    const solanaWalletAddress = user.solana_address;
-    const [usdcBalance, totalBalance] = await Promise.all([
-      getUserWrappedUSDCBalance(evmWalletAddress),
-      getUserTotalBalance(evmWalletAddress),
-    ]);
-
-    const message =
-      `🔑 <b>Your EVM Wallet Address:</b>\n<code>${evmWalletAddress}</code>\n\n` +
-      `🔑 <b>Your Solana Wallet Address:</b>\n<code>${
-        solanaWalletAddress || "N/A"
-      }</code>\n\n` +
-      `💵 <b>USDC Balance:</b> $${usdcBalance}\n` +
-      `💰 <b>Total Balance (All tokens):</b> $${totalBalance}`;
-
-    const walletSettingsMenu = Markup.inlineKeyboard([
-      [
-        Markup.button.callback(
-          "🔑 Export EVM Private Key",
-          "export_private_key:evm"
-        ),
-      ],
-      [
-        Markup.button.callback(
-          "🔑 Export Solana Private Key",
-          "export_private_key:solana"
-        ),
-      ],
-      [Markup.button.callback("❌ Close", "close_menu")],
-    ]);
-
-    return ctx.reply(message, {
-      parse_mode: "HTML",
-      reply_markup: walletSettingsMenu.reply_markup,
-    });
-  } catch (err) {
-    console.error("Error in wallet settings menu:", err);
-    return ctx.reply("❌ Something went wrong. Please try again.");
-  }
 }

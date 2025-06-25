@@ -1,10 +1,10 @@
 import { ethers } from "ethers";
 import {
-  type ApiKeyCreds,
-  ClobClient,
-  OrderType,
-  Side,
-  type TickSize,
+    type ApiKeyCreds,
+    ClobClient,
+    OrderType,
+    Side,
+    type TickSize,
 } from "@polymarket/clob-client";
 import { CHAIN_ID } from "../../constants/polymarket";
 import { CLOB_API_URL } from "../../config/env";
@@ -13,82 +13,82 @@ import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 
 interface OrderGTDRequest {
-  privateKey: string;
-  creds: ApiKeyCreds;
-  tokenId: string;
-  price: number;
-  size: number;
-  expiration: number;
-  tickSize?: TickSize;
-  side: Side; // Side.BUY or Side.SELL
+    privateKey: string;
+    creds: ApiKeyCreds;
+    tokenId: string;
+    price: number;
+    size: number;
+    expiration: number;
+    tickSize?: TickSize;
+    side: Side; // Side.BUY or Side.SELL
 }
 
 // GTD -> Good Till Date. Order Stays active until the Expiration Time, then Auto-Cancels.
 export async function orderGTD(orderGTDRequest: OrderGTDRequest) {
-  const wallet = new ethers.Wallet(orderGTDRequest.privateKey);
-  const chainId = CHAIN_ID;
-  const host = CLOB_API_URL;
-  const clobClient = new ClobClient(
-    host,
-    chainId,
-    createLegacyWallet(wallet) as any,
-    orderGTDRequest.creds
-  );
+    const wallet = new ethers.Wallet(orderGTDRequest.privateKey);
+    const chainId = CHAIN_ID;
+    const host = CLOB_API_URL;
+    const clobClient = new ClobClient(
+        host,
+        chainId,
+        createLegacyWallet(wallet) as any,
+        orderGTDRequest.creds
+    );
 
-  const balance = await getUserWrappedUSDCBalance(wallet.address);
-  const totalCost = orderGTDRequest.price * orderGTDRequest.size;
+    const balance = await getUserWrappedUSDCBalance(wallet.address);
+    const totalCost = orderGTDRequest.price * orderGTDRequest.size;
 
-  if (balance < totalCost) {
-    return {
-      response: null,
-      error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
-    };
-  }
-
-  try {
-    await setUSDCAllowance(wallet, totalCost.toString());
-  } catch (error) {
-    console.error("Error setting USDC Allowance: ", error);
-    return {
-      response: null,
-      error: "Error setting USDC Allowance",
-    };
-  }
-
-  // Eg Time: const oneMinute = parseInt(((new Date().getTime() + 60 * 1000 + 10 * 1000) / 1000).toString());
-
-  try {
-    if (orderGTDRequest.side === Side.BUY) {
-      const order = await clobClient.createOrder({
-        tokenID: orderGTDRequest.tokenId,
-        price: orderGTDRequest.price,
-        side: orderGTDRequest.side, // Side.BUY or Side.SELL
-        size: orderGTDRequest.size,
-        expiration: orderGTDRequest.expiration,
-      });
-
-      const response = await clobClient.postOrder(order, OrderType.GTD);
-
-      return { response, error: null };
-    } else if (orderGTDRequest.side === Side.SELL) {
-      const response = await clobClient.createAndPostOrder(
-        {
-          tokenID: orderGTDRequest.tokenId,
-          price: orderGTDRequest.price,
-          side: orderGTDRequest.side,
-          size: orderGTDRequest.size,
-          expiration: orderGTDRequest.expiration,
-        },
-        { tickSize: orderGTDRequest.tickSize },
-        OrderType.GTD
-      );
-
-      return { response, error: null };
+    if (balance < totalCost) {
+        return {
+            response: null,
+            error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
+        };
     }
-  } catch (error) {
-    console.error("Error placing GTD Order: ", error);
-    return { response: null, error };
-  }
+
+    try {
+        await setUSDCAllowance(wallet, totalCost.toString());
+    } catch (error) {
+        console.error("Error setting USDC Allowance: ", error);
+        return {
+            response: null,
+            error: "Error setting USDC Allowance",
+        };
+    }
+
+    // Eg Time: const oneMinute = parseInt(((new Date().getTime() + 60 * 1000 + 10 * 1000) / 1000).toString());
+
+    try {
+        if (orderGTDRequest.side === Side.BUY) {
+            const order = await clobClient.createOrder({
+                tokenID: orderGTDRequest.tokenId,
+                price: orderGTDRequest.price,
+                side: orderGTDRequest.side, // Side.BUY or Side.SELL
+                size: orderGTDRequest.size,
+                expiration: orderGTDRequest.expiration,
+            });
+
+            const response = await clobClient.postOrder(order, OrderType.GTD);
+
+            return { response, error: null };
+        } else if (orderGTDRequest.side === Side.SELL) {
+            const response = await clobClient.createAndPostOrder(
+                {
+                    tokenID: orderGTDRequest.tokenId,
+                    price: orderGTDRequest.price,
+                    side: orderGTDRequest.side,
+                    size: orderGTDRequest.size,
+                    expiration: orderGTDRequest.expiration,
+                },
+                { tickSize: orderGTDRequest.tickSize },
+                OrderType.GTD
+            );
+
+            return { response, error: null };
+        }
+    } catch (error) {
+        console.error("Error placing GTD Order: ", error);
+        return { response: null, error };
+    }
 }
 
 // const creds: ApiKeyCreds = {

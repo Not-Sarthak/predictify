@@ -8,7 +8,15 @@ export interface UserPositionRequest {
     eventId?: string;
     limit?: number;
     offset?: number;
-    sortBy?: "TOKENS" | "CURRENT" | "INITIAL" | "CASHPNL" | "PERCENTPNL" | "TITLE" | "RESOLVING" | "PRICE";
+    sortBy?:
+        | "TOKENS"
+        | "CURRENT"
+        | "INITIAL"
+        | "CASHPNL"
+        | "PERCENTPNL"
+        | "TITLE"
+        | "RESOLVING"
+        | "PRICE";
     sortDirection?: "ASC" | "DESC";
 }
 
