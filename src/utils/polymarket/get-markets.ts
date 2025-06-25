@@ -137,3 +137,22 @@ export async function getMarkets(getMarketsRequest: GetMarketsRequest) {
   const response = await clobClient.getMarkets();
   return response;
 }
+
+
+// Get Events By Slug
+export async function getEventsBySlug(slug: string): Promise<any> {
+  const options = {
+      method: 'GET',
+      headers: {
+          'Content-Type': 'application/json'
+      }
+  };
+
+  const response = await fetch(`https://gamma-api.polymarket.com/events?slug=${slug}`, options);
+  const data = await response.json();
+  return data;
+}
+
+// getEventsBySlug("nyc-mayoral-dem-primary-mamdani-mov").then((result) => {
+//   console.log(result);
+// });
