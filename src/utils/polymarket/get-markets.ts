@@ -138,17 +138,19 @@ export async function getMarkets(getMarketsRequest: GetMarketsRequest) {
   return response;
 }
 
-
 // Get Events By Slug
 export async function getEventsBySlug(slug: string): Promise<any> {
   const options = {
-      method: 'GET',
-      headers: {
-          'Content-Type': 'application/json'
-      }
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
   };
 
-  const response = await fetch(`https://gamma-api.polymarket.com/events?slug=${slug}`, options);
+  const response = await fetch(
+    `https://gamma-api.polymarket.com/events?slug=${slug}`,
+    options
+  );
   const data = await response.json();
   return data;
 }
@@ -156,3 +158,45 @@ export async function getEventsBySlug(slug: string): Promise<any> {
 // getEventsBySlug("nyc-mayoral-dem-primary-mamdani-mov").then((result) => {
 //   console.log(result);
 // });
+
+interface GetMarketOrderBookRequest {
+  tokenId: string[];
+  privateKey: string;
+  creds: ApiKeyCreds;
+}
+
+export async function getMarketOrderBook(
+  getMarketOrderBookRequest: GetMarketOrderBookRequest
+): Promise<any> {
+  const wallet = new ethers.Wallet(getMarketOrderBookRequest.privateKey);
+
+  const host = "https://clob.polymarket.com";
+  const chainId = 137;
+
+  const clobClient = new ClobClient(
+    host,
+    chainId,
+    createLegacyWallet(wallet) as any,
+    getMarketOrderBookRequest.creds
+  );
+
+  const yesResponse = await clobClient.getOrderBook(
+    getMarketOrderBookRequest.tokenId[0]
+  );
+
+  const noResponse = await clobClient.getOrderBook(
+    getMarketOrderBookRequest.tokenId[1]
+  );
+
+  return { yesResponse, noResponse };
+}
+
+getMarketOrderBook({
+  tokenId: ["25009308950201377351599447846248861147611469669632550804193755818060327719237"],
+  privateKey: "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3",
+  creds: {
+    key: "f3e137a7-3a85-d6fa-292a-3db867dcd441",
+    secret: "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
+    passphrase: "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
+  },
+});
