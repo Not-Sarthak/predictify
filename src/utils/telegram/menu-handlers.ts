@@ -79,7 +79,7 @@ export async function handleWalletSettingsMenu(ctx: Context) {
 
     const { data: user, error } = await supabase
       .from("Users")
-      .select("wallet_address")
+      .select("*")
       .eq("id", userId)
       .single();
 
@@ -88,19 +88,34 @@ export async function handleWalletSettingsMenu(ctx: Context) {
       return ctx.reply("❌ Unable to retrieve wallet info.");
     }
 
-    const walletAddress = user.wallet_address;
+    const evmWalletAddress = user.wallet_address;
+    const solanaWalletAddress = user.solana_address;
     const [usdcBalance, totalBalance] = await Promise.all([
-      getUserWrappedUSDCBalance(walletAddress),
-      getUserTotalBalance(walletAddress),
+      getUserWrappedUSDCBalance(evmWalletAddress),
+      getUserTotalBalance(evmWalletAddress),
     ]);
 
     const message =
-      `🔑 <b>Your wallet address:</b>\n<code>${walletAddress}</code>\n\n` +
+      `🔑 <b>Your EVM Wallet Address:</b>\n<code>${evmWalletAddress}</code>\n\n` +
+      `🔑 <b>Your Solana Wallet Address:</b>\n<code>${
+        solanaWalletAddress || "N/A"
+      }</code>\n\n` +
       `💵 <b>USDC Balance:</b> $${usdcBalance}\n` +
       `💰 <b>Total Balance (All tokens):</b> $${totalBalance}`;
 
     const walletSettingsMenu = Markup.inlineKeyboard([
-      [Markup.button.callback("🔑 Export Private Key", "export_private_key")],
+      [
+        Markup.button.callback(
+          "🔑 Export EVM Private Key",
+          "export_private_key:evm"
+        ),
+      ],
+      [
+        Markup.button.callback(
+          "🔑 Export Solana Private Key",
+          "export_private_key:solana"
+        ),
+      ],
       [Markup.button.callback("❌ Close", "close_menu")],
     ]);
 

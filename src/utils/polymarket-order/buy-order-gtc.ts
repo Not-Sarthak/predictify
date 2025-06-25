@@ -10,6 +10,7 @@ import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 import { createLegacyWallet } from "../../constants/legacy-ethers";
 import { PRIVATE_KEY } from "../../config/env";
+import type { Context } from "telegraf";
 
 interface BuyOrderGTCRequest {
   size: number;
@@ -30,19 +31,29 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
 
     const networkOk = await checkNetworkConnection();
     if (!networkOk) {
-      throw new Error("Network Connection Failed");
+      console.error("Network Connection Failed");
+      return { response: null, error: "Internal Server Error" };
     }
 
     const balance = await getUserWrappedUSDCBalance(walletAddress);
     const totalCost = orderRequest.price * orderRequest.size;
 
     if (balance < totalCost) {
-      throw new Error(
-        `Insufficient USDC balance.\nRequired: ${totalCost.toLocaleString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`
-      );
+      return {
+        response: null,
+        error: `You have Insufficient Wrapped USDC Balance.\n\nRequired: ${totalCost.toString()} USDC\nAvailable: ${balance.toLocaleString()} USDC`,
+      };
     }
 
-    await setUSDCAllowance(wallet, totalCost.toString());
+    try {
+      await setUSDCAllowance(wallet, totalCost.toString());
+    } catch (error) {
+      console.error("Error setting USDC Allowance: ", error);
+      return {
+        response: null,
+        error: "Error setting USDC Allowance",
+      };
+    }
 
     const host = "https://clob.polymarket.com";
     const chainId = 137;
@@ -53,35 +64,47 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
       createLegacyWallet(wallet) as any,
       orderRequest.apiCreds // API Credentials
     );
-    console.log("Client Initialized");
 
-    console.log("Creating Order for Wallet: ", walletAddress);
-    const order = await clobClient.createOrder({
-      tokenID: orderRequest.tokenId,
-      price: orderRequest.price,
-      side: orderRequest.side,
-      size: orderRequest.size,
-      feeRateBps: 0,
-    });
+    try {
+      const order = await clobClient.createOrder({
+        tokenID: orderRequest.tokenId,
+        price: orderRequest.price,
+        side: orderRequest.side,
+        size: orderRequest.size,
+        feeRateBps: 0,
+      });
 
-    const response = await clobClient.postOrder(order, orderRequest.orderType);
-    console.log(`Transaction Hash: ${response.transactionsHashes.join(", ")}`);
-    return response;
+      const response = await clobClient.postOrder(
+        order,
+        orderRequest.orderType
+      );
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return { response, error: null };
+    } catch (error) {
+      console.error("Error Creating GTC Order: ", error);
+      return {
+        response: null,
+        error: error,
+      };
+    }
   } catch (error) {
-    console.error("Error Placing Order:");
+    console.error("Error Placing GTC Order:");
     console.error(error);
-    throw error;
   }
 }
 
-const creds: ApiKeyCreds = {
-  key: process.env.CLOB_API_KEY || "f3e137a7-3a85-d6fa-292a-3db867dcd441",
-  secret:
-    process.env.CLOB_SECRET || "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
-  passphrase:
-    process.env.CLOB_PASS_PHRASE ||
-    "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
-};
+// const creds: ApiKeyCreds = {
+//   key: process.env.CLOB_API_KEY || "f3e137a7-3a85-d6fa-292a-3db867dcd441",
+//   secret:
+//     process.env.CLOB_SECRET || "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
+//   passphrase:
+//     process.env.CLOB_PASS_PHRASE ||
+//     "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
+// };
 
 // buyOrderGTC({
 //     // Minimum Size = $1

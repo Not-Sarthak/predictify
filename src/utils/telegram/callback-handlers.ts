@@ -22,6 +22,7 @@ import { supabase } from "../../config/supabase";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserPosition } from "../polymarket/get-user-position";
 import type { InlineKeyboardButton } from "telegraf/types";
+import { getMarketDetails } from "../../helpers/get-market-details";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
   await ctx.editMessageReplyMarkup(undefined).catch(() => {});
@@ -116,7 +117,8 @@ export async function handleTradeCallbacks(
 }
 
 export async function handleWalletSettingsMenuCallbacks(ctx: Context) {
-  return handleWalletSettingsMenu(ctx);
+  await handleWalletSettingsMenu(ctx);
+  return ctx.answerCbQuery();
 }
 
 export async function handleAddNewWalletCallback(ctx: Context) {
@@ -234,10 +236,13 @@ export async function handleViewTradePositions(ctx: Context) {
     );
   }
 
-  const userPositions = await getUserPosition({
-    user: "0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB",
-  }); // REPLACE THIS WITH THE BELOW LINE
-  // const userPositions = await getUserPosition({ user: userAddress });
+  const userPositions = await getUserPosition({ user: userAddress });
+
+  if (userPositions.length === 0) {
+    return ctx
+      .reply("⚠️ No Open Positions from your account.")
+      .then(() => ctx.answerCbQuery());
+  }
 
   const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(
     userPositions.slice(0, 2)
@@ -277,7 +282,7 @@ export async function handleFetchMarketWithOffsetCallback(
   const newOffset = action === "next" ? offset + 5 : offset - 5;
 
   const response = await fetch(
-    `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=${newOffset}`
+    `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=${newOffset}&closed=false`
   );
   const marketData = await response.json();
 
@@ -324,7 +329,21 @@ export async function handleSelectedMarketCallback(
   ctx: Context,
   marketId: string
 ) {
-  const userId = ctx.from?.id.toString()!;
+  const marketData = await getMarketDetails(marketId);
+
+  if (!marketData) {
+    return ctx.reply("Could not fetch market details. Please try again.");
+  }
+
+  const { question, description, volumeNum, active, orderMinSize } = marketData;
+
+  const message =
+    `📈 *Market Details*\n\n` +
+    `*Question:* ${question ?? "N/A"}\n` +
+    `*Description:* ${description.trim() ?? "N/A"}\n\n` +
+    `*Volume:* ${volumeNum ?? "0"}\n` +
+    `*Min Order Size:* ${orderMinSize ?? "N/A"}\n` +
+    `Please select an order type:`;
 
   const orderTypeButtons: InlineKeyboardButton[][] = [
     [
@@ -353,7 +372,8 @@ export async function handleSelectedMarketCallback(
     ],
   ];
 
-  await ctx.editMessageText("Select Order Type: ", {
+  await ctx.editMessageText(message, {
+    parse_mode: "Markdown",
     reply_markup: Markup.inlineKeyboard(orderTypeButtons).reply_markup,
   });
 

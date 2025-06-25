@@ -59,6 +59,7 @@ export async function handleStartCommand(ctx: Context) {
 
       const message = formatWelcomeMessage(
         existingUser.wallet_address,
+        existingUser.solana_address,
         balance.toString(),
         JSON.parse(existingUser.api_credentials)
       );
@@ -102,6 +103,7 @@ export async function handleStartCommand(ctx: Context) {
 
     const message = formatWelcomeMessage(
       address,
+      "",
       balance.toString(),
       walletData.apiCreds
     );
@@ -248,8 +250,9 @@ yes 123.45 100
   }
 
   // Handle Exporting Private Key
-  if (data === "export_private_key") {
-    return handleExportPrivateKey(ctx);
+  if (data.startsWith("export_private_key:")) {
+    const network = data.split(":")[1];
+    return handleExportPrivateKey(ctx, network as "evm" | "solana");
   }
 
   // Handle Add New Wallet
