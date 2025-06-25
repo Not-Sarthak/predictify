@@ -20,10 +20,9 @@ import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserPosition } from "../polymarket/get-user-position";
 import type { InlineKeyboardButton } from "telegraf/types";
 import { getMarketDetails } from "../../helpers/get-market-details";
+import { generateMainMenuButtons } from "./button-generators";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
-    await ctx.editMessageReplyMarkup(undefined).catch(() => {});
-
     switch (action) {
         case "subscriptions":
             return handleSubscriptionsMenu(ctx);
@@ -66,10 +65,10 @@ export async function handleMySubscriptionsDisplay(ctx: Context) {
     }
 
     if (categories.length === 0) {
-        return ctx.reply(NO_SUBSCRIPTIONS_MESSAGE);
+        return ctx.reply(NO_SUBSCRIPTIONS_MESSAGE).then(() => ctx.answerCbQuery());
     }
 
-    return ctx.reply(formatActiveSubscriptionsMessage(categories));
+    return ctx.reply(formatActiveSubscriptionsMessage(categories)).then(() => ctx.answerCbQuery());
 }
 
 export async function handleSubscriptionCallbacks(ctx: Context, category: string) {
@@ -317,6 +316,6 @@ export async function handleSelectedMarketCallback(ctx: Context, marketId: strin
 }
 
 export async function handleCloseMenu(ctx: Context) {
-    await ctx.answerCbQuery("Menu closed");
-    return ctx.editMessageReplyMarkup(undefined).catch(() => {});
+    const inlineKeyboard = Markup.inlineKeyboard(generateMainMenuButtons()).reply_markup;
+    return ctx.editMessageReplyMarkup(inlineKeyboard);
 }

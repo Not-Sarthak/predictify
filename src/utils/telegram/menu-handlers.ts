@@ -12,17 +12,21 @@ export async function handleSubscriptionsMenu(ctx: Context) {
         [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
-    return ctx.reply("📢 Subscription Management:", Markup.inlineKeyboard(subscriptionButtons));
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(subscriptionButtons).reply_markup);
 }
 
 export async function handleSubscribeMenu(ctx: Context) {
     const { SUBSCRIBE_MESSAGE, SUBSCRIBE_BUTTONS } = await import("../../constants/telegram");
-    return ctx.reply(SUBSCRIBE_MESSAGE, Markup.inlineKeyboard(SUBSCRIBE_BUTTONS));
+    return ctx
+        .reply(SUBSCRIBE_MESSAGE, Markup.inlineKeyboard(SUBSCRIBE_BUTTONS))
+        .then(() => ctx.answerCbQuery());
 }
 
 export async function handleUnsubscribeMenu(ctx: Context) {
     const { UNSUBSCRIBE_MESSAGE, UNSUBSCRIBE_BUTTONS } = await import("../../constants/telegram");
-    return ctx.reply(UNSUBSCRIBE_MESSAGE, Markup.inlineKeyboard(UNSUBSCRIBE_BUTTONS));
+    return ctx
+        .reply(UNSUBSCRIBE_MESSAGE, Markup.inlineKeyboard(UNSUBSCRIBE_BUTTONS))
+        .then(() => ctx.answerCbQuery());
 }
 
 export async function handleTradeMenu(ctx: Context) {
@@ -31,11 +35,14 @@ export async function handleTradeMenu(ctx: Context) {
             Markup.button.callback("⚡ Open Position", "trade_position_open"),
             Markup.button.callback("🌂 Close Position", "trade_position_close"),
         ],
-        [Markup.button.callback("📈 View Positions", "trade_position_view")],
-        [Markup.button.callback("🔎 Top Markets", "trade_top_markets_view")],
+        [
+            Markup.button.callback("📈 View Positions", "trade_position_view"),
+            Markup.button.callback("🔎 Top Markets", "trade_top_markets_view"),
+        ],
+        [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
-    return ctx.reply("Trade Menu:", Markup.inlineKeyboard(tradeButtons));
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(tradeButtons).reply_markup);
 }
 
 export async function handleAutoTradeMenu(ctx: Context) {
@@ -48,7 +55,7 @@ export async function handleAutoTradeMenu(ctx: Context) {
         [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
-    return ctx.reply("AutoTrade Menu:", Markup.inlineKeyboard(autoTradeButtons));
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(autoTradeButtons).reply_markup);
 }
 
 export async function handleSettingsMenu(ctx: Context) {
@@ -57,7 +64,7 @@ export async function handleSettingsMenu(ctx: Context) {
         [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
-    return ctx.reply("Settings Menu:", Markup.inlineKeyboard(settingsButtons));
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(settingsButtons).reply_markup);
 }
 
 export async function handleWalletSettingsMenu(ctx: Context) {
@@ -91,7 +98,6 @@ export async function handleWalletSettingsMenu(ctx: Context) {
         const walletSettingsMenu = Markup.inlineKeyboard([
             [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
             [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
-            [Markup.button.callback("❌ Close", "close_menu")],
         ]);
 
         return ctx.reply(message, {
