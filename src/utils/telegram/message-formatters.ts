@@ -1,12 +1,28 @@
 import type { UserPositionResponse } from "../../types/user-position";
 
-function formatDate(dateString: string): string {
+export function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
+
+    const month = date.toLocaleString("en-US", { month: "long" }); // e.g., June
+    const day = date.getDate();
+    const year = date.getFullYear();
+
+    // Add ordinal suffix to day (st, nd, rd, th)
+    const getOrdinal = (n: number) => {
+        if (n > 3 && n < 21) return "th";
+        switch (n % 10) {
+            case 1:
+                return "st";
+            case 2:
+                return "nd";
+            case 3:
+                return "rd";
+            default:
+                return "th";
+        }
+    };
+
+    return `${month} ${day}${getOrdinal(day)}, ${year}`;
 }
 
 export function formatWelcomeMessage(
@@ -72,4 +88,37 @@ ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPr
     }
 
     return userPositionsMessages;
+}
+
+export const formatBidLine = ({ price, size }: { price: string; size: string }) =>
+    `$${price} × ${Number(size).toLocaleString()}`;
+
+export function formatDollarVolume(n: number): string {
+    if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+    return `$${n.toFixed(2)}`;
+}
+
+export function layoutButtons<T>(buttons: T[], maxPerRow = 4): T[][] {
+    const layout: T[][] = [];
+
+    if (buttons.length <= maxPerRow) {
+        layout.push(buttons); // Single row if few buttons
+    } else if (buttons.length === 8) {
+        // Special case: 8 = 4 + 4
+        layout.push(buttons.slice(0, 4));
+        layout.push(buttons.slice(4, 8));
+    } else {
+        // General fallback: groups of 3
+        for (let i = 0; i < buttons.length; i += 3) {
+            layout.push(buttons.slice(i, i + 3));
+        }
+    }
+
+    return layout;
+}
+
+export function escapeMarkdown(text: string): string {
+    return text.replace(/[_*[\]()~`>#+=|{}.!]/g, "\\$&");
 }

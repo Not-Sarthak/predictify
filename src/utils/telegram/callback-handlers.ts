@@ -10,8 +10,12 @@ import {
     handleWalletSettingsMenu,
 } from "./menu-handlers";
 import {
+    escapeMarkdown,
     formatActiveSubscriptionsMessage,
     formatCurrentTradePositionsMessage,
+    formatDate,
+    formatDollarVolume,
+    layoutButtons,
 } from "./message-formatters";
 import { NO_SUBSCRIPTIONS_MESSAGE } from "../../constants/telegram";
 import { awaitingMarketTermInputSet, awaitingWalletDetailsInputSet } from "../../config/bot";
@@ -21,6 +25,10 @@ import { getUserPosition } from "../polymarket/get-user-position";
 import type { InlineKeyboardButton } from "telegraf/types";
 import { getMarketDetails } from "../../helpers/get-market-details";
 import { generateMainMenuButtons } from "./button-generators";
+import { CATEGORY_LIST, MARKET_FILTERS } from "../../constants/polymarket";
+import { fetchMarkets, getMarketById } from "../polymarket/get-markets";
+import { capitalize } from "../../helpers/capitalize";
+import axios from "axios";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
     switch (action) {
@@ -99,9 +107,206 @@ export async function handleTradeCallbacks(ctx: Context, action: string, marketI
     return ctx.answerCbQuery();
 }
 
+export async function handleViewTopMarketsCallback(ctx: Context) {
+    const tradeCategoriesButtons = CATEGORY_LIST.map((cat) =>
+        Markup.button.callback(cat, `view_top_markets:${cat}`)
+    );
+
+    const layout = [];
+    for (let i = 0; i < tradeCategoriesButtons.length; i += 2) {
+        layout.push(tradeCategoriesButtons.slice(i, i + 2));
+    }
+
+    return ctx.reply("🔥 Trading Markets: ", {
+        reply_markup: Markup.inlineKeyboard(layout).reply_markup,
+    });
+}
+
+export async function handleViewTopMarketsByCategory(
+    ctx: Context,
+    marketCategory: string,
+    filter: string = "volume",
+    offset: number = 0
+) {
+    const LIMIT = 8;
+    let message = `🔥 Top Markets for ***${marketCategory}*** — _${capitalize(filter)}_\n\n`;
+
+    const markets = await fetchMarkets(marketCategory, filter, offset);
+
+    const filteredMarkets =
+        filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
+
+    if (filteredMarkets.length === 0) {
+        return ctx.reply("⚠️ No Available Markets!");
+    }
+
+    for (let i = 0; i < filteredMarkets.length; i++) {
+        const market = filteredMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVolumne = formatDollarVolume(market.volume1mo || 0);
+
+        message += `${i + 1}. ***${market.title}***
+📊 Volume : ${fVolumne}
+⏰ Ends: ${fDate}
+
+`;
+    }
+
+    const filterButtons = MARKET_FILTERS.map((marketFilter) =>
+        Markup.button.callback(
+            marketFilter.split(" ")[1].toLowerCase() === filter
+                ? `✅ ${marketFilter}`
+                : `   ${marketFilter}`,
+            `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
+        )
+    );
+
+    const paginationButtons = [];
+
+    if (offset > 0) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "⏮️ Prev",
+                `filter_top_market:${marketCategory}:${filter}:${offset - LIMIT}`
+            )
+        );
+    }
+
+    if (filteredMarkets.length === LIMIT) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "Next ⏭️",
+                `filter_top_market:${marketCategory}:${filter}:${offset + LIMIT}`
+            )
+        );
+    }
+
+    const marketButtons = filteredMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        filterButtons.slice(0, 3),
+        filterButtons.slice(3),
+        ...marketButtonsLayout,
+        paginationButtons,
+        [Markup.button.callback("❌ Close", `close:delete_message`)],
+    ]);
+
+    if (ctx.updateType === "callback_query") {
+        try {
+            await ctx.editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            });
+        } catch (error: any) {
+            if (
+                error?.response?.error_code === 400 &&
+                error?.response?.description?.includes("message is not modified")
+            ) {
+                await ctx.answerCbQuery();
+            } else {
+                console.error("❌ editMessageText failed:", error);
+                await ctx.answerCbQuery("⚠️ Failed to update the message.");
+            }
+        }
+
+        return;
+    }
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+export async function handleShowMarkets(ctx: Context, eventId: number) {
+    const response = await axios.get(`https://gamma-api.polymarket.com/events?id=${eventId}`);
+    const data = response.data[0];
+
+    const title = data.title;
+    const fDate = formatDate(data.endDate);
+    const fVolume = formatDollarVolume(data.volume1mo || 0);
+    const markets = data.markets;
+
+    let message = `📌 ***${title}***
+
+📅 Ends: ${fDate}
+📊 Volume: ${fVolume}
+
+`;
+
+    if (markets.length === 1) {
+        const outcomes: number[] = JSON.parse(markets[0].outcomePrices);
+        message += `Current Prices:
+• Up: $${outcomes[0]}
+• Down: $${outcomes[1]}
+`;
+
+        const keyboard = Markup.inlineKeyboard([
+            Markup.button.callback("🛒 Buy", `buy_market:${markets[0].id}`),
+            Markup.button.callback("💵 Sell", `sell_market:${markets[0].id}`),
+        ]);
+        return ctx.reply(message, { parse_mode: "Markdown", reply_markup: keyboard.reply_markup });
+    }
+
+    message += `***Available Markets***:
+
+`;
+
+    const marketButtons = [];
+
+    for (let i = 0; i < markets.length; i++) {
+        const market = markets[i];
+
+        const priceYes = parseFloat(JSON.parse(market.outcomePrices)[0]); // "Yes" outcome
+        const probability = Math.min(Math.round(priceYes * 100), 99) + "%";
+        message += `• ${market.groupItemTitle} ***${probability}***\n`;
+        marketButtons.push(Markup.button.callback(`#${i + 1}`, `view_market:${market.id}`));
+    }
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard(marketButtonsLayout).reply_markup,
+    });
+}
+
+export async function handleViewMarket(ctx: Context, marketId: string) {
+    const market = await getMarketById(marketId);
+
+    if (!market) {
+        return ctx.reply("❌ There was an error fetching market details!");
+    }
+
+    const fDate = formatDate(market.endDate);
+    const fVolume = formatDollarVolume(market.volume1mo);
+
+    let message = `📌 ***${market.title}***
+
+📅 Ends: ${fDate}
+📊 Volume: ${fVolume}
+
+`;
+
+    const outcomes: number[] = JSON.parse(market.outcomePrices);
+    message += `Current Prices:
+• Up: $${outcomes[0]}
+• Down: $${outcomes[1]}
+`;
+
+    const keyboard = Markup.inlineKeyboard([
+        Markup.button.callback("🛒 Buy", `buy_market:${market.id}`),
+        Markup.button.callback("💵 Sell", `sell_market:${market.id}`),
+    ]);
+    return ctx.reply(message, { parse_mode: "Markdown", reply_markup: keyboard.reply_markup });
+}
+
 export async function handleWalletSettingsMenuCallbacks(ctx: Context) {
-    await handleWalletSettingsMenu(ctx);
-    return ctx.answerCbQuery();
+    await handleWalletSettingsMenu(ctx).then(() => ctx.answerCbQuery());
 }
 
 export async function handleAddNewWalletCallback(ctx: Context) {
@@ -163,8 +368,6 @@ export async function handleDeleteWalletCallback(ctx: Context) {
         );
 
         return ctx.reply(`Your Wallets: `, deleteWalletButtons);
-
-        // const deleteWalletButtons = Markup.inlineKeyboard([]);
     } catch (error) {
         console.error("Error fetching user copy wallets details: ", error);
         return ctx.reply(
@@ -290,12 +493,12 @@ export async function handleSelectedMarketCallback(ctx: Context, marketId: strin
         return ctx.reply("Could not fetch market details. Please try again.");
     }
 
-    const { question, description, volumeNum, active, orderMinSize } = marketData;
+    const { question, description, volumeNum, orderMinSize } = marketData;
 
     const message =
         `📈 *Market Details*\n\n` +
         `*Question:* ${question ?? "N/A"}\n` +
-        `*Description:* ${description.trim() ?? "N/A"}\n\n` +
+        `*Description:* ${escapeMarkdown(description.trim()) ?? "N/A"}\n\n` +
         `*Volume:* ${volumeNum ?? "0"}\n` +
         `*Min Order Size:* ${orderMinSize ?? "N/A"}\n` +
         `Please select an order type:`;
@@ -307,7 +510,7 @@ export async function handleSelectedMarketCallback(ctx: Context, marketId: strin
         [Markup.button.callback("Fill and Kill Order", `selected_order:${marketId}:fak`)],
     ];
 
-    await ctx.editMessageText(message, {
+    await ctx.reply(message, {
         parse_mode: "Markdown",
         reply_markup: Markup.inlineKeyboard(orderTypeButtons).reply_markup,
     });

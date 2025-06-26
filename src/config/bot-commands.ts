@@ -19,6 +19,11 @@ import {
     handleFetchMarketWithOffsetCallback,
     handleSelectedMarketCallback,
     handleManageTradePositionsCallback,
+    formatBidLine,
+    handleViewTopMarketsCallback,
+    handleViewTopMarketsByCategory,
+    handleShowMarkets,
+    handleViewMarket,
 } from "../utils/telegram";
 import { supabase } from "./supabase";
 import { handleExportPrivateKey } from "../helpers/export-user-private-key";
@@ -33,6 +38,9 @@ import {
     handleOrderDetailsTextMessage,
     handleWalletDetailsTextMessage,
 } from "../utils/telegram/text-handlers";
+import { getMarketOrderBook } from "../utils/polymarket/get-markets";
+import { getTokenIds } from "../helpers/get-token-id";
+import { getUserDetails } from "../helpers/get-user-details";
 
 /* Command Handlers */
 export async function handleStartCommand(ctx: Context) {
@@ -183,6 +191,23 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleSelectedMarketCallback(ctx, marketId);
     }
 
+    if (data.startsWith("buy_market:")) {
+        const marketId = data.split(":")[1];
+        await redisClient.hSet(`user:order_action:${ctx.from?.id!}`, {
+            action: "OPEN",
+        });
+        return handleSelectedMarketCallback(ctx, marketId);
+    }
+
+    if (data.startsWith("sell_market:")) {
+        const marketId = data.split(":")[1];
+        await redisClient.hSet(`user:order_action:${ctx.from?.id!}`, {
+            action: "CLOSE",
+        });
+
+        return handleSelectedMarketCallback(ctx, marketId);
+    }
+
     // Handle Selected Order
     if (data.startsWith("selected_order:")) {
         const userId = ctx.from?.id.toString()!;
@@ -193,6 +218,39 @@ export async function handleCallbackQuery(ctx: Context) {
             orderType,
         });
         awaitingOrderDetailsInputSet.add(userId);
+
+        const { action } = await redisClient.hGetAll(`user:order_action:${userId}`);
+
+        if (action === "CLOSE") {
+            const [tokenIds, user] = await Promise.all([
+                await getTokenIds(marketId),
+                await getUserDetails(Number(userId)),
+            ]);
+
+            if (!tokenIds || !user) {
+                return ctx.reply("⚠️ Error fetching Order Book Details.");
+            }
+
+            const { yesResponse, noResponse } = await getMarketOrderBook({
+                tokenId: tokenIds,
+                privateKey: user.private_key,
+                creds: user.api_credentials,
+            });
+
+            const yesLines = yesResponse.bids.map(formatBidLine).join("\n");
+            const noLines = noResponse.bids.map(formatBidLine).join("\n");
+
+            const message = `📈 *Order Book - Available Bids*
+
+*YES Bids* (to close a YES position):
+${yesLines}
+
+*NO Bids* (to close a NO position):
+${noLines}
+`;
+
+            await ctx.reply(message, { parse_mode: "Markdown" });
+        }
 
         await ctx.reply(
             `✍️ Send Order Details in this format:
@@ -227,6 +285,31 @@ yes 123.45 100
         return handleManageTradePositionsCallback(ctx, action);
     }
 
+    // Handle View Top Markets Menu Callback
+    if (data === "trade_top_markets_view") {
+        return handleViewTopMarketsCallback(ctx).then(() => ctx.answerCbQuery());
+    }
+
+    if (data.startsWith("view_top_markets:")) {
+        const marketCategory = data.split(":")[1].toLowerCase();
+        return handleViewTopMarketsByCategory(ctx, marketCategory);
+    }
+
+    if (data.startsWith("filter_top_market:")) {
+        const [category, filter, offset] = data.split(":").slice(1);
+        return handleViewTopMarketsByCategory(ctx, category, filter, Number(offset) || 0);
+    }
+
+    if (data.startsWith("view_markets:")) {
+        const eventId = Number(data.split(":")[1]);
+        return handleShowMarkets(ctx, eventId);
+    }
+
+    if (data.startsWith("view_market:")) {
+        const marketId = data.split(":")[1];
+        return handleViewMarket(ctx, marketId);
+    }
+
     // Handle Delete User Wallet
     if (data.startsWith("delete_copy_wallet:")) {
         const walletAddress = data.split(":")[1];
@@ -252,6 +335,13 @@ yes 123.45 100
     // Handle Delete Wallet Callback
     if (data === "delete_wallet") {
         return handleDeleteWalletCallback(ctx);
+    }
+
+    if (data.startsWith("close:")) {
+        const action = data.split(":")[1];
+        if (action === "delete_message") {
+            await ctx.deleteMessage().then(() => ctx.answerCbQuery());
+        }
     }
 
     // Handle Close Menu

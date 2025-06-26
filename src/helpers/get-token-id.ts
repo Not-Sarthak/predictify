@@ -12,3 +12,17 @@ export async function getTokenId(decision: string, marketId: string) {
         return null;
     }
 }
+
+export async function getTokenIds(marketId: string): Promise<string[] | null> {
+    try {
+        const response = await fetch(`https://gamma-api.polymarket.com/markets?id=${marketId}`);
+        const data = await response.json();
+        const marketData = data[0];
+        const tokenIds = JSON.parse(marketData.clobTokenIds);
+
+        return tokenIds;
+    } catch (error) {
+        console.error(`Error fetching Token IDs for Market with ID ${marketId}: `, error);
+        return null;
+    }
+}

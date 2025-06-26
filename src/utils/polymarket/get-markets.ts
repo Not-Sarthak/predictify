@@ -56,17 +56,72 @@ interface Market {
 }
 
 // Get All Markets
-export async function fetchMarkets(): Promise<Market[]> {
-    const res = await axios.get(
-        "https://gamma-api.polymarket.com/events/pagination?limit=20&active=true&archived=false&tag_slug=politics&closed=false&order=volume24hr&ascending=false&offset=0"
-    );
-    const markets = res.data.data;
+export async function fetchMarkets(
+    category: string,
+    filter: string,
+    offset: number
+): Promise<Market[]> {
+    const BASE_URL = "https://gamma-api.polymarket.com/events/pagination";
+    const LIMIT = 8;
+    const OFFSET = offset;
+
+    let url = "";
+    const params = new URLSearchParams({
+        limit: LIMIT.toString(),
+        offset: OFFSET.toString(),
+        active: "true",
+        archived: "false",
+        closed: "false",
+        tag_slug: category,
+        ascending: "false",
+    });
+
+    switch (filter) {
+        case "volume":
+            params.set("order", "volume1mo");
+            break;
+        case "liquidity":
+            params.set("order", "liquidity");
+            break;
+        case "newest":
+            params.set("order", "startDate");
+            break;
+        case "ending":
+            params.set("order", "endDate");
+            break;
+        case "competitive":
+            params.set("order", "competitive");
+            break;
+        case "trending":
+            params.delete("order");
+            params.set("limit", "10");
+            break;
+        default:
+            params.set("order", "volume1mo");
+    }
+
+    url = `${BASE_URL}?${params.toString()}`;
+
+    const res = await axios.get(url);
+    let markets: Market[] = res.data.data;
+
+    // Apply local filtering if filter is 'trending'
+    if (filter === "trending") {
+        markets = markets
+            .filter(
+                (market) =>
+                    market.active === true &&
+                    market.closed === false &&
+                    new Date(market.endDate) > new Date() &&
+                    market.volume24hr >= 10000 &&
+                    market.liquidity >= 1000 &&
+                    market.competitive >= 0.5
+            )
+            .slice(0, LIMIT);
+    }
+
     return markets;
 }
-
-// fetchMarkets().then((markets) => {
-//   console.log(markets);
-// });
 
 // Get Market by Slug
 export async function getMarketBySlug(slug: string) {
@@ -175,19 +230,33 @@ export async function getMarketOrderBook(
         getMarketOrderBookRequest.creds
     );
 
-    const yesResponse = await clobClient.getOrderBook(getMarketOrderBookRequest.tokenId[0]);
-
-    const noResponse = await clobClient.getOrderBook(getMarketOrderBookRequest.tokenId[1]);
+    const [yesResponse, noResponse] = await Promise.all([
+        clobClient.getOrderBook(getMarketOrderBookRequest.tokenId[0]),
+        clobClient.getOrderBook(getMarketOrderBookRequest.tokenId[1]),
+    ]);
 
     return { yesResponse, noResponse };
 }
 
-getMarketOrderBook({
-    tokenId: ["25009308950201377351599447846248861147611469669632550804193755818060327719237"],
-    privateKey: "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3",
-    creds: {
-        key: "f3e137a7-3a85-d6fa-292a-3db867dcd441",
-        secret: "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
-        passphrase: "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
-    },
-});
+export async function getMarketById(marketId: string) {
+    try {
+        const response = await fetch(`https://gamma-api.polymarket.com/markets?id=${marketId}`);
+        const data = await response.json();
+        const market = data[0];
+
+        return market;
+    } catch (error) {
+        console.error("Error fetching Market: ", error);
+        return null;
+    }
+}
+
+// getMarketOrderBook({
+//     tokenId: ["25009308950201377351599447846248861147611469669632550804193755818060327719237"],
+//     privateKey: "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3",
+//     creds: {
+//         key: "f3e137a7-3a85-d6fa-292a-3db867dcd441",
+//         secret: "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
+//         passphrase: "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
+//     },
+// });

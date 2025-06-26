@@ -32,3 +32,12 @@ export const MATIC_CONTRACTS: ContractConfig = {
 
 export const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"; // USDC on Polygon
 export const EXCHANGE_ADDRESS = "0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E"; // Polymarket Exchange Contract
+
+export const MARKET_FILTERS = [
+    "📊 Volume",
+    "🔥 Trending",
+    "💧 Liquidity",
+    "🆕 Newest",
+    "⏰ Ending Soon",
+    "⚔️ Competitive",
+];
