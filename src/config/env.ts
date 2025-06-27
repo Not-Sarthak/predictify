@@ -33,3 +33,5 @@ export const DEBRIDGE_API_URL = env
     .required()
     .asString();
 export const DEBRIDGE_API_KEY = env.get("DEBRIDGE_API_KEY").default("-").required().asString();
+
+export const TREASURY_ADDRESS = env.get("TREASURY_ADDRESS").required().asString();

@@ -1,4 +1,4 @@
-interface MonitorState {
+export interface MonitorState {
     knownPositions: Map<string, any[]>;
     knownActivities: Set<string>;
     isWatchEnabled: boolean;

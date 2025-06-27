@@ -24,6 +24,14 @@ import {
     handleViewTopMarketsByCategory,
     handleShowMarkets,
     handleViewMarket,
+    handleWalletMonitoringMenu,
+    handleWalletMonitoringCallbacks,
+    handleStopSpecificWalletMonitor,
+    handleEnableCopyTrade,
+    handleStopCopyTrade,
+    handleCopyTradeConfigCallbacks,
+    handleCopyTradeConfigureMenu,
+    handleViewWatchedWallets,
 } from "../utils/telegram";
 import { supabase } from "./supabase";
 import { handleExportPrivateKey } from "../helpers/export-user-private-key";
@@ -325,6 +333,48 @@ yes 123.45 100
     if (data.startsWith("export_private_key:")) {
         const network = data.split(":")[1];
         return handleExportPrivateKey(ctx, network as "evm" | "solana");
+    }
+
+    // Handle Wallet Monitoring Menu
+    if (data === "wallet_monitor") {
+        return handleWalletMonitoringMenu(ctx);
+    }
+
+    // Handle Wallet Monitoring Actions
+    if (data.startsWith("wallet_monitor_")) {
+        const action = data.split("_")[2];
+        return handleWalletMonitoringCallbacks(ctx, action);
+    }
+
+    // Handle Stop Specific Wallet Monitor
+    if (data.startsWith("stop_wallet_monitor:")) {
+        const walletAddress = data.split(":")[1];
+        return handleStopSpecificWalletMonitor(ctx, walletAddress);
+    }
+
+    // Handle Copy Trade Actions
+    if (data === "enable_copy_trade") {
+        return handleEnableCopyTrade(ctx);
+    }
+
+    if (data === "stop_copy_trade") {
+        return handleStopCopyTrade(ctx);
+    }
+
+    // Handle Copy Trade Configure
+    if (data === "copy_trade_configure") {
+        return handleCopyTradeConfigureMenu(ctx);
+    }
+
+    // Handle View Watched Wallets
+    if (data === "view_watched_wallets") {
+        return handleViewWatchedWallets(ctx);
+    }
+
+    // Handle Configuration Settings
+    if (data.startsWith("config_")) {
+        const action = data.replace("config_", "");
+        return handleCopyTradeConfigCallbacks(ctx, action);
     }
 
     // Handle Add New Wallet

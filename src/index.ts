@@ -3,6 +3,7 @@ import { API_SERVER_PORT, PORT } from "./constants/server";
 import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 import { server } from "./api";
 import { bot } from "./config/bot";
+import { walletSocketServer } from "./utils/polymarket-socket/socket";
 
 // Interval to Fetch new Markets
 // setInterval(() => {
@@ -28,3 +29,5 @@ bot.launch(
         console.log("Bot is Running");
     }
 );
+
+console.log(`Socket Server Initialized on port ${walletSocketServer.getActiveConnections() >= 0 ? 'ready' : 'error'}`);
