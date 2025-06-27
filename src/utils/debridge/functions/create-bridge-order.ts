@@ -3,7 +3,7 @@ import type { deBridgeOrderInput, deBridgeOrderResponse } from "../types";
 
 export async function createDebridgeBridgeOrder(
     params: deBridgeOrderInput
-): Promise<deBridgeOrderResponse> {
+): Promise<deBridgeOrderResponse | null> {
     if (params.srcChainId === params.dstChainId) {
         throw new Error("Source and Destination Chains must be Different");
     }
@@ -26,13 +26,15 @@ export async function createDebridgeBridgeOrder(
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to create bridge order: ${response.statusText}. ${errorText}`);
+        console.error(`Failed to create bridge order: ${response.statusText}. ${errorText}`);
+        return null;
     }
 
     const data = (await response.json()) as deBridgeOrderResponse;
 
     if ("error" in data && data.error) {
-        throw new Error(`DeBridge API Error: ${data.error}`);
+        console.error(`DeBridge API Error: ${data.error}`);
+        return null;
     }
 
     if ("tx" in data && data.tx?.data) {

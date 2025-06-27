@@ -30,4 +30,6 @@ bot.launch(
     }
 );
 
-console.log(`Socket Server Initialized on port ${walletSocketServer.getActiveConnections() >= 0 ? 'ready' : 'error'}`);
+console.log(
+    `Socket Server Initialized on port ${walletSocketServer.getActiveConnections() >= 0 ? "ready" : "error"}`
+);

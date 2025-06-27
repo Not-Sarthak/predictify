@@ -57,12 +57,14 @@ export async function handleAutoTradeMenu(ctx: Context) {
     // const watchedWalletsCount = await getUserWatchedWalletsCount(userId);
     const watchedWalletsCount = 0;
 
-    const statusMessage = `🤖 *AutoTrade Menu*\n\n` +
-        `📊 *Status:* ${isCopyTradeEnabled ? '✅ Copy Trading Enabled' : '⏸️ Watch Only Mode'}\n` +
+    const statusMessage =
+        `🤖 *AutoTrade Menu*\n\n` +
+        `📊 *Status:* ${isCopyTradeEnabled ? "✅ Copy Trading Enabled" : "⏸️ Watch Only Mode"}\n` +
         `👁️ *Monitoring:* ${watchedWalletsCount}/3 Wallets\n\n` +
-        `${isCopyTradeEnabled 
-            ? '🔄 *Mode:* Watching + Auto Trading' 
-            : '👀 *Mode:* Watching Only (No Trading)'
+        `${
+            isCopyTradeEnabled
+                ? "🔄 *Mode:* Watching + Auto Trading"
+                : "👀 *Mode:* Watching Only (No Trading)"
         }\n\n` +
         `Select an Action:`;
 
@@ -79,14 +81,14 @@ export async function handleAutoTradeMenu(ctx: Context) {
             Markup.button.callback(
                 isCopyTradeEnabled ? "🛑 Stop Copy Trade" : "✅ Enable Copy Trade",
                 isCopyTradeEnabled ? "stop_copy_trade" : "enable_copy_trade"
-            )
+            ),
         ],
         [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
     await ctx.editMessageText(statusMessage, {
         parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(autoTradeButtons).reply_markup
+        reply_markup: Markup.inlineKeyboard(autoTradeButtons).reply_markup,
     });
 }
 
@@ -130,6 +132,7 @@ export async function handleWalletSettingsMenu(ctx: Context) {
         const walletSettingsMenu = Markup.inlineKeyboard([
             [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
             [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
+            [Markup.button.callback("🚀 Bridge Funds to Polygon", "bridge_funds")],
         ]);
 
         return ctx.reply(message, {
@@ -148,8 +151,9 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
 
     // TODO: Get user's current configuration settings
     // const userConfig = await getUserCopyTradeConfig(userId);
-    
-    const configMessage = `💰 *Copy Trader Position %*\n\n` +
+
+    const configMessage =
+        `💰 *Copy Trader Position %*\n\n` +
         `Choose how much of your balance to use for copy trading:\n\n` +
         `📊 *Current Settings:* Default (Not Set)`;
 
@@ -163,17 +167,13 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             Markup.button.callback("Same Proportion", "config_same_proportion"),
             Markup.button.callback("Same Amount", "config_same_amount"),
         ],
-        [
-            Markup.button.callback("Max Amount", "config_max_amount"),
-        ],
-        [
-            Markup.button.callback("↩️ Back to Auto Trade", "start_autotrade"),
-        ],
+        [Markup.button.callback("Max Amount", "config_max_amount")],
+        [Markup.button.callback("↩️ Back to Auto Trade", "start_autotrade")],
     ];
 
     await ctx.editMessageText(configMessage, {
         parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(configButtons).reply_markup
+        reply_markup: Markup.inlineKeyboard(configButtons).reply_markup,
     });
 }
 
@@ -192,7 +192,8 @@ export async function handleViewWatchedWallets(ctx: Context) {
         if (error) throw error;
 
         if (!userWallets || userWallets.length === 0) {
-            const message = `👁️ *Watched Wallets*\n\n` +
+            const message =
+                `👁️ *Watched Wallets*\n\n` +
                 `⚠️ No Wallets Added\n\n` +
                 `Add wallets to start monitoring their trading activity.`;
 
@@ -203,16 +204,20 @@ export async function handleViewWatchedWallets(ctx: Context) {
 
             return ctx.editMessageText(message, {
                 parse_mode: "Markdown",
-                reply_markup: Markup.inlineKeyboard(buttons).reply_markup
+                reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
             });
         }
 
-        const message = `👁️ *Watched Wallets (${userWallets.length}/3)*\n\n` +
-            userWallets.map((wallet, index) => 
-                `${index + 1}. **${wallet.wallet_name}**\n` +
-                `   \`${wallet.wallet_address}\`\n`
-            ).join('\n') +
-            `\n💡 *Tip:* ${userWallets.length < 3 ? 'You can add more wallets.' : 'Maximum wallets reached.'}`;
+        const message =
+            `👁️ *Watched Wallets (${userWallets.length}/3)*\n\n` +
+            userWallets
+                .map(
+                    (wallet, index) =>
+                        `${index + 1}. **${wallet.wallet_name}**\n` +
+                        `   \`${wallet.wallet_address}\`\n`
+                )
+                .join("\n") +
+            `\n💡 *Tip:* ${userWallets.length < 3 ? "You can add more wallets." : "Maximum wallets reached."}`;
 
         const buttons = [
             [
@@ -224,9 +229,8 @@ export async function handleViewWatchedWallets(ctx: Context) {
 
         await ctx.editMessageText(message, {
             parse_mode: "Markdown",
-            reply_markup: Markup.inlineKeyboard(buttons).reply_markup
+            reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
         });
-
     } catch (error) {
         console.error("Error fetching watched wallets:", error);
         return ctx.reply("❌ Failed to fetch watched wallets. Please try again.");

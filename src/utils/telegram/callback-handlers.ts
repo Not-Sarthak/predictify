@@ -525,29 +525,29 @@ export async function handleWalletMonitoringMenu(ctx: Context) {
 
     const userStats = walletSocketServer.getUserStats(userId);
     const watchedWallets = userStats?.watchedWallets || [];
-    
-    const message = `🔍 *Wallet Monitoring*\n\n` +
+
+    const message =
+        `🔍 *Wallet Monitoring*\n\n` +
         `👁️ *Currently Watching:* ${watchedWallets.length}/3 Wallets\n\n` +
-        (watchedWallets.length > 0 
-            ? watchedWallets.map((wallet: string, index: number) => 
-                `${index + 1}. \`${wallet}\``
-              ).join('\n') + '\n\n'
-            : '') +
+        (watchedWallets.length > 0
+            ? watchedWallets
+                  .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
+                  .join("\n") + "\n\n"
+            : "") +
         `Select an Action:`;
 
     const monitoringButtons = [
         [Markup.button.callback("➕ Start Watching Wallet", "wallet_monitor_add")],
-        ...(watchedWallets.length > 0 
+        ...(watchedWallets.length > 0
             ? [[Markup.button.callback("🗑️ Stop Watching Wallet", "wallet_monitor_remove")]]
-            : []
-        ),
+            : []),
         [Markup.button.callback("📊 View Status", "wallet_monitor_status")],
-        [Markup.button.callback("❌ Close", "close_menu")]
+        [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
     await ctx.editMessageText(message, {
         parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(monitoringButtons).reply_markup
+        reply_markup: Markup.inlineKeyboard(monitoringButtons).reply_markup,
     });
 }
 
@@ -572,8 +572,9 @@ async function handleStartWalletMonitoring(ctx: Context) {
     if (!userId) return;
 
     await ctx.answerCbQuery();
-    
-    const message = `🔍 *Start Wallet Monitoring*\n\n` +
+
+    const message =
+        `🔍 *Start Wallet Monitoring*\n\n` +
         `Please Enter the Wallet Address you want to Monitor:\n\n` +
         `📌 *Example:*\n` +
         `\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`\n\n` +
@@ -601,19 +602,16 @@ async function handleStopWalletMonitoring(ctx: Context) {
         Markup.button.callback(
             `🛑 ${wallet.substring(0, 10)}...${wallet.substring(wallet.length - 8)}`,
             `stop_wallet_monitor:${wallet}`
-        )
+        ),
     ]);
 
     walletButtons.push([Markup.button.callback("❌ Cancel", "wallet_monitor")]);
 
     await ctx.answerCbQuery();
-    return ctx.reply(
-        "🗑️ *Stop Wallet Monitoring*\n\nSelect a wallet to stop monitoring:",
-        {
-            parse_mode: "Markdown",
-            reply_markup: Markup.inlineKeyboard(walletButtons).reply_markup
-        }
-    );
+    return ctx.reply("🗑️ *Stop Wallet Monitoring*\n\nSelect a wallet to stop monitoring:", {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard(walletButtons).reply_markup,
+    });
 }
 
 async function handleWalletMonitoringStatus(ctx: Context) {
@@ -624,18 +622,18 @@ async function handleWalletMonitoringStatus(ctx: Context) {
     const activeConnections = walletSocketServer.getActiveConnections();
     const activeSubscriptions = walletSocketServer.getActiveSubscriptions();
 
-    const message = `📊 *Wallet Monitoring Status*\n\n` +
-        `🔗 *Your Connection:* ${userStats ? '✅ Connected' : '❌ Disconnected'}\n` +
+    const message =
+        `📊 *Wallet Monitoring Status*\n\n` +
+        `🔗 *Your Connection:* ${userStats ? "✅ Connected" : "❌ Disconnected"}\n` +
         `👁️ *Your Watched Wallets:* ${userStats?.totalWatched || 0}/3\n` +
         `🌐 *Total Active Connections:* ${activeConnections}\n` +
         `📡 *Total Active Subscriptions:* ${activeSubscriptions}\n\n` +
-        (userStats?.watchedWallets.length > 0 
-            ? `*Your Monitored Wallets:*\n` + 
-              userStats.watchedWallets.map((wallet: string, index: number) => 
-                `${index + 1}. \`${wallet}\``
-              ).join('\n')
-            : '*No wallets currently monitored*'
-        );
+        (userStats?.watchedWallets.length > 0
+            ? `*Your Monitored Wallets:*\n` +
+              userStats.watchedWallets
+                  .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
+                  .join("\n")
+            : "*No wallets currently monitored*");
 
     await ctx.answerCbQuery();
     return ctx.reply(message, { parse_mode: "Markdown" });
@@ -653,7 +651,7 @@ export async function handleStopSpecificWalletMonitor(ctx: Context, walletAddres
         await ctx.answerCbQuery("Wallet Monitoring Stopped");
         return ctx.reply(
             `✅ Stopped Monitoring Wallet:\n\`${walletAddress}\`\n\n` +
-            `You Will No Longer Receive Updates for this Wallet.`,
+                `You Will No Longer Receive Updates for this Wallet.`,
             { parse_mode: "Markdown" }
         );
     } catch (error) {
@@ -679,7 +677,7 @@ export async function handleEnableCopyTrade(ctx: Context) {
             await ctx.answerCbQuery("No Wallets Added");
             return ctx.reply(
                 "⚠️ *No Wallets Added*\n\n" +
-                "Please Add Wallets to Copy Trade before Enabling Copy Trading.",
+                    "Please Add Wallets to Copy Trade before Enabling Copy Trading.",
                 { parse_mode: "Markdown" }
             );
         }
@@ -690,10 +688,13 @@ export async function handleEnableCopyTrade(ctx: Context) {
         await ctx.answerCbQuery("Copy Trading Enabled");
         return ctx.reply(
             `✅ *Copy Trading Enabled*\n\n` +
-            `You are now Copy Trading from ${userWallets.length} Wallet(s):\n` +
-            userWallets.map((wallet, index) => 
-                `${index + 1}. ${wallet.wallet_name} (\`${wallet.wallet_address}\`)`
-            ).join('\n'),
+                `You are now Copy Trading from ${userWallets.length} Wallet(s):\n` +
+                userWallets
+                    .map(
+                        (wallet, index) =>
+                            `${index + 1}. ${wallet.wallet_name} (\`${wallet.wallet_address}\`)`
+                    )
+                    .join("\n"),
             { parse_mode: "Markdown" }
         );
     } catch (error) {
@@ -714,14 +715,14 @@ export async function handleStopCopyTrade(ctx: Context) {
         await ctx.answerCbQuery("Copy Trading Stopped");
         return ctx.reply(
             "🛑 *Copy Trading Stopped*\n\n" +
-            "You are no longer Copy Trading. Your Added Wallets Remain Saved.",
+                "You are no longer Copy Trading. Your Added Wallets Remain Saved.",
             { parse_mode: "Markdown" }
         );
     } catch (error) {
         console.error("Error Stopping Copy Trade:", error);
         await ctx.answerCbQuery("Error Occurred");
-                 return ctx.reply("❌ Failed to Stop Copy Trading. Please Try Again.");
-     }
+        return ctx.reply("❌ Failed to Stop Copy Trading. Please Try Again.");
+    }
 }
 
 export async function handleCopyTradeConfigCallbacks(ctx: Context, action: string) {
@@ -729,35 +730,35 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
     if (!userId) return;
 
     try {
-        let configType = '';
-        let configValue = '';
+        let configType = "";
+        let configValue = "";
 
         switch (action) {
-            case 'position_50':
-                configType = 'Position Percentage';
-                configValue = '50%';
+            case "position_50":
+                configType = "Position Percentage";
+                configValue = "50%";
                 break;
-            case 'position_100':
-                configType = 'Position Percentage';
-                configValue = '100%';
+            case "position_100":
+                configType = "Position Percentage";
+                configValue = "100%";
                 break;
-            case 'position_custom':
-                configType = 'Position Percentage';
-                configValue = 'Custom';
+            case "position_custom":
+                configType = "Position Percentage";
+                configValue = "Custom";
                 // TODO: Handle custom input
                 await ctx.answerCbQuery("Custom percentage coming soon");
                 return ctx.reply("⚠️ Custom percentage configuration coming soon!");
-            case 'same_proportion':
-                configType = 'Copy Method';
-                configValue = 'Same Proportion';
+            case "same_proportion":
+                configType = "Copy Method";
+                configValue = "Same Proportion";
                 break;
-            case 'same_amount':
-                configType = 'Copy Method';
-                configValue = 'Same Amount';
+            case "same_amount":
+                configType = "Copy Method";
+                configValue = "Same Amount";
                 break;
-            case 'max_amount':
-                configType = 'Position Limit';
-                configValue = 'Max Amount';
+            case "max_amount":
+                configType = "Position Limit";
+                configValue = "Max Amount";
                 // TODO: Handle max amount input
                 await ctx.answerCbQuery("Max amount setting coming soon");
                 return ctx.reply("⚠️ Max amount configuration coming soon!");
@@ -772,11 +773,10 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
         await ctx.answerCbQuery(`${configType} set to ${configValue}`);
         return ctx.reply(
             `✅ *Configuration Updated*\n\n` +
-            `**${configType}:** ${configValue}\n\n` +
-            `Your copy trading settings have been updated.`,
+                `**${configType}:** ${configValue}\n\n` +
+                `Your copy trading settings have been updated.`,
             { parse_mode: "Markdown" }
         );
-
     } catch (error) {
         console.error("Error updating copy trade config:", error);
         await ctx.answerCbQuery("Error Occurred");

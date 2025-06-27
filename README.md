@@ -12,11 +12,25 @@ implemented but not tested:
 marketBuyOrder.ts
 marketSellOrder.ts
 
--> Show Markets from the Events (if no market, just show yes/no)
-
 Tag bot and give info
 
-
 - Socket Server to Monitor for Copy Trading.
-- Debridge button "Bridge Funds"
-- Add Fees
+
+-> Add Fees while opening/closing a position in normal and autotrade. (watch fee.ts)
+-> Call DB/Redis Functions in the socket server events.
+
+<!-- FOR LATER -->
+
+-> Handle Edge Cases where the copy_wallet is ordering on the minimum price & shares.
+
+<!-- REFACTOR -->
+
+-> Cache Data as needed (User profile data, markets etc.)
+-> Add try-catch function for error handling (Theo's gist)
+-> Remove Redundant Code
+-> Custom Error Classes
+-> Optimize Code wherever needed/possible
+
+<!-- UX Improvements -->
+
+-> Add/Edit Buttons (Back (Prev Menu), Back to Main Menu, Close (Closes the Message))

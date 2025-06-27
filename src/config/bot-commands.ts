@@ -49,6 +49,7 @@ import {
 import { getMarketOrderBook } from "../utils/polymarket/get-markets";
 import { getTokenIds } from "../helpers/get-token-id";
 import { getUserDetails } from "../helpers/get-user-details";
+import { createDebridgeBridgeOrder } from "../utils/debridge/functions/create-bridge-order";
 
 /* Command Handlers */
 export async function handleStartCommand(ctx: Context) {
@@ -333,6 +334,18 @@ yes 123.45 100
     if (data.startsWith("export_private_key:")) {
         const network = data.split(":")[1];
         return handleExportPrivateKey(ctx, network as "evm" | "solana");
+    }
+
+    if (data === "bridge_funds") {
+        await ctx.answerCbQuery();
+
+        // @Not-Sarthak Uncomment this when you add Params
+        // const response = await createDebridgeBridgeOrder({});
+        // if (!response) {
+        //     return ctx.reply("❌ There was a problem bridging your funds.");
+        // }
+
+        // return ctx.reply("✅ Funds Successfully Bridged to Polygon.");
     }
 
     // Handle Wallet Monitoring Menu

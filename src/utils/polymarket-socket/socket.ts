@@ -1,11 +1,11 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { createWalletMonitor, enableWatch, disableWatch, getStatus } from './wallet-monitor';
-import type { MonitorState } from './wallet-monitor';
+import { WebSocketServer, WebSocket } from "ws";
+import { createWalletMonitor, enableWatch, disableWatch, getStatus } from "./wallet-monitor";
+import type { MonitorState } from "./wallet-monitor";
 // TODO: Import these when implementing database integration
 // import { supabase } from '../../config/supabase';
 // import { redisClient } from '../../config/redis';
-import { bot } from '../../config/bot';
-import { SOCKET_SERVER_PORT } from '../../constants/server';
+import { bot } from "../../config/bot";
+import { SOCKET_SERVER_PORT } from "../../constants/server";
 
 interface SocketClient {
     ws: WebSocket;
@@ -22,7 +22,7 @@ interface WalletSubscription {
 }
 
 interface SocketMessage {
-    type: 'START_WATCHING' | 'STOP_WATCHING' | 'GET_STATUS' | 'PING' | 'PONG';
+    type: "START_WATCHING" | "STOP_WATCHING" | "GET_STATUS" | "PING" | "PONG";
     payload?: {
         walletAddress?: string;
         userId?: string;
@@ -39,32 +39,32 @@ class WalletSocketServer {
     constructor(port: number = Number(SOCKET_SERVER_PORT)) {
         this.wss = new WebSocketServer({ port });
         this.globalMonitorState = createWalletMonitor();
-        
+
         console.log(`🚀 WebSocket server started on port ${port}`);
         this.setupEventHandlers();
         this.startHeartbeat();
     }
 
     private setupEventHandlers(): void {
-        this.wss.on('connection', (ws: WebSocket, request) => {
+        this.wss.on("connection", (ws: WebSocket, request) => {
             const userId = this.extractUserIdFromRequest(request);
-            
+
             if (!userId) {
-                ws.close(1008, 'Missing user ID');
+                ws.close(1008, "Missing user ID");
                 return;
             }
 
             this.handleNewConnection(ws, userId);
         });
 
-        this.wss.on('error', (error) => {
-            console.error('❌ WebSocket Server Error:', error);
+        this.wss.on("error", (error) => {
+            console.error("❌ WebSocket Server Error:", error);
         });
     }
 
     private extractUserIdFromRequest(request: any): string | null {
-        const url = new URL(request.url || '', 'ws://localhost');
-        return url.searchParams.get('userId');
+        const url = new URL(request.url || "", "ws://localhost");
+        return url.searchParams.get("userId");
     }
 
     private handleNewConnection(ws: WebSocket, userId: string): void {
@@ -74,7 +74,7 @@ class WalletSocketServer {
             ws,
             userId,
             isAlive: true,
-            watchedWallets: new Set()
+            watchedWallets: new Set(),
         };
 
         this.clients.set(userId, client);
@@ -84,35 +84,35 @@ class WalletSocketServer {
 
         this.setupClientEventHandlers(client);
         this.sendToClient(userId, {
-            type: 'GET_STATUS',
-            payload: { status: getStatus(this.globalMonitorState) }
+            type: "GET_STATUS",
+            payload: { status: getStatus(this.globalMonitorState) },
         });
     }
 
     private setupClientEventHandlers(client: SocketClient): void {
         const { ws, userId } = client;
 
-        ws.on('message', (data: Buffer) => {
+        ws.on("message", (data: Buffer) => {
             try {
                 const message: SocketMessage = JSON.parse(data.toString());
                 this.handleClientMessage(userId, message);
             } catch (error) {
                 console.error(`❌ Invalid message from user ${userId}:`, error);
-                this.sendError(userId, 'Invalid message format');
+                this.sendError(userId, "Invalid message format");
             }
         });
 
-        ws.on('close', () => {
+        ws.on("close", () => {
             console.log(`👋 User ${userId} disconnected`);
             this.handleClientDisconnect(userId);
         });
 
-        ws.on('error', (error) => {
+        ws.on("error", (error) => {
             console.error(`❌ Client error for user ${userId}:`, error);
             this.handleClientDisconnect(userId);
         });
 
-        ws.on('pong', () => {
+        ws.on("pong", () => {
             client.isAlive = true;
         });
     }
@@ -122,30 +122,30 @@ class WalletSocketServer {
         if (!client) return;
 
         switch (message.type) {
-            case 'START_WATCHING':
+            case "START_WATCHING":
                 await this.handleStartWatching(userId, message.payload?.walletAddress);
                 break;
 
-            case 'STOP_WATCHING':
+            case "STOP_WATCHING":
                 await this.handleStopWatching(userId, message.payload?.walletAddress);
                 break;
 
-            case 'GET_STATUS':
+            case "GET_STATUS":
                 this.sendStatus(userId);
                 break;
 
-            case 'PING':
-                this.sendToClient(userId, { type: 'PONG' });
+            case "PING":
+                this.sendToClient(userId, { type: "PONG" });
                 break;
 
             default:
-                this.sendError(userId, 'Unknown message type');
+                this.sendError(userId, "Unknown message type");
         }
     }
 
     private async handleStartWatching(userId: string, walletAddress?: string): Promise<void> {
         if (!walletAddress || !this.isValidWalletAddress(walletAddress)) {
-            this.sendError(userId, 'Invalid wallet address');
+            this.sendError(userId, "Invalid wallet address");
             return;
         }
 
@@ -154,13 +154,13 @@ class WalletSocketServer {
 
         // Check if user already has 3 wallets
         if (client.watchedWallets.size >= 3) {
-            this.sendError(userId, 'Maximum 3 wallets allowed per user');
+            this.sendError(userId, "Maximum 3 wallets allowed per user");
             return;
         }
 
         // Check if wallet is already being watched by this user
         if (client.watchedWallets.has(walletAddress)) {
-            this.sendError(userId, 'Wallet already being watched');
+            this.sendError(userId, "Wallet already being watched");
             return;
         }
 
@@ -176,7 +176,7 @@ class WalletSocketServer {
                 userId,
                 walletAddress,
                 monitorState: createWalletMonitor(),
-                lastActivity: new Date()
+                lastActivity: new Date(),
             };
 
             this.walletSubscriptions.set(`${userId}:${walletAddress}`, subscription);
@@ -186,29 +186,31 @@ class WalletSocketServer {
             enableWatch(subscription.monitorState, [walletAddress]);
 
             this.sendToClient(userId, {
-                type: 'START_WATCHING',
+                type: "START_WATCHING",
                 payload: {
                     walletAddress,
-                    status: 'success',
+                    status: "success",
                     message: `Started watching wallet ${walletAddress}`,
-                    totalWatched: client.watchedWallets.size
-                }
+                    totalWatched: client.watchedWallets.size,
+                },
             });
 
             // Send Telegram notification
-            this.sendTelegramNotification(userId, `🔍 Started monitoring wallet: \`${walletAddress}\``);
+            this.sendTelegramNotification(
+                userId,
+                `🔍 Started monitoring wallet: \`${walletAddress}\``
+            );
 
             console.log(`✅ User ${userId} started watching wallet ${walletAddress}`);
-
         } catch (error) {
             console.error(`❌ Error starting watch for user ${userId}:`, error);
-            this.sendError(userId, 'Failed to start watching wallet');
+            this.sendError(userId, "Failed to start watching wallet");
         }
     }
 
     private async handleStopWatching(userId: string, walletAddress?: string): Promise<void> {
         if (!walletAddress) {
-            this.sendError(userId, 'Wallet address required');
+            this.sendError(userId, "Wallet address required");
             return;
         }
 
@@ -216,7 +218,7 @@ class WalletSocketServer {
         if (!client) return;
 
         if (!client.watchedWallets.has(walletAddress)) {
-            this.sendError(userId, 'Wallet not being watched');
+            this.sendError(userId, "Wallet not being watched");
             return;
         }
 
@@ -230,30 +232,32 @@ class WalletSocketServer {
             // Stop monitoring and remove subscription
             const subscriptionKey = `${userId}:${walletAddress}`;
             const subscription = this.walletSubscriptions.get(subscriptionKey);
-            
+
             if (subscription) {
                 disableWatch(subscription.monitorState);
                 this.walletSubscriptions.delete(subscriptionKey);
             }
 
             this.sendToClient(userId, {
-                type: 'STOP_WATCHING',
+                type: "STOP_WATCHING",
                 payload: {
                     walletAddress,
-                    status: 'success',
+                    status: "success",
                     message: `Stopped watching wallet ${walletAddress}`,
-                    totalWatched: client.watchedWallets.size
-                }
+                    totalWatched: client.watchedWallets.size,
+                },
             });
 
             // Send Telegram notification
-            this.sendTelegramNotification(userId, `🛑 Stopped monitoring wallet: \`${walletAddress}\``);
+            this.sendTelegramNotification(
+                userId,
+                `🛑 Stopped monitoring wallet: \`${walletAddress}\``
+            );
 
             console.log(`🛑 User ${userId} stopped watching wallet ${walletAddress}`);
-
         } catch (error) {
             console.error(`❌ Error stopping watch for user ${userId}:`, error);
-            this.sendError(userId, 'Failed to stop watching wallet');
+            this.sendError(userId, "Failed to stop watching wallet");
         }
     }
 
@@ -262,15 +266,15 @@ class WalletSocketServer {
         if (!client) return;
 
         const watchedWallets = Array.from(client.watchedWallets);
-        
+
         this.sendToClient(userId, {
-            type: 'GET_STATUS',
+            type: "GET_STATUS",
             payload: {
                 status: getStatus(this.globalMonitorState),
                 watchedWallets,
                 totalWatched: watchedWallets.length,
-                maxWallets: 3
-            }
+                maxWallets: 3,
+            },
         });
     }
 
@@ -287,15 +291,15 @@ class WalletSocketServer {
 
     private sendError(userId: string, error: string): void {
         this.sendToClient(userId, {
-            type: 'ERROR',
-            payload: { error }
+            type: "ERROR",
+            payload: { error },
         });
     }
 
     private async sendTelegramNotification(userId: string, message: string): Promise<void> {
         try {
-            await bot.telegram.sendMessage(userId, message, { 
-                parse_mode: 'Markdown'
+            await bot.telegram.sendMessage(userId, message, {
+                parse_mode: "Markdown",
             });
         } catch (error) {
             console.error(`❌ Failed to send Telegram notification to user ${userId}:`, error);
@@ -307,10 +311,10 @@ class WalletSocketServer {
         if (!client) return;
 
         // Stop all wallet monitoring for this user
-        client.watchedWallets.forEach(walletAddress => {
+        client.watchedWallets.forEach((walletAddress) => {
             const subscriptionKey = `${userId}:${walletAddress}`;
             const subscription = this.walletSubscriptions.get(subscriptionKey);
-            
+
             if (subscription) {
                 disableWatch(subscription.monitorState);
                 this.walletSubscriptions.delete(subscriptionKey);
@@ -414,7 +418,7 @@ class WalletSocketServer {
             userId,
             isConnected: client.ws.readyState === WebSocket.OPEN,
             watchedWallets: Array.from(client.watchedWallets),
-            totalWatched: client.watchedWallets.size
+            totalWatched: client.watchedWallets.size,
         };
     }
 
@@ -428,7 +432,7 @@ class WalletSocketServer {
         });
 
         this.wss.close();
-        console.log('🛑 WebSocket server stopped');
+        console.log("🛑 WebSocket server stopped");
     }
 }
 
