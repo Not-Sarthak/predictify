@@ -1,6 +1,8 @@
 import { Context, Markup } from "telegraf";
 import { getUserWrappedUSDCBalance, getUserTotalBalance } from "../../helpers/get-user-balance";
 import { supabase } from "../../config/supabase";
+import { checkCopyTradeStatus } from "../database/check-copy-trade-status";
+import { getUserWatchedWalletsCount } from "../database/get-watched-wallets";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
     const subscriptionButtons = [
@@ -49,25 +51,31 @@ export async function handleAutoTradeMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    // TODO: Check if copy trading is currently enabled for this user
-    // const isCopyTradeEnabled = await checkCopyTradeStatus(userId);
-    const isCopyTradeEnabled = false;
+    // Get the wallet copy-trade statuses
+    const walletStatusList = await checkCopyTradeStatus(userId);
 
-    // TODO: Get user's watched wallets count
-    // const watchedWalletsCount = await getUserWatchedWalletsCount(userId);
-    const watchedWalletsCount = 0;
+    if (!walletStatusList) {
+        return ctx.reply("No Added Wallets");
+    }
+
+    const watchedWalletsCount = walletStatusList.length;
 
     const statusMessage =
         `🤖 *AutoTrade Menu*\n\n` +
-        `📊 *Status:* ${isCopyTradeEnabled ? "✅ Copy Trading Enabled" : "⏸️ Watch Only Mode"}\n` +
         `👁️ *Monitoring:* ${watchedWalletsCount}/3 Wallets\n\n` +
-        `${
-            isCopyTradeEnabled
-                ? "🔄 *Mode:* Watching + Auto Trading"
-                : "👀 *Mode:* Watching Only (No Trading)"
-        }\n\n` +
         `Select an Action:`;
 
+    // Generate wallet buttons
+    const walletButtons = walletStatusList.map((wallet) => {
+        const emoji = wallet.is_enabled ? "✅" : "🔔";
+        const shortAddress =
+            wallet.wallet_address.slice(0, 6) + "..." + wallet.wallet_address.slice(-4);
+        return [
+            Markup.button.callback(`${emoji} ${shortAddress}`, `wallet_${wallet.wallet_address}`),
+        ];
+    });
+
+    // Static control buttons
     const autoTradeButtons = [
         [
             Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
@@ -77,18 +85,14 @@ export async function handleAutoTradeMenu(ctx: Context) {
             Markup.button.callback("👁️ View Watched Wallets", "view_watched_wallets"),
             Markup.button.callback("💰 Configure", "copy_trade_configure"),
         ],
-        [
-            Markup.button.callback(
-                isCopyTradeEnabled ? "🛑 Stop Copy Trade" : "✅ Enable Copy Trade",
-                isCopyTradeEnabled ? "stop_copy_trade" : "enable_copy_trade"
-            ),
-        ],
         [Markup.button.callback("❌ Close", "close_menu")],
     ];
 
+    const combinedButtons = [...walletButtons, ...autoTradeButtons];
+
     await ctx.editMessageText(statusMessage, {
         parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(autoTradeButtons).reply_markup,
+        reply_markup: Markup.inlineKeyboard(combinedButtons).reply_markup,
     });
 }
 
@@ -133,6 +137,7 @@ export async function handleWalletSettingsMenu(ctx: Context) {
             [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
             [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
             [Markup.button.callback("🚀 Bridge Funds to Polygon", "bridge_funds")],
+            [Markup.button.callback("❌ Close Menu", "close:delete_message")],
         ]);
 
         return ctx.reply(message, {
@@ -182,8 +187,6 @@ export async function handleViewWatchedWallets(ctx: Context) {
     if (!userId) return;
 
     try {
-        // TODO: Get watched wallets from socket server or database
-        // For now, get from Copy_Wallets table
         const { data: userWallets, error } = await supabase
             .from("Copy_Wallets")
             .select("*")
@@ -213,11 +216,11 @@ export async function handleViewWatchedWallets(ctx: Context) {
             userWallets
                 .map(
                     (wallet, index) =>
-                        `${index + 1}. **${wallet.wallet_name}**\n` +
-                        `   \`${wallet.wallet_address}\`\n`
+                        `${index + 1}. *${wallet.wallet_name}*\n` +
+                        `   \`${wallet.wallet_address}\``
                 )
-                .join("\n") +
-            `\n💡 *Tip:* ${userWallets.length < 3 ? "You can add more wallets." : "Maximum wallets reached."}`;
+                .join("\n\n") +
+            `\n\n💡 *Tip:* ${userWallets.length < 3 ? "You can add more wallets." : "Maximum wallets reached."}`;
 
         const buttons = [
             [

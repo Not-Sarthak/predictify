@@ -18,7 +18,11 @@ import {
     layoutButtons,
 } from "./message-formatters";
 import { NO_SUBSCRIPTIONS_MESSAGE } from "../../constants/telegram";
-import { awaitingMarketTermInputSet, awaitingWalletDetailsInputSet } from "../../config/bot";
+import {
+    awaitingMarketTermInputSet,
+    awaitingWalletDetailsInputSet,
+    awaitingWalletMonitorInputSet,
+} from "../../config/bot";
 import { supabase } from "../../config/supabase";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserPosition } from "../polymarket/get-user-position";
@@ -30,6 +34,7 @@ import { fetchMarkets, getMarketById } from "../polymarket/get-markets";
 import { capitalize } from "../../helpers/capitalize";
 import axios from "axios";
 import { walletSocketServer } from "../polymarket-socket/socket";
+import { disableUserCopyTrade, enableUserCopyTrade } from "../database/manage-copy-trade";
 
 export async function handleStartCallbacks(ctx: Context, action: string) {
     switch (action) {
@@ -581,7 +586,7 @@ async function handleStartWalletMonitoring(ctx: Context) {
         `⚠️ *Note:* You can Monitor up to 3 Wallets Simultaneously.`;
 
     // TODO: Add to awaiting set for text input handling
-    // awaitingWalletMonitorInputSet.add(userId);
+    awaitingWalletMonitorInputSet.add(userId);
 
     return ctx.reply(message, { parse_mode: "Markdown" });
 }
@@ -682,8 +687,12 @@ export async function handleEnableCopyTrade(ctx: Context) {
             );
         }
 
-        // TODO: Enable copy trading in database
-        // await enableUserCopyTrade(userId);
+        const isSuccess = await enableUserCopyTrade(userId);
+
+        if (!isSuccess) {
+            await ctx.answerCbQuery();
+            return ctx.reply("❌ Failed to Enable Copy Trade.");
+        }
 
         await ctx.answerCbQuery("Copy Trading Enabled");
         return ctx.reply(
@@ -709,8 +718,12 @@ export async function handleStopCopyTrade(ctx: Context) {
     if (!userId) return;
 
     try {
-        // TODO: Disable copy trading in database
-        // await disableUserCopyTrade(userId);
+        const isSuccess = await disableUserCopyTrade(userId);
+
+        if (!isSuccess) {
+            await ctx.answerCbQuery();
+            return ctx.reply("❌ Failed to Enable Copy Trade.");
+        }
 
         await ctx.answerCbQuery("Copy Trading Stopped");
         return ctx.reply(

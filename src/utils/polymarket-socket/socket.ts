@@ -1,9 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createWalletMonitor, enableWatch, disableWatch, getStatus } from "./wallet-monitor";
 import type { MonitorState } from "./wallet-monitor";
-// TODO: Import these when implementing database integration
-// import { supabase } from '../../config/supabase';
-// import { redisClient } from '../../config/redis';
+import { supabase } from "../../config/supabase";
+import { redisClient } from "../../config/redis";
 import { bot } from "../../config/bot";
 import { SOCKET_SERVER_PORT } from "../../constants/server";
 
@@ -79,8 +78,7 @@ class WalletSocketServer {
 
         this.clients.set(userId, client);
 
-        // TODO: Load user's existing watched wallets from database
-        // this.loadUserWatchedWallets(userId);
+        this.loadUserWatchedWallets(userId);
 
         this.setupClientEventHandlers(client);
         this.sendToClient(userId, {
@@ -165,8 +163,7 @@ class WalletSocketServer {
         }
 
         try {
-            // TODO: Save to database
-            // await this.saveWalletSubscription(userId, walletAddress);
+            await this.saveWalletSubscription(userId, walletAddress);
 
             // Add to user's watched wallets
             client.watchedWallets.add(walletAddress);
@@ -223,8 +220,7 @@ class WalletSocketServer {
         }
 
         try {
-            // TODO: Remove from database
-            // await this.removeWalletSubscription(userId, walletAddress);
+            await this.removeWalletSubscription(userId, walletAddress);
 
             // Remove from user's watched wallets
             client.watchedWallets.delete(walletAddress);
@@ -344,15 +340,13 @@ class WalletSocketServer {
         return /^0x[a-fA-F0-9]{40}$/.test(address);
     }
 
-    // TODO: Implement database methods
-    /*
     private async loadUserWatchedWallets(userId: string): Promise<void> {
         try {
             const { data: watchedWallets, error } = await supabase
-                .from('wallet_subscriptions')
-                .select('wallet_address')
-                .eq('user_id', userId)
-                .eq('is_active', true);
+                .from("wallet_subscriptions")
+                .select("wallet_address")
+                .eq("user_id", userId)
+                .eq("is_active", true);
 
             if (error) throw error;
 
@@ -360,13 +354,13 @@ class WalletSocketServer {
             if (client && watchedWallets) {
                 watchedWallets.forEach(({ wallet_address }) => {
                     client.watchedWallets.add(wallet_address);
-                    
+
                     // Restore monitoring state
                     const subscription: WalletSubscription = {
                         userId,
                         walletAddress: wallet_address,
                         monitorState: createWalletMonitor(),
-                        lastActivity: new Date()
+                        lastActivity: new Date(),
                     };
 
                     this.walletSubscriptions.set(`${userId}:${wallet_address}`, subscription);
@@ -379,28 +373,25 @@ class WalletSocketServer {
     }
 
     private async saveWalletSubscription(userId: string, walletAddress: string): Promise<void> {
-        const { error } = await supabase
-            .from('wallet_subscriptions')
-            .insert({
-                user_id: userId,
-                wallet_address: walletAddress,
-                is_active: true,
-                created_at: new Date().toISOString()
-            });
+        const { error } = await supabase.from("wallet_subscriptions").insert({
+            user_id: userId,
+            wallet_address: walletAddress,
+            is_active: true,
+            created_at: new Date().toISOString(),
+        });
 
         if (error) throw error;
     }
 
     private async removeWalletSubscription(userId: string, walletAddress: string): Promise<void> {
         const { error } = await supabase
-            .from('wallet_subscriptions')
+            .from("wallet_subscriptions")
             .update({ is_active: false })
-            .eq('user_id', userId)
-            .eq('wallet_address', walletAddress);
+            .eq("user_id", userId)
+            .eq("wallet_address", walletAddress);
 
         if (error) throw error;
     }
-    */
 
     public getActiveConnections(): number {
         return this.clients.size;
@@ -485,7 +476,6 @@ USAGE GUIDE:
 
 5. DATABASE INTEGRATION (TODO):
    - Uncomment the database methods when ready to implement
-   - Create wallet_subscriptions table in Supabase
    - Add Redis caching for performance
 
 6. LIMITATIONS:

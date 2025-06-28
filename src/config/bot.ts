@@ -9,6 +9,7 @@ const bot = new Telegraf(TG_BOT_TOKEN);
 const awaitingWalletDetailsInputSet = new Set<string>();
 const awaitingMarketTermInputSet = new Set<string>();
 const awaitingOrderDetailsInputSet = new Set<string>();
+const awaitingWalletMonitorInputSet = new Set<string>();
 
 bot.telegram.setMyCommands(botCommands);
 
@@ -21,4 +22,5 @@ export {
     awaitingWalletDetailsInputSet,
     awaitingMarketTermInputSet,
     awaitingOrderDetailsInputSet,
+    awaitingWalletMonitorInputSet,
 };

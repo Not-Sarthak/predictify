@@ -14,23 +14,25 @@ marketSellOrder.ts
 
 Tag bot and give info
 
+### NOW
+
 - Socket Server to Monitor for Copy Trading.
 
--> Add Fees while opening/closing a position in normal and autotrade. (watch fee.ts)
--> Call DB/Redis Functions in the socket server events.
+- Add Fees while opening/closing a position in normal and autotrade. (watch fee.ts)
+- COMPLETE TODO COMMENTS
 
-<!-- FOR LATER -->
+### FOR LATER
 
--> Handle Edge Cases where the copy_wallet is ordering on the minimum price & shares.
+- Handle Edge Cases where the copy_wallet is ordering on the minimum price & shares.
 
-<!-- REFACTOR -->
+### REFACTOR
 
--> Cache Data as needed (User profile data, markets etc.)
--> Add try-catch function for error handling (Theo's gist)
--> Remove Redundant Code
--> Custom Error Classes
--> Optimize Code wherever needed/possible
+- Cache Data as needed (User profile data, markets etc.)
+- Add try-catch function for error handling (Theo's gist)
+- Remove Redundant Code
+- Custom Error Classes
+- Optimize Code wherever needed/possible
 
-<!-- UX Improvements -->
+### UX Improvements
 
--> Add/Edit Buttons (Back (Prev Menu), Back to Main Menu, Close (Closes the Message))
+- Add/Edit Buttons (Back (Prev Menu), Back to Main Menu, Close (Closes the Message))
