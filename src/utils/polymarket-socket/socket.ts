@@ -2,7 +2,6 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createWalletMonitor, enableWatch, disableWatch, getStatus } from "./wallet-monitor";
 import type { MonitorState } from "./wallet-monitor";
 import { supabase } from "../../lib/supabase";
-import { redisClient } from "../../lib/redis";
 import { bot } from "../../bot";
 import { SOCKET_SERVER_PORT } from "../../shared/constants";
 

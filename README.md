@@ -17,9 +17,13 @@ Tag bot and give info
 ### NOW
 
 - Socket Server to Monitor for Copy Trading.
-
 - Add Fees while opening/closing a position in normal and autotrade. (watch fee.ts)
-- COMPLETE TODO COMMENTS
+
+1. use `calculateFee()` to get fee from amount
+2. use `feeTransaction()` to get finalAmount
+3. Send Fee to treasury account
+4. Add fee amount in db
+5. Add finalAmount in db
 
 ### FOR LATER
 

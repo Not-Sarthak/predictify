@@ -10,6 +10,8 @@ import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { orderGTD } from "@/utils/polymarket-order/buy-and-sell-order-gtd";
 import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
+import { ethers } from "ethers";
 
 export async function handleOrderDetailsTextMessage(
     ctx: Context,
@@ -44,6 +46,21 @@ export async function handleOrderDetailsTextMessage(
     const sentMessage = await ctx.reply("⏳ Placing your order...");
 
     let orderResponse;
+
+    const amount =
+        orderType === "gtc" || orderType === "gtd" ? Number(price) * Number(size) : Number(price);
+
+    const { fee, finalAmount } = feeTransaction(amount);
+
+    const { success } = await transferFeeToTreasury({
+        userWallet: new ethers.Wallet(private_key),
+        positionAmount: amount,
+        transactionType: action as "OPEN" | "CLOSE",
+    });
+
+    if (!success) {
+        return ctx.reply("Error submitting your order.");
+    }
 
     try {
         if (orderType === "gtc") {
@@ -144,20 +161,16 @@ export async function handleOrderDetailsTextMessage(
             );
         }
 
-        const amountToAdd =
-            orderType === "gtc" || orderType === "gtd"
-                ? Number(price) * Number(size)
-                : Number(price);
-
+        // SAVE AMOUNT_DEPOSITED, FEE in DB
         if (action === "OPEN") {
             try {
-                const { data } = await db("Users")
-                    .select("amount_deposited")
-                    .eq("id", userId)
-                    .single();
+                const { data } = await db("Users").select("*").eq("id", userId).single();
 
                 await db("Users")
-                    .update({ amount_deposited: data?.amount_deposited! + amountToAdd })
+                    .update({
+                        amount_deposited: data?.amount_deposited! + amount,
+                        fees_total: data?.fees_total! + fee,
+                    })
                     .eq("id", userId);
             } catch (error) {
                 console.error("Error adding Volume amount: ", error);
