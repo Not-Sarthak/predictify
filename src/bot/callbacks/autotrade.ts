@@ -1,7 +1,8 @@
-import { awaitingWalletDetailsInputSet } from "@/bot";
+import { awaitingConfigInputSet, awaitingWalletDetailsInputSet } from "@/bot";
 import { AUTO_TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { checkCopyTradeStatus } from "@/bot/utils/database/check-copy-trade-status";
+import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
 
@@ -41,13 +42,21 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    // TODO: Get user's current configuration settings
-    // const userConfig = await getUserCopyTradeConfig(userId);
+    const { data, error } = await getUserCopyTradeConfig(userId);
+
+    if (error) {
+        return ctx.reply("⚠️ Error fetching Config.");
+    }
+
+    const configMessageValue =
+        data && data.config_type
+            ? `${data.config_type} (${data.config_value})`
+            : "Default (Not Set)";
 
     const configMessage =
         `💰 *Copy Trader Position %*\n\n` +
         `Choose how much of your balance to use for copy trading:\n\n` +
-        `📊 *Current Settings:* Default (Not Set)`;
+        `📊 *Current Settings:* ${configMessageValue}`;
 
     const configButtons = [
         [
@@ -60,7 +69,7 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             Markup.button.callback("Same Amount", "config_same_amount"),
         ],
         [Markup.button.callback("Max Amount", "config_max_amount")],
-        [Markup.button.callback("↩️ Back to Auto Trade", "start_autotrade")],
+        [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
     ];
 
     await ctx.editMessageText(configMessage, {
@@ -88,7 +97,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
 
             const buttons = [
                 [Markup.button.callback("➕ Add Wallet", "add_new_wallet")],
-                [Markup.button.callback("↩️ Back to Auto Trade", "start_autotrade")],
+                [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
             ];
 
             return ctx.editMessageText(message, {
@@ -113,7 +122,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
                 Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
                 Markup.button.callback("🗑️ Remove Wallet", "delete_wallet"),
             ],
-            [Markup.button.callback("↩️ Back to Auto Trade", "start_autotrade")],
+            [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
         ];
 
         await ctx.editMessageText(message, {
@@ -146,9 +155,9 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
             case "position_custom":
                 configType = "Position Percentage";
                 configValue = "Custom";
-                // TODO: Handle custom input
-                await ctx.answerCbQuery("Custom percentage coming soon");
-                return ctx.reply("⚠️ Custom percentage configuration coming soon!");
+
+                awaitingConfigInputSet.set(userId.toString(), "Custom");
+                return ctx.reply("🔥 Enter a Percentage: ");
             case "same_proportion":
                 configType = "Copy Method";
                 configValue = "Same Proportion";
@@ -160,16 +169,19 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
             case "max_amount":
                 configType = "Position Limit";
                 configValue = "Max Amount";
-                // TODO: Handle max amount input
-                await ctx.answerCbQuery("Max amount setting coming soon");
-                return ctx.reply("⚠️ Max amount configuration coming soon!");
+
+                awaitingConfigInputSet.set(userId.toString(), "Max");
+                return ctx.reply("🔥 Enter an Amount: ");
             default:
                 await ctx.answerCbQuery("Unknown configuration");
                 return;
         }
 
-        // TODO: Save configuration to database
-        // await saveCopyTradeConfig(userId, configType, configValue);
+        const isSuccess = await saveCopyTradeConfig(userId, configType, configValue);
+
+        if (!isSuccess) {
+            return ctx.reply("⚠️ Error saving config. Please try again");
+        }
 
         await ctx.answerCbQuery(`${configType} set to ${configValue}`);
         return ctx.reply(

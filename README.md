@@ -23,6 +23,7 @@ Tag bot and give info
 
 ### FOR LATER
 
+- Use an ORM
 - Handle Edge Cases where the copy_wallet is ordering on the minimum price & shares.
 
 ### REFACTOR

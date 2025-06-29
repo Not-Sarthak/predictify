@@ -438,7 +438,6 @@ async function handleStartWalletMonitoring(ctx: Context) {
         `\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`\n\n` +
         `⚠️ *Note:* You can Monitor up to 3 Wallets Simultaneously.`;
 
-    // TODO: Add to awaiting set for text input handling
     awaitingWalletMonitorInputSet.add(userId);
 
     return ctx.reply(message, { parse_mode: "Markdown" });

@@ -107,6 +107,8 @@ export type Database = {
                 Row: {
                     amount_deposited: number;
                     api_credentials: string;
+                    config_type: string | null;
+                    config_value: string | null;
                     created_at: string;
                     fees_total: number;
                     id: number;
@@ -120,6 +122,8 @@ export type Database = {
                 Insert: {
                     amount_deposited?: number;
                     api_credentials: string;
+                    config_type?: string | null;
+                    config_value?: string | null;
                     created_at?: string;
                     fees_total?: number;
                     id: number;
@@ -133,6 +137,8 @@ export type Database = {
                 Update: {
                     amount_deposited?: number;
                     api_credentials?: string;
+                    config_type?: string | null;
+                    config_value?: string | null;
                     created_at?: string;
                     fees_total?: number;
                     id?: number;
