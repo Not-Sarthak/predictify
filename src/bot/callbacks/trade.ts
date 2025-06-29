@@ -281,7 +281,12 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const title = data.title;
     const fDate = formatDate(data.endDate);
     const fVolume = formatDollarVolume(data.volume1mo || 0);
-    const markets = data.markets;
+    console.log(data.markets);
+    const markets = data.markets.filter((m: any) => m.active && m.acceptingOrders && !m.closed);
+
+    if (markets.length === 0) {
+        return ctx.reply("❌ No active markets available in this event.");
+    }
 
     let message = `📌 ***${title}***
 
@@ -333,6 +338,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     if (!market) {
         return ctx.reply("❌ There was an error fetching market details!");
     }
+
+    console.log(market);
 
     const fDate = formatDate(market.endDate);
     const fVolume = formatDollarVolume(market.volume1mo);

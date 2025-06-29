@@ -37,6 +37,9 @@ export async function handleOrderDetailsTextMessage(
         getUserDetails(Number(userId)),
     ]);
 
+    console.log("MARKET ID: ", marketId);
+    console.log("TOKEN ID: ", tokenId);
+
     if (!tokenId || !userDetails) {
         return ctx.reply("⚠️ Error placing your order! Please try again later.");
     }
@@ -168,7 +171,7 @@ export async function handleOrderDetailsTextMessage(
 
                 await db("Users")
                     .update({
-                        amount_deposited: data?.amount_deposited! + amount,
+                        amount_deposited: data?.amount_deposited! + finalAmount,
                         fees_total: data?.fees_total! + fee,
                     })
                     .eq("id", userId);

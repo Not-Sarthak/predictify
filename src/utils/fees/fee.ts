@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { env } from "../../config/env";
 import { USDC_ADDRESS } from "../../shared/constants";
-import * as USDC_ABI from "@/shared/abi/usdc.json";
+import USDC_ABI from "../../shared/abi/usdc.json";
 
 export const FEES_PERCENTAGE = 0.01;
 
