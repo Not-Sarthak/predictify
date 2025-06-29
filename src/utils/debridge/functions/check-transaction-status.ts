@@ -1,10 +1,10 @@
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import type { deBridgeOrderStatusResponse, deBridgeOrderIdsResponse } from "../types";
 
 export async function checkDebridgeTransactionStatus(
     txHash: string
 ): Promise<deBridgeOrderStatusResponse[]> {
-    const orderIdsUrl = `${DEBRIDGE_API_URL}/dln/tx/${txHash}/order-ids`;
+    const orderIdsUrl = `${env.DEBRIDGE_API_URL}/dln/tx/${txHash}/order-ids`;
     const orderIdsResponse = await fetch(orderIdsUrl);
     const responseData = (await orderIdsResponse.json()) as deBridgeOrderIdsResponse;
 
@@ -23,7 +23,7 @@ export async function checkDebridgeTransactionStatus(
 
     const statuses = await Promise.all(
         orderIdsData.orderIds.map(async (orderId) => {
-            const statusUrl = `${DEBRIDGE_API_URL}/dln/order/${orderId}/status`;
+            const statusUrl = `${env.DEBRIDGE_API_URL}/dln/order/${orderId}/status`;
             const statusResponse = await fetch(statusUrl);
 
             if (!statusResponse.ok) {

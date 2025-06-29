@@ -1,3 +1,4 @@
+// TODO:FIX - ADD ALL THE PATHS FOR FOLDERS
 {
   "compilerOptions": {
     // Enable latest features
@@ -9,7 +10,7 @@
     "allowJs": true,
 
     // Bundler mode
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
@@ -22,6 +23,16 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@/api/*": ["api/*"],
+      "@/bot/*": ["bot/*"],
+      "@/config/*": ["config/*"],
+      "@/lib/*": ["lib/*"],
+      "@/shared/*": ["shared/*"]
+    }
   }
 }

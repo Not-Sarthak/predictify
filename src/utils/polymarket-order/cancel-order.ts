@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
-import { CLOB_API_URL, PRIVATE_KEY } from "../../config/env";
-import { CHAIN_ID } from "../../constants/polymarket";
+import { env } from "../../config/env";
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { CHAIN_ID } from "@/shared/constants";
+import { createLegacyWallet } from "@/shared/utils";
 
 interface CancelOrderRequest {
     privateKey: string;
@@ -11,9 +11,9 @@ interface CancelOrderRequest {
 }
 
 export const cancelOrder = async (cancelOrderRequest: CancelOrderRequest) => {
-    const wallet = new ethers.Wallet(PRIVATE_KEY);
+    const wallet = new ethers.Wallet(env.PRIVATE_KEY);
 
-    const host = CLOB_API_URL;
+    const host = env.CLOB_API_URL;
     const chainId = CHAIN_ID;
 
     const clobClient = new ClobClient(

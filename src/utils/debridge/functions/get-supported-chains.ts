@@ -1,10 +1,10 @@
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import type { deBridgeSupportedChainsResponse, GetDebridgeSupportedChainsParams } from "../types";
 
 export async function getDebridgeSupportedChains(
     params?: GetDebridgeSupportedChainsParams
 ): Promise<deBridgeSupportedChainsResponse> {
-    const url = DEBRIDGE_API_URL + `supported-chains-info`;
+    const url = env.DEBRIDGE_API_URL + `supported-chains-info`;
 
     const response = await fetch(url);
 

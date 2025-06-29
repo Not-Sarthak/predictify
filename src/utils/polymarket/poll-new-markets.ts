@@ -1,5 +1,5 @@
-import { redisClient } from "../../config/redis";
-import { CATEGORY_LIST } from "../../constants/polymarket";
+import { redisClient } from "../../lib/redis";
+import { CATEGORY_LIST } from "../../shared/constants";
 import { sendNotification } from "../telegram/notify-users";
 
 const seenMarketIdsMap: Record<string, Set<string>> = {};

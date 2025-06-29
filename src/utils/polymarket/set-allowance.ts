@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../constants/polymarket";
+import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../shared/constants";
 import { getWallet } from "../../helpers/get-wallet-address";
 
 const WRAPPED_USDC_ABI = [

@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
-import { TREASURY_ADDRESS, MAINNET_RPC_URL } from "../../config/env";
-import { USDC_ADDRESS } from "../../constants/polymarket";
-import { USDC_ABI } from "../../constants/usdc-abi";
+import { env } from "../../config/env";
+import { USDC_ADDRESS } from "../../shared/constants";
+import USDC_ABI from "../../shared/abi/usdc.json";
 
 export const FEES_PERCENTAGE = 0.01;
 
@@ -25,7 +25,7 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
     const { userWallet, positionAmount, transactionType } = params;
 
     try {
-        const provider = new ethers.JsonRpcProvider(MAINNET_RPC_URL);
+        const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const connectedWallet = userWallet.connect(provider);
 
         const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, connectedWallet);
@@ -39,7 +39,7 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
             throw new Error(`Insufficient USDC Balance. Required: ${feeAmount} USDC`);
         }
 
-        const transferTx = await usdcContract.transfer(TREASURY_ADDRESS, feeAmountInUnits, {
+        const transferTx = await usdcContract.transfer(env.TREASURY_ADDRESS, feeAmountInUnits, {
             gasLimit: 200000,
             gasPrice: ethers.parseUnits("30", "gwei"),
         });
@@ -51,7 +51,7 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
             feeAmount,
             txHash: receipt.hash,
             userWallet: userWallet.address,
-            treasuryAddress: TREASURY_ADDRESS,
+            treasuryAddress: env.TREASURY_ADDRESS,
         });
 
         return {
@@ -92,7 +92,7 @@ export function validateBalanceWithFee(userBalance: number, positionAmount: numb
 export async function processOrderWithTreasuryFee(params: TreasuryFeeTransferParams) {
     const { userWallet, positionAmount, transactionType } = params;
 
-    const provider = new ethers.JsonRpcProvider(MAINNET_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
     const connectedWallet = userWallet.connect(provider);
     const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, connectedWallet);
 

@@ -1,5 +1,5 @@
 import { ClobClient } from "@polymarket/clob-client";
-import type { APIKeyRequest, GeneratedWallet } from "../../types/api-key";
+import type { APIKeyRequest, GeneratedWallet } from "../../shared/types/polymarket/api-key";
 import { Wallet, JsonRpcProvider } from "ethers";
 import { Keypair } from "@solana/web3.js";
 

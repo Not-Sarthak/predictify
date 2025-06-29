@@ -1,10 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createWalletMonitor, enableWatch, disableWatch, getStatus } from "./wallet-monitor";
 import type { MonitorState } from "./wallet-monitor";
-import { supabase } from "../../config/supabase";
-import { redisClient } from "../../config/redis";
-import { bot } from "../../config/bot";
-import { SOCKET_SERVER_PORT } from "../../constants/server";
+import { supabase } from "../../lib/supabase";
+import { redisClient } from "../../lib/redis";
+import { bot } from "../../bot";
+import { SOCKET_SERVER_PORT } from "../../shared/constants";
 
 interface SocketClient {
     ws: WebSocket;
@@ -345,7 +345,7 @@ class WalletSocketServer {
             const { data: watchedWallets, error } = await supabase
                 .from("wallet_subscriptions")
                 .select("wallet_address")
-                .eq("user_id", userId)
+                .eq("user_id", Number(userId))
                 .eq("is_active", true);
 
             if (error) throw error;
@@ -374,7 +374,7 @@ class WalletSocketServer {
 
     private async saveWalletSubscription(userId: string, walletAddress: string): Promise<void> {
         const { error } = await supabase.from("wallet_subscriptions").insert({
-            user_id: userId,
+            user_id: Number(userId),
             wallet_address: walletAddress,
             is_active: true,
             created_at: new Date().toISOString(),
@@ -387,7 +387,7 @@ class WalletSocketServer {
         const { error } = await supabase
             .from("wallet_subscriptions")
             .update({ is_active: false })
-            .eq("user_id", userId)
+            .eq("user_id", Number(userId))
             .eq("wallet_address", walletAddress);
 
         if (error) throw error;

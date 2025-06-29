@@ -1,4 +1,4 @@
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import type { deBridgeOrderInput, deBridgeOrderResponse } from "../types";
 
 export async function createDebridgeBridgeOrder(
@@ -22,7 +22,7 @@ export async function createDebridgeBridgeOrder(
         prependOperatingExpenses: "true",
     });
 
-    const response = await fetch(`${DEBRIDGE_API_URL}/dln/order/create-tx?${queryParams}`);
+    const response = await fetch(`${env.DEBRIDGE_API_URL}/dln/order/create-tx?${queryParams}`);
 
     if (!response.ok) {
         const errorText = await response.text();

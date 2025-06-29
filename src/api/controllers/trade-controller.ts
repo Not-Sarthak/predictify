@@ -1,7 +1,7 @@
 import type { FastifyReply } from "fastify";
 import type { RequestWithIdParam } from "../../shared/types/api";
 
-import { supabase } from "../../config/supabase";
+import { supabase } from "../../lib/supabase";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
 
 export const getUserTrades = async (request: RequestWithIdParam, reply: FastifyReply) => {

@@ -1,4 +1,4 @@
-import { supabase } from "../config/supabase";
+import { supabase } from "../lib/supabase";
 
 export async function getUserAddressFromId(userId: number): Promise<string | null> {
     try {

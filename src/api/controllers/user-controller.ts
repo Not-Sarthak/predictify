@@ -1,10 +1,10 @@
 import type { FastifyReply } from "fastify";
 import type { RequestWithIdParam } from "../../shared/types/api";
 
-import { supabase } from "../../config/supabase";
-import { validateIncomingRequestBody } from "../../helpers/validation";
+import { z } from "zod";
+import { supabase } from "../../lib/supabase";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
-import { CHAIN_ID, HOST } from "../../constants/polymarket";
+import { CHAIN_ID, HOST } from "../../shared/constants";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
 
 export const getUserDetails = async (request: RequestWithIdParam, reply: FastifyReply) => {
@@ -26,9 +26,20 @@ export const getUserDetails = async (request: RequestWithIdParam, reply: Fastify
 };
 
 export const createNewUser = async (request: RequestWithIdParam, reply: FastifyReply) => {
-    const validatedBody = validateIncomingRequestBody(request.body);
+    const {
+        data,
+        success,
+        error: validationError,
+    } = z
+        .object({
+            telegramId: z.number(),
+            telegramUsername: z.string(),
+        })
+        .safeParse(request.body);
 
-    if (!validatedBody) throw new BadRequestError("Invalid Request Body");
+    if (!success || validationError) {
+        throw new BadRequestError("Invalid Request Body");
+    }
 
     const { address, privateKey, apiCreds } = await generateAPIKeyAndWallet({
         host: HOST,
@@ -37,8 +48,8 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
 
     const { error } = await supabase.from("Users").insert([
         {
-            id: validatedBody.telegramId,
-            telegram_username: validatedBody.telegramUsername,
+            id: data.telegramId,
+            telegram_username: data.telegramUsername,
             wallet_address: address,
             private_key: privateKey,
             api_credentials: JSON.stringify(apiCreds),

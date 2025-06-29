@@ -7,6 +7,7 @@ const server = Fastify({
     logger: {
         level: "info",
         transport:
+            // TODO:FIX - Replace w/ NEW ENV CONFIG
             process.env.NODE_ENV !== "production"
                 ? {
                       target: "pino-pretty",

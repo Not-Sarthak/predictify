@@ -1,0 +1,3 @@
+# TODO:FIX - ADD ALL THE PATHS FOR FOLDERS
+[importmap]
+imports = { "@/" = "./src/", "@/api/*" = "./src/api/*", "@/bot/*"= "./src/bot/*", "@/config/*"= "./src/config/*", "@/lib/*"= "./src/lib/*", "@/shared/*"= "./src/shared/*" }

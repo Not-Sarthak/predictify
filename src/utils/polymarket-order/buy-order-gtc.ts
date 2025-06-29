@@ -1,10 +1,10 @@
 import { type ApiKeyCreds, ClobClient, Side, OrderType } from "@polymarket/clob-client";
 import { ethers } from "ethers";
-import { checkNetworkConnection } from "../../helpers/network";
+import { checkNetworkConnection } from "../../shared/utils/check-network-connection";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
-import { PRIVATE_KEY } from "../../config/env";
+import { createLegacyWallet } from "../../shared/utils";
+import { env } from "../../config/env";
 import type { Context } from "telegraf";
 
 interface BuyOrderGTCRequest {

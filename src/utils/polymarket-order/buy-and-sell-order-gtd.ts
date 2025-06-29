@@ -6,9 +6,9 @@ import {
     Side,
     type TickSize,
 } from "@polymarket/clob-client";
-import { CHAIN_ID } from "../../constants/polymarket";
-import { CLOB_API_URL } from "../../config/env";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { CHAIN_ID } from "../../shared/constants";
+import { env } from "../../config/env";
+import { createLegacyWallet } from "../../shared/utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 
@@ -27,7 +27,7 @@ interface OrderGTDRequest {
 export async function orderGTD(orderGTDRequest: OrderGTDRequest) {
     const wallet = new ethers.Wallet(orderGTDRequest.privateKey);
     const chainId = CHAIN_ID;
-    const host = CLOB_API_URL;
+    const host = env.CLOB_API_URL;
     const clobClient = new ClobClient(
         host,
         chainId,

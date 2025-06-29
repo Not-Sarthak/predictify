@@ -1,4 +1,4 @@
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import type { deBridgeOrderInput, deBridgeOrderResponse } from "../types";
 
 export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBridgeOrderResponse> {
@@ -40,7 +40,7 @@ export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBrid
         }),
     });
 
-    const url = DEBRIDGE_API_URL + `dln/order/create-tx?${queryParams}`;
+    const url = env.DEBRIDGE_API_URL + `dln/order/create-tx?${queryParams}`;
 
     const response = await fetch(url);
 

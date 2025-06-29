@@ -1,10 +1,10 @@
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import { type deBridgeTokensInfoResponse, type GetDebridgeTokensInfoParams } from "../types";
 
 export async function getDebridgeTokensInfo(
     parameters: GetDebridgeTokensInfoParams
 ): Promise<deBridgeTokensInfoResponse> {
-    const url = DEBRIDGE_API_URL + `token-list?chainId=${parameters.chainId}`;
+    const url = env.DEBRIDGE_API_URL + `token-list?chainId=${parameters.chainId}`;
 
     const response = await fetch(url);
 

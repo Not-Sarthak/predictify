@@ -1,0 +1,58 @@
+import { BACK_TO_MAIN_MENU_BUTTON, CLOSE_BUTTON } from "@/bot/ui/buttons/common";
+import { Markup } from "telegraf";
+
+export const MAIN_MENU_BUTTONS = [
+    [
+        Markup.button.callback("🔔 Subscriptions", `start:subscriptions`),
+        Markup.button.callback("🔥 Trade", `start:trade`),
+    ],
+    [
+        Markup.button.callback("🤖 AutoTrade", `start:autotrade`),
+        Markup.button.callback("⚙️ Settings", `start:settings`),
+    ],
+];
+
+export const SUBSCRIPTIONS_MENU_BUTTONS = [
+    [
+        Markup.button.callback("🔔 Subscribe", "subscriptions:subscribe"),
+        Markup.button.callback("🔕 Unsubscribe", "subscriptions:unsubscribe"),
+    ],
+    [Markup.button.callback("📋 My Subscriptions", "subscriptions:view")],
+    [BACK_TO_MAIN_MENU_BUTTON],
+];
+
+export const TRADE_MENU_BUTTONS = [
+    [
+        Markup.button.callback("⚡ Open Position", "trade_position_open"),
+        Markup.button.callback("🌂 Close Position", "trade_position_close"),
+    ],
+    [
+        Markup.button.callback("📈 View Positions", "trade_position_view"),
+        Markup.button.callback("🔎 Top Markets", "trade_top_markets_view"),
+    ],
+    [BACK_TO_MAIN_MENU_BUTTON],
+];
+
+export const AUTO_TRADE_MENU_BUTTONS = [
+    [
+        Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
+        Markup.button.callback("🗑️ Delete Wallet", "delete_wallet"),
+    ],
+    [
+        Markup.button.callback("👁️ View Watched Wallets", "view_watched_wallets"),
+        Markup.button.callback("💰 Configure", "copy_trade_configure"),
+    ],
+    [BACK_TO_MAIN_MENU_BUTTON],
+];
+
+export const SETTINGS_MENU_BUTTONS = [
+    [Markup.button.callback("💼 Wallet Settings", "settings:wallet")],
+    [BACK_TO_MAIN_MENU_BUTTON],
+];
+
+export const WALLET_SETTINGS_MENU = [
+    [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
+    [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
+    [Markup.button.callback("🚀 Bridge Funds to Polygon", "bridge_funds")],
+    [CLOSE_BUTTON],
+];

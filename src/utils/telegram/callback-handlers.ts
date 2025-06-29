@@ -1,103 +1,25 @@
 import { Context, Markup } from "telegraf";
-import { redisClient } from "../../config/redis";
-import {
-    handleSubscriptionsMenu,
-    handleTradeMenu,
-    handleAutoTradeMenu,
-    handleSettingsMenu,
-    handleSubscribeMenu,
-    handleUnsubscribeMenu,
-    handleWalletSettingsMenu,
-} from "./menu-handlers";
-import {
-    escapeMarkdown,
-    formatActiveSubscriptionsMessage,
-    formatCurrentTradePositionsMessage,
-    formatDate,
-    formatDollarVolume,
-    layoutButtons,
-} from "./message-formatters";
-import { NO_SUBSCRIPTIONS_MESSAGE } from "../../constants/telegram";
+import { redisClient } from "../../lib/redis";
 import {
     awaitingMarketTermInputSet,
     awaitingWalletDetailsInputSet,
     awaitingWalletMonitorInputSet,
-} from "../../config/bot";
-import { supabase } from "../../config/supabase";
+} from "../../bot";
+import { supabase } from "../../lib/supabase";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserPosition } from "../polymarket/get-user-position";
 import type { InlineKeyboardButton } from "telegraf/types";
 import { getMarketDetails } from "../../helpers/get-market-details";
-import { generateMainMenuButtons } from "./button-generators";
-import { CATEGORY_LIST, MARKET_FILTERS } from "../../constants/polymarket";
+import { CATEGORY_LIST, MARKET_FILTERS } from "../../shared/constants";
 import { fetchMarkets, getMarketById } from "../polymarket/get-markets";
-import { capitalize } from "../../helpers/capitalize";
+import { capitalize } from "../../shared/utils/capitalize";
 import axios from "axios";
 import { walletSocketServer } from "../polymarket-socket/socket";
-import { disableUserCopyTrade, enableUserCopyTrade } from "../database/manage-copy-trade";
-
-export async function handleStartCallbacks(ctx: Context, action: string) {
-    switch (action) {
-        case "subscriptions":
-            return handleSubscriptionsMenu(ctx);
-        case "trade":
-            return handleTradeMenu(ctx);
-        case "autotrade":
-            return handleAutoTradeMenu(ctx);
-        case "settings":
-            return handleSettingsMenu(ctx);
-        default:
-            return ctx.answerCbQuery();
-    }
-}
-
-export async function handleSubscriptionMenuCallbacks(ctx: Context, action: string) {
-    switch (action) {
-        case "subscribe":
-            return handleSubscribeMenu(ctx);
-        case "unsubscribe":
-            return handleUnsubscribeMenu(ctx);
-        case "manage":
-            return handleMySubscriptionsDisplay(ctx);
-        default:
-            return ctx.answerCbQuery();
-    }
-}
-
-export async function handleMySubscriptionsDisplay(ctx: Context) {
-    const userId = ctx.chat?.id.toString();
-    if (!userId) return;
-
-    const categories: string[] = [];
-    const keys = await redisClient.keys("subscriptions:*");
-
-    for (const key of keys) {
-        const isMember = await redisClient.sIsMember(key, userId);
-        if (isMember) {
-            categories.push(key.split(":")[1]);
-        }
-    }
-
-    if (categories.length === 0) {
-        return ctx.reply(NO_SUBSCRIPTIONS_MESSAGE).then(() => ctx.answerCbQuery());
-    }
-
-    return ctx.reply(formatActiveSubscriptionsMessage(categories)).then(() => ctx.answerCbQuery());
-}
-
-export async function handleSubscriptionCallbacks(ctx: Context, category: string) {
-    const userId = ctx.from!.id.toString();
-    await redisClient.sAdd(`subscriptions:${category}`, userId);
-    await ctx.answerCbQuery(`✅ Subscribed to ${category}`);
-    return ctx.reply(`📬 You'll Now Receive Alerts for: ${category}`);
-}
-
-export async function handleUnsubscriptionCallbacks(ctx: Context, category: string) {
-    const userId = ctx.from!.id.toString();
-    await redisClient.sRem(`subscriptions:${category}`, userId);
-    await ctx.answerCbQuery(`❌ Unsubscribed from ${category}`);
-    return ctx.reply(`🗑️ Alerts Removed For: ${category}`);
-}
+import {
+    disableUserCopyTrade,
+    enableUserCopyTrade,
+} from "../../bot/utils/database/manage-copy-trade";
+import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 
 export async function handleTradeCallbacks(ctx: Context, action: string, marketId: string) {
     if (action === "yes") {
@@ -311,18 +233,14 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     return ctx.reply(message, { parse_mode: "Markdown", reply_markup: keyboard.reply_markup });
 }
 
-export async function handleWalletSettingsMenuCallbacks(ctx: Context) {
-    await handleWalletSettingsMenu(ctx).then(() => ctx.answerCbQuery());
-}
-
 export async function handleAddNewWalletCallback(ctx: Context) {
-    const userId = ctx.from?.id.toString();
+    const userId = ctx.from?.id.toString()!;
 
     try {
         const { count, error: countError } = await supabase
             .from("Copy_Wallets")
             .select("*", { count: "exact" })
-            .eq("user_id", userId!);
+            .eq("user_id", Number(userId));
 
         if (countError) throw new Error(countError.message, { cause: countError.cause });
 
@@ -350,13 +268,13 @@ Please enter your wallet in the following format:
 }
 
 export async function handleDeleteWalletCallback(ctx: Context) {
-    const userId = ctx.from?.id.toString();
+    const userId = ctx.from?.id.toString()!;
 
     try {
         const { data, error: countError } = await supabase
             .from("Copy_Wallets")
             .select("*")
-            .eq("user_id", userId!);
+            .eq("user_id", Number(userId));
 
         if (countError) throw new Error(countError.message, { cause: countError.cause });
 
@@ -674,7 +592,7 @@ export async function handleEnableCopyTrade(ctx: Context) {
         const { data: userWallets, error } = await supabase
             .from("Copy_Wallets")
             .select("*")
-            .eq("user_id", userId);
+            .eq("user_id", Number(userId));
 
         if (error) throw error;
 
@@ -798,6 +716,6 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
 }
 
 export async function handleCloseMenu(ctx: Context) {
-    const inlineKeyboard = Markup.inlineKeyboard(generateMainMenuButtons()).reply_markup;
+    const inlineKeyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup;
     return ctx.editMessageReplyMarkup(inlineKeyboard);
 }

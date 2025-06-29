@@ -1,5 +1,5 @@
-import { redisClient } from "../config/redis";
-import { CATEGORY_LIST } from "../constants/polymarket";
+import { redisClient } from "../lib/redis";
+import { CATEGORY_LIST } from "../shared/constants";
 
 export async function getUsersSubscribedCategories(userId: string) {
     const subscribedCategories: string[] = [];

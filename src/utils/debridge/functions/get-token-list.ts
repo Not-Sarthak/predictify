@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { TokenListResponseSchema } from "../schema";
-import { DEBRIDGE_API_URL } from "../../../config/env";
+import { env } from "../../../config/env";
 import type { TokenListResponse } from "../types";
 
 export function getDebridgeTokenList(chainId: string): Promise<TokenListResponse> {
-    const url = DEBRIDGE_API_URL + `token-list?chainId=${chainId}`;
+    const url = env.DEBRIDGE_API_URL + `token-list?chainId=${chainId}`;
 
     return fetch(url, {
         method: "GET",

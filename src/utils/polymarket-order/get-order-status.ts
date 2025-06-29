@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { PRIVATE_KEY } from "../../config/env";
+import { env } from "../../config/env";
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 
 interface OrderStatusDetailsInterface {
@@ -9,7 +9,7 @@ interface OrderStatusDetailsInterface {
 
 export async function getOrderStatus(orderStatusDetails: OrderStatusDetailsInterface) {
     try {
-        const wallet = new ethers.Wallet(PRIVATE_KEY);
+        const wallet = new ethers.Wallet(env.PRIVATE_KEY);
         const host = "https://clob.polymarket.com";
         const chainId = 137;
 

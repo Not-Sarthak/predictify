@@ -1,4 +1,4 @@
-import { supabase } from "../config/supabase";
+import { supabase } from "../lib/supabase";
 
 export async function getUserDetails(userId: number) {
     try {

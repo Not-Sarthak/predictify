@@ -1,17 +1,6 @@
-import { Context, Markup } from "telegraf";
-import { getUserWrappedUSDCBalance } from "../helpers/get-user-balance";
-import { generateAPIKeyAndWallet } from "../utils/polymarket/generate-user";
-import { HOST, CHAIN_ID } from "../constants/polymarket";
+import { Context } from "telegraf";
 import {
-    generateMainMenuButtons,
-    formatWelcomeMessage,
-    handleStartCallbacks,
-    handleSubscriptionMenuCallbacks,
-    handleSubscriptionCallbacks,
-    handleUnsubscriptionCallbacks,
     handleTradeCallbacks,
-    handleCloseMenu,
-    handleWalletSettingsMenuCallbacks,
     handleAddNewWalletCallback,
     handleDeleteWalletCallback,
     handleDeleteUserWallet,
@@ -19,7 +8,6 @@ import {
     handleFetchMarketWithOffsetCallback,
     handleSelectedMarketCallback,
     handleManageTradePositionsCallback,
-    formatBidLine,
     handleViewTopMarketsCallback,
     handleViewTopMarketsByCategory,
     handleShowMarkets,
@@ -33,144 +21,17 @@ import {
     handleCopyTradeConfigureMenu,
     handleViewWatchedWallets,
 } from "../utils/telegram";
-import { supabase } from "./supabase";
-import { handleExportPrivateKey } from "../helpers/export-user-private-key";
-import {
-    awaitingMarketTermInputSet,
-    awaitingOrderDetailsInputSet,
-    awaitingWalletDetailsInputSet,
-} from "./bot";
-import { redisClient } from "./redis";
-import {
-    handleMarketTermTextMessage,
-    handleOrderDetailsTextMessage,
-    handleWalletDetailsTextMessage,
-} from "../utils/telegram/text-handlers";
+import { awaitingOrderDetailsInputSet } from "../bot";
+import { redisClient } from "../lib/redis";
 import { getMarketOrderBook } from "../utils/polymarket/get-markets";
 import { getTokenIds } from "../helpers/get-token-id";
 import { getUserDetails } from "../helpers/get-user-details";
 import { createDebridgeBridgeOrder } from "../utils/debridge/functions/create-bridge-order";
-
-/* Command Handlers */
-export async function handleStartCommand(ctx: Context) {
-    try {
-        const userId = ctx.from?.id;
-        const userName = ctx.from?.username;
-
-        const { data: existingUser, error: fetchError } = await supabase
-            .from("Users")
-            .select("*")
-            .eq("id", userId)
-            .single();
-
-        if (fetchError && fetchError.code !== "PGRST116") {
-            console.error("Error Checking Existing User:", fetchError);
-            return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
-        }
-
-        if (existingUser) {
-            // User already exists
-            const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
-
-            const message = formatWelcomeMessage(
-                existingUser.wallet_address,
-                existingUser.solana_address,
-                balance.toString(),
-                JSON.parse(existingUser.api_credentials)
-            );
-
-            const inlineKeyboard = Markup.inlineKeyboard(generateMainMenuButtons()).reply_markup;
-
-            return ctx.reply(message, {
-                parse_mode: "HTML",
-                reply_markup: inlineKeyboard,
-            });
-        }
-
-        const walletData = await generateAPIKeyAndWallet({
-            host: HOST,
-            chainId: CHAIN_ID,
-        });
-
-        const address = walletData.address;
-        const balance = await getUserWrappedUSDCBalance(address);
-
-        const { error } = await supabase.from("Users").insert([
-            {
-                id: userId,
-                telegram_username: userName,
-                wallet_address: address,
-                private_key: walletData.privateKey,
-                api_credentials: JSON.stringify(walletData.apiCreds),
-            },
-        ]);
-
-        if (error) {
-            console.error("Error Inserting New User:", error);
-            return ctx.reply("❌ There Was an Error Creating Your Account.");
-        }
-
-        const inlineKeyboard = Markup.inlineKeyboard(generateMainMenuButtons()).reply_markup;
-
-        const message = formatWelcomeMessage(address, "", balance.toString(), walletData.apiCreds);
-
-        return ctx.reply(message, {
-            parse_mode: "HTML",
-            reply_markup: inlineKeyboard,
-        });
-    } catch (error) {
-        console.error("Error Generating Wallet:", error);
-        return ctx.reply("❌ Failed to Generate Wallet. Please Try Again.");
-    }
-}
-
-export async function handleUserTextMessage(ctx: Context) {
-    const textMessage = ctx.text?.trim();
-    if (!textMessage) return;
-
-    const userId = ctx.from?.id.toString();
-    if (!userId) return;
-
-    if (awaitingWalletDetailsInputSet.has(userId)) {
-        return handleWalletDetailsTextMessage(ctx, textMessage, userId);
-    }
-
-    if (awaitingMarketTermInputSet.has(userId)) {
-        return handleMarketTermTextMessage(ctx, textMessage, userId);
-    }
-
-    if (awaitingOrderDetailsInputSet.has(userId)) {
-        return handleOrderDetailsTextMessage(ctx, textMessage, userId);
-    }
-}
+import { formatBidLine } from "@/bot/utils";
 
 /* Callback Query Handler */
 export async function handleCallbackQuery(ctx: Context) {
     const data = (ctx.callbackQuery as any).data as string;
-
-    // Handle Start Menu
-    if (data.startsWith("start_")) {
-        const action = data.split("_")[1];
-        return handleStartCallbacks(ctx, action);
-    }
-
-    // Handle Subscription Menu
-    if (data.startsWith("subscription_")) {
-        const action = data.split("_")[1];
-        return handleSubscriptionMenuCallbacks(ctx, action);
-    }
-
-    // Handle Subscription Callbacks
-    if (data.startsWith("subscribe_")) {
-        const category = data.split("_")[1];
-        return handleSubscriptionCallbacks(ctx, category);
-    }
-
-    // Handle Unsubscription Callbacks
-    if (data.startsWith("unsubscribe_")) {
-        const category = data.split("_")[1];
-        return handleUnsubscriptionCallbacks(ctx, category);
-    }
 
     // Handle Trade Callbacks
     if (data.startsWith("buy_yes:")) {
@@ -243,7 +104,7 @@ export async function handleCallbackQuery(ctx: Context) {
             const { yesResponse, noResponse } = await getMarketOrderBook({
                 tokenId: tokenIds,
                 privateKey: user.private_key,
-                creds: user.api_credentials,
+                creds: JSON.parse(user.api_credentials),
             });
 
             const yesLines = yesResponse.bids.map(formatBidLine).join("\n");
@@ -325,29 +186,6 @@ yes 123.45 100
         return handleDeleteUserWallet(ctx, walletAddress);
     }
 
-    // Handle Wallet Settings Menu Callback
-    if (data === "wallet_settings_menu") {
-        return handleWalletSettingsMenuCallbacks(ctx);
-    }
-
-    // Handle Exporting Private Key
-    if (data.startsWith("export_private_key:")) {
-        const network = data.split(":")[1];
-        return handleExportPrivateKey(ctx, network as "evm" | "solana");
-    }
-
-    if (data === "bridge_funds") {
-        await ctx.answerCbQuery();
-
-        // @Not-Sarthak Uncomment this when you add Params
-        // const response = await createDebridgeBridgeOrder({});
-        // if (!response) {
-        //     return ctx.reply("❌ There was a problem bridging your funds.");
-        // }
-
-        // return ctx.reply("✅ Funds Successfully Bridged to Polygon.");
-    }
-
     // Handle Wallet Monitoring Menu
     if (data === "wallet_monitor") {
         return handleWalletMonitoringMenu(ctx);
@@ -399,18 +237,4 @@ yes 123.45 100
     if (data === "delete_wallet") {
         return handleDeleteWalletCallback(ctx);
     }
-
-    if (data.startsWith("close:")) {
-        const action = data.split(":")[1];
-        if (action === "delete_message") {
-            await ctx.deleteMessage().then(() => ctx.answerCbQuery());
-        }
-    }
-
-    // Handle Close Menu
-    if (data === "close_menu") {
-        return handleCloseMenu(ctx);
-    }
-
-    return ctx.answerCbQuery();
 }

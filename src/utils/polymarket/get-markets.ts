@@ -1,8 +1,8 @@
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 import axios from "axios";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
-import { CHAIN_ID } from "../../constants/polymarket";
-import { CLOB_API_URL } from "../../config/env";
+import { createLegacyWallet } from "../../shared/utils";
+import { CHAIN_ID } from "../../shared/constants";
+import { env } from "../../config/env";
 import { ethers } from "ethers";
 
 interface Market {
@@ -182,7 +182,7 @@ interface GetMarketsRequest {
 export async function getMarkets(getMarketsRequest: GetMarketsRequest) {
     const wallet = new ethers.Wallet(getMarketsRequest.privateKey);
     const clobClient = new ClobClient(
-        CLOB_API_URL,
+        env.CLOB_API_URL,
         CHAIN_ID,
         createLegacyWallet(wallet) as any,
         getMarketsRequest.creds

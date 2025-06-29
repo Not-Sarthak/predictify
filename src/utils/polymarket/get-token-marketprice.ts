@@ -1,4 +1,4 @@
-import { CLOB_API_URL } from "../../config/env";
+import { env } from "../../config/env";
 
 export async function fetchClobPriceHistory(tokenId: string) {
     const currentTime = Math.floor(Date.now() / 1000);
@@ -7,7 +7,7 @@ export async function fetchClobPriceHistory(tokenId: string) {
 
     const priceHistoryPromises = intervals.map(async (secondsAgo) => {
         const startTime = currentTime - secondsAgo;
-        const url = `${CLOB_API_URL}/prices-history?market=${tokenId}&startTs=${startTime}&endTs=${currentTime}`;
+        const url = `${env.CLOB_API_URL}/prices-history?market=${tokenId}&startTs=${startTime}&endTs=${currentTime}`;
 
         try {
             const response = await fetch(url);

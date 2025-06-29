@@ -1,8 +1,8 @@
 import { type ApiKeyCreds, ClobClient, OrderType, Side } from "@polymarket/clob-client";
 import { ethers } from "ethers";
-import { CHAIN_ID } from "../../constants/polymarket";
-import { CLOB_API_URL } from "../../config/env";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { CHAIN_ID } from "../../shared/constants/polymarket";
+import { env } from "../../config/env";
+import { createLegacyWallet } from "../../shared/utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 
@@ -20,7 +20,7 @@ interface MarketBuyOrderRequest {
 export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderRequest) {
     const wallet = new ethers.Wallet(marketBuyOrderRequest.privateKey);
     const chainId = CHAIN_ID;
-    const host = CLOB_API_URL;
+    const host = env.CLOB_API_URL;
     const creds: ApiKeyCreds = marketBuyOrderRequest.creds;
     const clobClient = new ClobClient(host, chainId, createLegacyWallet(wallet) as any, creds);
 

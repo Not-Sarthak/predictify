@@ -1,7 +1,7 @@
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
-import { createLegacyWallet } from "../../constants/legacy-ethers";
+import { createLegacyWallet } from "../../shared/utils";
 import { getWallet } from "../../helpers/get-wallet-address";
-import { CLOB_API_URL } from "../../config/env";
+import { env } from "../../config/env";
 
 interface DeleteApiKeyProps {
     mainnet: boolean;
@@ -15,7 +15,7 @@ export async function deleteApiKey({ mainnet, apiKey, secret, passphrase }: Dele
     const chainId = mainnet ? 137 : 80002;
     console.log(`Address: ${await wallet.getAddress()}, chainId: ${chainId}`);
 
-    const host = CLOB_API_URL;
+    const host = env.CLOB_API_URL;
     const creds: ApiKeyCreds = {
         key: apiKey,
         secret,
