@@ -244,7 +244,7 @@ export async function handleViewTopMarketsByCategory(
         filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("❌ Close", `close:delete_message`)],
+        [Markup.button.callback("❌ Close", `close_message`)],
     ]);
 
     if (ctx.updateType === "callback_query") {
