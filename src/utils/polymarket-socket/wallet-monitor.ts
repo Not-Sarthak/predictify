@@ -279,13 +279,13 @@ export const getStatus = (state: MonitorState): string => {
 
 export const createWalletMonitor = (): MonitorState => createMonitorState();
 
-const state = createWalletMonitor();
-const wallets = ["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"];
+// const state = createWalletMonitor();
+// const wallets = ["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"];
 
-console.log(getStatus(state));
+// console.log(getStatus(state));
 
-enableWatch(state, wallets);
-console.log(getStatus(state));
+// enableWatch(state, wallets);
+// console.log(getStatus(state));
 
 /*
   // USAGE EXAMPLES

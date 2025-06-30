@@ -81,7 +81,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     // Handle View Open Trade Positions
     if (data === "trade_position_view") {
-        return handleViewTradePositions(ctx);
+        await handleViewTradePositions(ctx);
+        return ctx.answerCbQuery();
     }
 
     // Handle Open Trade Positions (Open = Buy)

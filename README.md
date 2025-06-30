@@ -3,14 +3,9 @@
 
 Final Todo:
 
-1. Fix Close Position Flow (in View Positions) [Manav]
-    - Show All Positions
-    - Button of Close
-    - Call Close Positions
-    - Add Close All Button
-2. Execute only FOK on copy trading [Manav]
+1. Execute only FOK on copy trading [Manav]
 
-3. Test all kind of Trades [Sarthak]
-4. Add Bridge button and functionality [Sarthak]
-5. Final Socket Server with Proper Position Data [Sarthak]
-6. Spread and Notifications [Sarthak]
+2. Test all kind of Trades [Sarthak]
+3. Add Bridge button and functionality [Sarthak]
+4. Final Socket Server with Proper Position Data [Sarthak]
+5. Spread and Notifications [Sarthak]
