@@ -148,26 +148,25 @@ export async function handleCallbackQuery(ctx: Context) {
 
         const { action } = await redisClient.hGetAll(`user:order_action:${userId}`);
 
-        if (action === "CLOSE") {
-            const [tokenIds, user] = await Promise.all([
-                await getTokenIds(marketId),
-                await getUserDetails(Number(userId)),
-            ]);
+        const [tokenIds, user] = await Promise.all([
+            await getTokenIds(marketId),
+            await getUserDetails(Number(userId)),
+        ]);
 
-            if (!tokenIds || !user) {
-                return ctx.reply("⚠️ Error fetching Order Book Details.");
-            }
+        if (!tokenIds || !user) {
+            return ctx.reply("⚠️ Error fetching Order Book Details.");
+        }
 
-            const { yesResponse, noResponse } = await getMarketOrderBook({
-                tokenId: tokenIds,
-                privateKey: user.private_key,
-                creds: JSON.parse(user.api_credentials),
-            });
+        const { yesResponse, noResponse } = await getMarketOrderBook({
+            tokenId: tokenIds,
+            privateKey: user.private_key,
+            creds: JSON.parse(user.api_credentials),
+        });
 
-            const yesLines = yesResponse.bids.map(formatBidLine).join("\n");
-            const noLines = noResponse.bids.map(formatBidLine).join("\n");
+        const yesLines = yesResponse.bids.map(formatBidLine).join("\n");
+        const noLines = noResponse.bids.map(formatBidLine).join("\n");
 
-            const message = `📈 *Order Book - Available Bids*
+        const message = `📈 *Order Book - Available Bids*
 
 *YES Bids* (to close a YES position):
 ${yesLines}
@@ -176,8 +175,7 @@ ${yesLines}
 ${noLines}
 `;
 
-            await ctx.reply(message, { parse_mode: "Markdown" });
-        }
+        await ctx.reply(message, { parse_mode: "Markdown" });
 
         await ctx.reply(
             `✍️ Send Order Details in this format:
