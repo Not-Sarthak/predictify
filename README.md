@@ -3,9 +3,7 @@
 
 Final Todo:
 
-1. Execute only FOK on copy trading [Manav]
-
-2. Test all kind of Trades [Sarthak]
-3. Add Bridge button and functionality [Sarthak]
-4. Final Socket Server with Proper Position Data [Sarthak]
-5. Spread and Notifications [Sarthak]
+1. Test all kind of Trades [Sarthak]
+2. Add Bridge button and functionality [Sarthak]
+3. Final Socket Server with Proper Position Data [Sarthak]
+4. Spread and Notifications [Sarthak]

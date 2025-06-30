@@ -1,3 +1,7 @@
+import { getUserDetails } from "@/helpers/get-user-details";
+import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { OrderType, Side } from "@polymarket/clob-client";
+
 export interface MonitorState {
     knownPositions: Map<string, any[]>;
     knownActivities: Set<string>;
@@ -170,6 +174,19 @@ const monitorWallet = async (walletAddress: string, state: MonitorState): Promis
     }
 
     if (newPositions.length > 0 || newActivities.length > 0) {
+        // TODO - GET ACCESS TO USER ID HERE SOMEHOW
+        // const user = await getUserDetails(userId);
+
+        // for (const activity of newActivities) {
+        //     await marketBuyOrder({
+        //         privateKey: user!.private_key,
+        //         creds: JSON.parse(user!.api_credentials),
+        //         tokenId: activity.asset,
+        //         amount: activity.size,
+        //         side: activity.side === "BUY" ? Side.BUY : Side.SELL,
+        //         orderType: OrderType.FOK,
+        //     });
+        // }
         console.log(
             `✨ Total New Items for ${walletAddress}: ${newPositions.length + newActivities.length}`
         );
