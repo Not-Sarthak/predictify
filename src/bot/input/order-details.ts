@@ -36,23 +36,13 @@ export async function handleOrderDetailsTextMessage(
 
     const { fee, finalAmount } = feeTransaction(amount);
 
-    // Run getTokenId, getUserDetails, transferFeeToTreasury in parallel
-    const [tokenId, userDetails, feeTransferResult] = await Promise.all([
+    const [tokenId, userDetails] = await Promise.all([
         getTokenId(decision, marketId),
         getUserDetails(Number(userId)),
-        transferFeeToTreasury({
-            userWallet: new ethers.Wallet((await getUserDetails(Number(userId)))!.private_key),
-            positionAmount: amount,
-            transactionType: action as "OPEN" | "CLOSE",
-        }),
     ]);
 
     if (!tokenId || !userDetails) {
         return ctx.reply("⚠️ Error placing your order! Please try again later.");
-    }
-
-    if (!feeTransferResult.success) {
-        return ctx.reply("❌ Error submitting your order (fee transfer failed).");
     }
 
     const { private_key, api_credentials } = userDetails;
@@ -157,14 +147,21 @@ export async function handleOrderDetailsTextMessage(
             }
         }
 
-        await ctx.telegram.editMessageText(
-            ctx.chat!.id,
-            sentMessage.message_id,
-            undefined,
-            "✅ Your Order is Placed!"
-        );
-
-        ctx.reply(`🧾 Your Order ID: ${orderResponse?.response.orderID}`);
+        // 1. Edit Order Text, 2. Send OrderID, 3. Cut Fees
+        await Promise.all([
+            ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                "✅ Your Order is Placed!"
+            ),
+            ctx.reply(`🧾 Your Order ID: ${orderResponse?.response.orderID}`),
+            transferFeeToTreasury({
+                userWallet: new ethers.Wallet((await getUserDetails(Number(userId)))!.private_key),
+                positionAmount: amount,
+                transactionType: action as "OPEN" | "CLOSE",
+            }),
+        ]);
     } catch (error) {
         console.error("Error placing the order: ", error);
         ctx.reply("❌ There was an error placing your order! Please contact the bot owner.");
