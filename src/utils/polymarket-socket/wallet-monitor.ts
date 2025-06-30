@@ -23,12 +23,44 @@ const fetchData = async (endpoint: string, walletAddress: string): Promise<any[]
             }
         );
 
-        if (!response.ok) return [];
-        return await response.json();
+        const data = await response.json();
+        console.log(`📊 Data For ${endpoint} (${walletAddress}):`, data);
+
+        return data;
     } catch (error) {
         console.error(`Error Fetching ${endpoint}:`, error);
         return [];
     }
+};
+
+const logTradeActivity = (activity: any, walletAddress: string): void => {
+    console.log(`\n🔥 TRADE DETECTED for wallet ${walletAddress}:`);
+    console.log(`   📈 Type: ${activity.type || "Unknown"}`);
+    console.log(`   💰 Amount: ${activity.amount || "N/A"}`);
+    console.log(`   💵 Price: ${activity.price || "N/A"}`);
+    console.log(`   🎯 Market: ${activity.market?.title || activity.title || "Unknown Market"}`);
+    console.log(`   📊 Outcome: ${activity.outcome || "N/A"}`);
+    console.log(
+        `   ⏰ Timestamp: ${activity.timestamp ? new Date(activity.timestamp * 1000).toLocaleString() : "N/A"}`
+    );
+    console.log(`   🔗 Transaction: ${activity.txHash || activity.transactionHash || "N/A"}`);
+    console.log(`   📋 Full Activity:`, JSON.stringify(activity, null, 2));
+};
+
+const logPositionChange = (
+    position: any,
+    walletAddress: string,
+    changeType: "NEW" | "UPDATED"
+): void => {
+    console.log(`\n📍 POSITION ${changeType} for wallet ${walletAddress}:`);
+    console.log(`   🎯 Market: ${position.title || "Unknown Market"}`);
+    console.log(`   📊 Outcome: ${position.outcome || "N/A"}`);
+    console.log(`   💎 Size: ${position.size || "N/A"}`);
+    console.log(`   💰 Avg Price: ${position.avgPrice || "N/A"}`);
+    console.log(`   📈 Current Price: ${position.curPrice || "N/A"}`);
+    console.log(`   💵 Current Value: ${position.currentValue || "N/A"}`);
+    console.log(`   📊 PnL: ${position.cashPnl || "N/A"} (${position.percentPnl || "N/A"}%)`);
+    console.log(`   📋 Full Position:`, JSON.stringify(position, null, 2));
 };
 
 const detectNewItems = (
@@ -50,17 +82,65 @@ const detectNewItems = (
     if (newItems.length > 0) {
         const label = type === "positions" ? "New Positions" : "New Activities";
         console.log(`\n🔍 ${label}: ${newItems.length} for wallet ${walletAddress}`);
-        newItems.forEach((item) => console.log(item));
 
-        if (type === "activities") {
-            newItems.forEach((item) => {
+        newItems.forEach((item) => {
+            if (type === "activities") {
+                // Check if this is a trade-related activity
+                const tradeTypes = ["buy", "sell", "trade", "order", "fill", "swap", "exchange"];
+                const isTradeActivity =
+                    item.type &&
+                    tradeTypes.some((tradeType) => item.type.toLowerCase().includes(tradeType));
+
+                if (isTradeActivity || item.amount || item.price || item.market) {
+                    logTradeActivity(item, walletAddress);
+                } else {
+                    console.log(`   📝 Activity:`, item);
+                }
+
                 const activityId = item.id || `${item.timestamp}_${item.type}`;
                 state.knownActivities.add(activityId);
-            });
-        }
+            } else {
+                // This is a position change - could indicate a trade
+                logPositionChange(item, walletAddress, "NEW");
+            }
+        });
     }
 
     return newItems;
+};
+
+const detectPositionUpdates = (current: any[], previous: any[], walletAddress: string): void => {
+    current.forEach((currentPos) => {
+        const previousPos = previous.find(
+            (prev) => prev.asset === currentPos.asset || prev.conditionId === currentPos.conditionId
+        );
+
+        if (previousPos) {
+            // Check for significant changes that might indicate a trade
+            const sizeChanged = Math.abs((currentPos.size || 0) - (previousPos.size || 0)) > 0.001;
+            const avgPriceChanged =
+                Math.abs((currentPos.avgPrice || 0) - (previousPos.avgPrice || 0)) > 0.001;
+            const totalBoughtChanged =
+                Math.abs((currentPos.totalBought || 0) - (previousPos.totalBought || 0)) > 0.001;
+
+            if (sizeChanged || avgPriceChanged || totalBoughtChanged) {
+                console.log(
+                    `\n🔄 POSITION UPDATE DETECTED (Possible Trade) for wallet ${walletAddress}:`
+                );
+                console.log(`   🎯 Market: ${currentPos.title || "Unknown Market"}`);
+                console.log(
+                    `   📊 Size Change: ${previousPos.size || 0} → ${currentPos.size || 0}`
+                );
+                console.log(
+                    `   💰 Avg Price Change: ${previousPos.avgPrice || 0} → ${currentPos.avgPrice || 0}`
+                );
+                console.log(
+                    `   📈 Total Bought Change: ${previousPos.totalBought || 0} → ${currentPos.totalBought || 0}`
+                );
+                logPositionChange(currentPos, walletAddress, "UPDATED");
+            }
+        }
+    });
 };
 
 const monitorWallet = async (walletAddress: string, state: MonitorState): Promise<void> => {
@@ -79,6 +159,11 @@ const monitorWallet = async (walletAddress: string, state: MonitorState): Promis
         "positions"
     );
     const newActivities = detectNewItems(activities, [], state, walletAddress, "activities");
+
+    // Check for position updates that might indicate trades
+    if (previousPositions.length > 0) {
+        detectPositionUpdates(positions, previousPositions, walletAddress);
+    }
 
     if (newPositions.length > 0) {
         state.knownPositions.set(walletAddress, positions);
@@ -102,6 +187,11 @@ const monitorAllWallets = async (wallets: string[], state: MonitorState): Promis
 
 // Main control functions
 export const enableWatch = (state: MonitorState, wallets: string[]): boolean => {
+    console.log(`\n🎯 enableWatch() called with ${wallets.length} wallet(s):`);
+    wallets.forEach((wallet, index) => {
+        console.log(`   ${index + 1}. ${wallet}`);
+    });
+
     if (state.isWatchEnabled) {
         console.log("⚠️ Watch Already Enabled");
         return false;
@@ -119,6 +209,7 @@ export const enableWatch = (state: MonitorState, wallets: string[]): boolean => 
 
     state.isWatchEnabled = true;
     console.log(`🚀 Watch Enabled for ${wallets.length} Wallet(s)`);
+    console.log(`🔍 Now monitoring for trade activities every 3 seconds...`);
 
     monitorAllWallets(wallets, state);
     state.pollInterval = setInterval(() => {
@@ -129,6 +220,8 @@ export const enableWatch = (state: MonitorState, wallets: string[]): boolean => 
 };
 
 export const disableWatch = (state: MonitorState): boolean => {
+    console.log(`\n🛑 disableWatch() called`);
+
     if (!state.isWatchEnabled) {
         console.log("⚠️ Watch Already Disabled");
         return false;
@@ -143,10 +236,13 @@ export const disableWatch = (state: MonitorState): boolean => {
     }
 
     console.log("🛑 Watch Disabled (Trade Auto-Disabled)");
+    console.log("📴 Stopped monitoring wallet activities");
     return true;
 };
 
 export const enableTrade = (state: MonitorState): boolean => {
+    console.log(`\n🤖 enableTrade() called`);
+
     if (!state.isWatchEnabled) {
         console.log("❌ Cannot Enable Trade: Watch Must Be Enabled First");
         return false;
@@ -159,10 +255,13 @@ export const enableTrade = (state: MonitorState): boolean => {
 
     state.isTradeEnabled = true;
     console.log("🤖 Trade Enabled");
+    console.log("🔥 Will now execute copy trades when target wallet activities are detected!");
     return true;
 };
 
 export const disableTrade = (state: MonitorState): boolean => {
+    console.log(`\n🛑 disableTrade() called`);
+
     if (!state.isTradeEnabled) {
         console.log("⚠️ Trade Already Disabled");
         return false;
@@ -170,6 +269,7 @@ export const disableTrade = (state: MonitorState): boolean => {
 
     state.isTradeEnabled = false;
     console.log("🛑 Trade Disabled");
+    console.log("📴 Copy trading stopped - will continue monitoring but won't execute trades");
     return true;
 };
 
@@ -178,6 +278,14 @@ export const getStatus = (state: MonitorState): string => {
 };
 
 export const createWalletMonitor = (): MonitorState => createMonitorState();
+
+const state = createWalletMonitor();
+const wallets = ["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"];
+
+console.log(getStatus(state));
+
+enableWatch(state, wallets);
+console.log(getStatus(state));
 
 /*
   // USAGE EXAMPLES

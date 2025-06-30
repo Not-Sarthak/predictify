@@ -1,43 +1,19 @@
-1. Drop Notifications
-
---
-getMarketTradesEvents.ts
-isOrderScoring.ts
-
-getSpreads.ts
-getMidPoints.ts
-getNofications.ts
-
-implemented but not tested:
-marketBuyOrder.ts
-marketSellOrder.ts
-
-Tag bot and give info
-
-### NOW
-
-- Socket Server to Monitor for Copy Trading.
-- Add Fees while opening/closing a position in normal and autotrade. (watch fee.ts)
-
-1. use `calculateFee()` to get fee from amount
-2. use `feeTransaction()` to get finalAmount
-3. Send Fee to treasury account
-4. Add fee amount in db
-5. Add finalAmount in db
-
-### FOR LATER
-
-- Use an ORM
+- Tag bot and give info
 - Handle Edge Cases where the copy_wallet is ordering on the minimum price & shares.
 
-### REFACTOR
 
-- Cache Data as needed (User profile data, markets etc.)
-- Add try-catch function for error handling (Theo's gist)
-- Remove Redundant Code
-- Custom Error Classes
-- Optimize Code wherever needed/possible
+Final Todo:
+1. Cut Fees after order is placed [Manav]
+6. Fix Close Position Flow [Manav]
+    - Show All Positions
+    - Button of Close
+    - Call Close Positions
+    - Add Close All Button
+3. Add delete message animation [Manav]
+4. Execute only FOK on copy trading [Manav]
 
-### UX Improvements
 
-- Add/Edit Buttons (Back (Prev Menu), Back to Main Menu, Close (Closes the Message))
+2. Test all kind of Trades [Sarthak]
+5. Add Bridge button and functionality [Sarthak]
+7. Final Socket Server with Proper Position Data [Sarthak]
+8. Spread and Notifications [Sarthak]
