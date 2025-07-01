@@ -1,351 +1,222 @@
-import { getUserDetails } from "@/helpers/get-user-details";
-import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
-import { OrderType, Side } from "@polymarket/clob-client";
+import axios from "axios";
 
-export interface MonitorState {
-    knownPositions: Map<string, any[]>;
-    knownActivities: Set<string>;
-    isWatchEnabled: boolean;
-    isTradeEnabled: boolean;
-    pollInterval: NodeJS.Timeout | null;
+interface Trade {
+    proxyWallet: string;
+    side: "BUY" | "SELL";
+    asset: string;
+    conditionId: string;
+    size: number;
+    price: number;
+    timestamp: number;
+    title: string;
+    outcome: string;
+    transactionHash: string;
 }
 
-const createMonitorState = (): MonitorState => ({
-    knownPositions: new Map(),
-    knownActivities: new Set(),
-    isWatchEnabled: false,
-    isTradeEnabled: false,
-    pollInterval: null,
+interface WalletMonitorConfig {
+    walletAddress: string;
+    pollIntervalMs: number;
+}
+
+interface MonitorState {
+    lastTimestamp: number;
+    isRunning: boolean;
+    intervalId?: NodeJS.Timeout;
+}
+
+interface FormattedTrade {
+    walletAddress: string;
+    market: string;
+    side: "BUY" | "SELL";
+    asset: string;
+    conditionId: string;
+    outcome: string;
+    size: number;
+    price: number;
+    value: number;
+    hash: string;
+    timestamp: string;
+}
+
+const activeMonitors = new Map<string, MonitorState>();
+
+export const formatTradeInfo = (trade: Trade, walletAddress: string): FormattedTrade => ({
+    walletAddress,
+    market: trade.title,
+    side: trade.side,
+    asset: trade.asset,
+    conditionId: trade.conditionId,
+    outcome: trade.outcome,
+    size: trade.size,
+    price: trade.price,
+    value: trade.size * trade.price,
+    hash: trade.transactionHash,
+    timestamp: new Date(trade.timestamp * 1000).toISOString(),
 });
 
-const fetchData = async (endpoint: string, walletAddress: string): Promise<any[]> => {
+export const filterNewTrades = (trades: Trade[], lastTimestamp: number): Trade[] =>
+    trades.filter((trade) => trade.timestamp > lastTimestamp);
+
+export const getLatestTimestamp = (trades: Trade[]): number =>
+    trades.length > 0 ? Math.max(...trades.map((t) => t.timestamp)) : 0;
+
+export const fetchTrades = async (walletAddress: string, limit: number = 100): Promise<Trade[]> => {
     try {
-        const response = await fetch(
-            `https://data-api.polymarket.com/${endpoint}?user=${walletAddress}`,
-            {
-                headers: { Accept: "application/json" },
-            }
-        );
-
-        const data = await response.json();
-        console.log(`📊 Data For ${endpoint} (${walletAddress}):`, data);
-
-        return data;
-    } catch (error) {
-        console.error(`Error Fetching ${endpoint}:`, error);
-        return [];
-    }
-};
-
-const logTradeActivity = (activity: any, walletAddress: string): void => {
-    console.log(`\n🔥 TRADE DETECTED for wallet ${walletAddress}:`);
-    console.log(`   📈 Type: ${activity.type || "Unknown"}`);
-    console.log(`   💰 Amount: ${activity.amount || "N/A"}`);
-    console.log(`   💵 Price: ${activity.price || "N/A"}`);
-    console.log(`   🎯 Market: ${activity.market?.title || activity.title || "Unknown Market"}`);
-    console.log(`   📊 Outcome: ${activity.outcome || "N/A"}`);
-    console.log(
-        `   ⏰ Timestamp: ${activity.timestamp ? new Date(activity.timestamp * 1000).toLocaleString() : "N/A"}`
-    );
-    console.log(`   🔗 Transaction: ${activity.txHash || activity.transactionHash || "N/A"}`);
-    console.log(`   📋 Full Activity:`, JSON.stringify(activity, null, 2));
-};
-
-const logPositionChange = (
-    position: any,
-    walletAddress: string,
-    changeType: "NEW" | "UPDATED"
-): void => {
-    console.log(`\n📍 POSITION ${changeType} for wallet ${walletAddress}:`);
-    console.log(`   🎯 Market: ${position.title || "Unknown Market"}`);
-    console.log(`   📊 Outcome: ${position.outcome || "N/A"}`);
-    console.log(`   💎 Size: ${position.size || "N/A"}`);
-    console.log(`   💰 Avg Price: ${position.avgPrice || "N/A"}`);
-    console.log(`   📈 Current Price: ${position.curPrice || "N/A"}`);
-    console.log(`   💵 Current Value: ${position.currentValue || "N/A"}`);
-    console.log(`   📊 PnL: ${position.cashPnl || "N/A"} (${position.percentPnl || "N/A"}%)`);
-    console.log(`   📋 Full Position:`, JSON.stringify(position, null, 2));
-};
-
-const detectNewItems = (
-    current: any[],
-    previous: any[],
-    state: MonitorState,
-    walletAddress: string,
-    type: "positions" | "activities"
-): any[] => {
-    const newItems = current.filter((item) => {
-        if (type === "positions") {
-            return !previous.some((prev) => JSON.stringify(prev) === JSON.stringify(item));
-        } else {
-            const activityId = item.id || `${item.timestamp}_${item.type}`;
-            return !state.knownActivities.has(activityId);
-        }
-    });
-
-    if (newItems.length > 0) {
-        const label = type === "positions" ? "New Positions" : "New Activities";
-        console.log(`\n🔍 ${label}: ${newItems.length} for wallet ${walletAddress}`);
-
-        newItems.forEach((item) => {
-            if (type === "activities") {
-                // Check if this is a trade-related activity
-                const tradeTypes = ["buy", "sell", "trade", "order", "fill", "swap", "exchange"];
-                const isTradeActivity =
-                    item.type &&
-                    tradeTypes.some((tradeType) => item.type.toLowerCase().includes(tradeType));
-
-                if (isTradeActivity || item.amount || item.price || item.market) {
-                    logTradeActivity(item, walletAddress);
-                } else {
-                    console.log(`   📝 Activity:`, item);
-                }
-
-                const activityId = item.id || `${item.timestamp}_${item.type}`;
-                state.knownActivities.add(activityId);
-            } else {
-                // This is a position change - could indicate a trade
-                logPositionChange(item, walletAddress, "NEW");
-            }
+        const response = await axios.get("https://data-api.polymarket.com/trades", {
+            params: {
+                user: walletAddress,
+                limit,
+                takerOnly: true,
+            },
         });
+        return response.data || [];
+    } catch (error) {
+        throw new Error(`Failed to fetch trades: ${error}`);
     }
-
-    return newItems;
 };
 
-const detectPositionUpdates = (current: any[], previous: any[], walletAddress: string): void => {
-    current.forEach((currentPos) => {
-        const previousPos = previous.find(
-            (prev) => prev.asset === currentPos.asset || prev.conditionId === currentPos.conditionId
-        );
+export const getInitialTimestamp = async (walletAddress: string): Promise<number> => {
+    try {
+        const trades = await fetchTrades(walletAddress, 1);
+        return trades.length > 0 ? trades[0].timestamp : Math.floor(Date.now() / 1000);
+    } catch (error) {
+        console.error(`Failed to Get Initial Timestamp: ${error}`);
+        return Math.floor(Date.now() / 1000);
+    }
+};
 
-        if (previousPos) {
-            // Check for significant changes that might indicate a trade
-            const sizeChanged = Math.abs((currentPos.size || 0) - (previousPos.size || 0)) > 0.001;
-            const avgPriceChanged =
-                Math.abs((currentPos.avgPrice || 0) - (previousPos.avgPrice || 0)) > 0.001;
-            const totalBoughtChanged =
-                Math.abs((currentPos.totalBought || 0) - (previousPos.totalBought || 0)) > 0.001;
+const startWalletMonitoring = async (
+    config: WalletMonitorConfig,
+    onNewTrade: (trade: FormattedTrade) => void,
+    onError?: (error: Error) => void
+): Promise<MonitorState> => {
+    const state: MonitorState = {
+        lastTimestamp: await getInitialTimestamp(config.walletAddress),
+        isRunning: true,
+        intervalId: undefined,
+    };
 
-            if (sizeChanged || avgPriceChanged || totalBoughtChanged) {
-                console.log(
-                    `\n🔄 POSITION UPDATE DETECTED (Possible Trade) for wallet ${walletAddress}:`
-                );
-                console.log(`   🎯 Market: ${currentPos.title || "Unknown Market"}`);
-                console.log(
-                    `   📊 Size Change: ${previousPos.size || 0} → ${currentPos.size || 0}`
-                );
-                console.log(
-                    `   💰 Avg Price Change: ${previousPos.avgPrice || 0} → ${currentPos.avgPrice || 0}`
-                );
-                console.log(
-                    `   📈 Total Bought Change: ${previousPos.totalBought || 0} → ${currentPos.totalBought || 0}`
-                );
-                logPositionChange(currentPos, walletAddress, "UPDATED");
+    const monitoringLoop = async (): Promise<void> => {
+        try {
+            const trades = await fetchTrades(config.walletAddress);
+            const newTrades = filterNewTrades(trades, state.lastTimestamp);
+
+            if (newTrades.length > 0) {
+                state.lastTimestamp = getLatestTimestamp(newTrades);
+
+                newTrades.reverse().forEach((trade) => {
+                    const formattedTrade = formatTradeInfo(trade, config.walletAddress);
+                    onNewTrade(formattedTrade);
+                });
+            }
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            if (onError) {
+                onError(err);
+            } else {
+                console.error("❌ Wallet Monitor Error:", err.message);
             }
         }
-    });
+    };
+
+    state.intervalId = setInterval(monitoringLoop, config.pollIntervalMs);
+    return state;
 };
 
-const monitorWallet = async (walletAddress: string, state: MonitorState): Promise<void> => {
-    const [positions, activities] = await Promise.all([
-        fetchData("positions", walletAddress),
-        fetchData("activity", walletAddress),
-    ]);
+const stopWalletMonitoring = (state: MonitorState): void => {
+    if (state.intervalId) {
+        clearInterval(state.intervalId);
+        state.intervalId = undefined;
+    }
+    state.isRunning = false;
+};
 
-    const previousPositions = state.knownPositions.get(walletAddress) || [];
+export let onTradeDetected: (trade: FormattedTrade) => void = (trade: FormattedTrade) => {
+    console.log("🔥 New Trade Detected:", trade);
+    // TODO: Add Copy Trading Logic Here
+};
 
-    const newPositions = detectNewItems(
-        positions,
-        previousPositions,
-        state,
-        walletAddress,
-        "positions"
-    );
-    const newActivities = detectNewItems(activities, [], state, walletAddress, "activities");
+export let onMonitorError: (error: Error, walletAddress: string) => void = (
+    error: Error,
+    walletAddress: string
+) => {
+    console.error(`❌ Monitor Error For ${walletAddress}:`, error.message);
+};
 
-    // Check for position updates that might indicate trades
-    if (previousPositions.length > 0) {
-        detectPositionUpdates(positions, previousPositions, walletAddress);
+export const startMonitor = async (
+    walletAddresses: string[],
+    pollIntervalMs: number = 3000
+): Promise<void> => {
+    if (walletAddresses.length > 3) {
+        throw new Error("Maximum 3 Wallets Allowed");
     }
 
-    if (newPositions.length > 0) {
-        state.knownPositions.set(walletAddress, positions);
-    }
+    for (const walletAddress of walletAddresses) {
+        if (activeMonitors.has(walletAddress)) {
+            console.log(`Already Monitoring Wallet: ${walletAddress}`);
+            continue;
+        }
 
-    if (newPositions.length > 0 || newActivities.length > 0) {
-        // TODO - GET ACCESS TO USER ID HERE SOMEHOW
-        // const user = await getUserDetails(userId);
+        const config: WalletMonitorConfig = {
+            walletAddress,
+            pollIntervalMs,
+        };
 
-        // for (const activity of newActivities) {
-        //     await marketBuyOrder({
-        //         privateKey: user!.private_key,
-        //         creds: JSON.parse(user!.api_credentials),
-        //         tokenId: activity.asset,
-        //         amount: activity.size,
-        //         side: activity.side === "BUY" ? Side.BUY : Side.SELL,
-        //         orderType: OrderType.FOK,
-        //     });
-        // }
-        console.log(
-            `✨ Total New Items for ${walletAddress}: ${newPositions.length + newActivities.length}`
-        );
+        try {
+            const state = await startWalletMonitoring(config, onTradeDetected, (error) =>
+                onMonitorError(error, walletAddress)
+            );
+            activeMonitors.set(walletAddress, state);
+            console.log(`✅ Started Monitoring Wallet: ${walletAddress}`);
+        } catch (error) {
+            console.error(`Failed to Start Monitoring ${walletAddress}:`, error);
+        }
     }
 };
 
-const monitorAllWallets = async (wallets: string[], state: MonitorState): Promise<void> => {
-    if (!state.isWatchEnabled) return;
-
-    console.log(
-        `\n--- Monitoring ${wallets.length} Wallet(s) at ${new Date().toLocaleTimeString()} ---`
-    );
-    await Promise.all(wallets.map((wallet) => monitorWallet(wallet, state)));
+export const stopMonitor = (walletAddresses: string[]): void => {
+    for (const walletAddress of walletAddresses) {
+        const state = activeMonitors.get(walletAddress);
+        if (state) {
+            stopWalletMonitoring(state);
+            activeMonitors.delete(walletAddress);
+            console.log(`🛑 Stopped Monitoring Wallet: ${walletAddress}`);
+        } else {
+            console.log(`Wallet Not Being Monitored: ${walletAddress}`);
+        }
+    }
 };
 
-// Main control functions
-export const enableWatch = (state: MonitorState, wallets: string[]): boolean => {
-    console.log(`\n🎯 enableWatch() called with ${wallets.length} wallet(s):`);
-    wallets.forEach((wallet, index) => {
-        console.log(`   ${index + 1}. ${wallet}`);
-    });
-
-    if (state.isWatchEnabled) {
-        console.log("⚠️ Watch Already Enabled");
-        return false;
-    }
-
-    if (wallets.length === 0) {
-        console.log("❌ No Wallets Provided");
-        return false;
-    }
-
-    if (wallets.length > 3) {
-        console.log("❌ Maximum 3 Wallets Allowed");
-        return false;
-    }
-
-    state.isWatchEnabled = true;
-    console.log(`🚀 Watch Enabled for ${wallets.length} Wallet(s)`);
-    console.log(`🔍 Now monitoring for trade activities every 3 seconds...`);
-
-    monitorAllWallets(wallets, state);
-    state.pollInterval = setInterval(() => {
-        monitorAllWallets(wallets, state);
-    }, 3000);
-
-    return true;
+export const getMonitoredWallets = (): string[] => {
+    return Array.from(activeMonitors.keys());
 };
 
-export const disableWatch = (state: MonitorState): boolean => {
-    console.log(`\n🛑 disableWatch() called`);
-
-    if (!state.isWatchEnabled) {
-        console.log("⚠️ Watch Already Disabled");
-        return false;
-    }
-
-    state.isWatchEnabled = false;
-    state.isTradeEnabled = false;
-
-    if (state.pollInterval) {
-        clearInterval(state.pollInterval);
-        state.pollInterval = null;
-    }
-
-    console.log("🛑 Watch Disabled (Trade Auto-Disabled)");
-    console.log("📴 Stopped monitoring wallet activities");
-    return true;
+export const stopAllMonitors = (): void => {
+    const walletAddresses = Array.from(activeMonitors.keys());
+    stopMonitor(walletAddresses);
 };
 
-export const enableTrade = (state: MonitorState): boolean => {
-    console.log(`\n🤖 enableTrade() called`);
-
-    if (!state.isWatchEnabled) {
-        console.log("❌ Cannot Enable Trade: Watch Must Be Enabled First");
-        return false;
-    }
-
-    if (state.isTradeEnabled) {
-        console.log("⚠️ Trade Already Enabled");
-        return false;
-    }
-
-    state.isTradeEnabled = true;
-    console.log("🤖 Trade Enabled");
-    console.log("🔥 Will now execute copy trades when target wallet activities are detected!");
-    return true;
-};
-
-export const disableTrade = (state: MonitorState): boolean => {
-    console.log(`\n🛑 disableTrade() called`);
-
-    if (!state.isTradeEnabled) {
-        console.log("⚠️ Trade Already Disabled");
-        return false;
-    }
-
-    state.isTradeEnabled = false;
-    console.log("🛑 Trade Disabled");
-    console.log("📴 Copy trading stopped - will continue monitoring but won't execute trades");
-    return true;
-};
-
-export const getStatus = (state: MonitorState): string => {
-    return `📊 Status: Watch ${state.isWatchEnabled ? "✅" : "❌"} | Trade ${state.isTradeEnabled ? "✅" : "❌"}`;
-};
-
-export const createWalletMonitor = (): MonitorState => createMonitorState();
-
-// const state = createWalletMonitor();
-// const wallets = ["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"];
-
-// console.log(getStatus(state));
-
-// enableWatch(state, wallets);
-// console.log(getStatus(state));
+export type { Trade, WalletMonitorConfig, MonitorState, FormattedTrade };
 
 /*
-  // USAGE EXAMPLES
-  
-  // 1. Initialize
-  const state = createWalletMonitor();
-  const wallets = ['0xabc...', '0xdef...'];
-  
-  // 2. Initial State - Nothing Enabled
-  console.log(getStatus(state)); // 📊 Status: Watch ❌ | Trade ❌
-  
-  // 3. Enable Watch First
-  enableWatch(state, wallets); // ✅ Success
-  console.log(getStatus(state)); // 📊 Status: Watch ✅ | Trade ❌
-  
-  // 4. Try to Enable Trade (Works Because Watch Is Enabled)
-  enableTrade(state); // ✅ Success  
-  console.log(getStatus(state)); // 📊 Status: Watch ✅ | Trade ✅
-  
-  // 5. Disable Trade Only
-  disableTrade(state); // ✅ Success
-  console.log(getStatus(state)); // 📊 Status: Watch ✅ | Trade ❌
-  
-  // 6. Disable Watch (Auto-Disables Trade)
-  disableWatch(state); // ✅ Success
-  console.log(getStatus(state)); // 📊 Status: Watch ❌ | Trade ❌
-  
-  // ERROR CASES:
-  
-  // 7. Try to Enable Trade Without Watch
-  enableTrade(state); // ❌ Fails - "Cannot Enable Trade: Watch Must Be Enabled First"
-  
-  // 8. Try to Enable Watch With Too Many Wallets
-  const tooManyWallets = ['0x1...', '0x2...', '0x3...', '0x4...'];
-  enableWatch(state, tooManyWallets); // ❌ Fails - "Maximum 3 Wallets Allowed"
-  
-  // 9. Try to Enable Watch With No Wallets
-  enableWatch(state, []); // ❌ Fails - "No Wallets Provided"
-  
-  // 10. Try to Enable Already Enabled Features
-  enableWatch(state, wallets); // First call ✅
-  enableWatch(state, wallets); // Second call ❌ - "Watch Already Enabled"
-  
-  enableTrade(state); // First call ✅  
-  enableTrade(state); // Second call ❌ - "Trade Already Enabled"
+// Usage:
+import { startMonitor, stopMonitor, onTradeDetected, onMonitorError } from './wallet-monitor';
+
+// Override default handlers
+onTradeDetected = (trade) => {
+  console.log('New trade:', trade);
+  // Your copy trading logic here
+  // io.emit('newTrade', trade); // for socket server
+};
+
+onMonitorError = (error, walletAddress) => {
+  console.error(`Error monitoring ${walletAddress}:`, error.message);
+  // io.emit('monitorError', { walletAddress, error: error.message });
+};
+
+// Start monitoring (max 3 addresses)
+await startMonitor(['0xaddress1', '0xaddress2', '0xaddress3']);
+
+// Stop monitoring
+stopMonitor(['0xaddress1', '0xaddress2']);
 */

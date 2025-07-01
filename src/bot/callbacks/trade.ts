@@ -391,8 +391,7 @@ export async function handleWalletMonitoringMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    const userStats = walletSocketServer.getUserStats(userId);
-    const watchedWallets = userStats?.watchedWallets || [];
+    const watchedWallets = ["0x56687bf447db6ffa42ffe2204a05edaa20f55839"];
 
     const message =
         `🔍 *Wallet Monitoring*\n\n` +
@@ -457,8 +456,7 @@ async function handleStopWalletMonitoring(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    const userStats = walletSocketServer.getUserStats(userId);
-    const watchedWallets = userStats?.watchedWallets || [];
+    const watchedWallets = ["0x56687bf447db6ffa42ffe2204a05edaa20f55839"];
 
     if (watchedWallets.length === 0) {
         await ctx.answerCbQuery("No wallets being monitored");
@@ -485,22 +483,23 @@ async function handleWalletMonitoringStatus(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    const userStats = walletSocketServer.getUserStats(userId);
-    const activeConnections = walletSocketServer.getActiveConnections();
-    const activeSubscriptions = walletSocketServer.getActiveSubscriptions();
+    // const userStats = walletSocketServer.getUserStats(userId);
+    // const activeConnections = walletSocketServer.getActiveConnections();
+    // const activeSubscriptions = walletSocketServer.getActiveSubscriptions();
 
-    const message =
-        `📊 *Wallet Monitoring Status*\n\n` +
-        `🔗 *Your Connection:* ${userStats ? "✅ Connected" : "❌ Disconnected"}\n` +
-        `👁️ *Your Watched Wallets:* ${userStats?.totalWatched || 0}/3\n` +
-        `🌐 *Total Active Connections:* ${activeConnections}\n` +
-        `📡 *Total Active Subscriptions:* ${activeSubscriptions}\n\n` +
-        (userStats?.watchedWallets.length > 0
-            ? `*Your Monitored Wallets:*\n` +
-              userStats.watchedWallets
-                  .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
-                  .join("\n")
-            : "*No wallets currently monitored*");
+    // const message =
+    //     `📊 *Wallet Monitoring Status*\n\n` +
+    //     `🔗 *Your Connection:* ${userStats ? "✅ Connected" : "❌ Disconnected"}\n` +
+    //     `👁️ *Your Watched Wallets:* ${userStats?.totalWatched || 0}/3\n` +
+    //     `🌐 *Total Active Connections:* ${activeConnections}\n` +
+    //     `📡 *Total Active Subscriptions:* ${activeSubscriptions}\n\n` +
+    //     (userStats?.watchedWallets.length > 0
+    //         ? `*Your Monitored Wallets:*\n` +
+    //           userStats.watchedWallets
+    //               .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
+    //               .join("\n")
+    //         : "*No wallets currently monitored*");
+    const message = `TODO`;
 
     await ctx.answerCbQuery();
     return ctx.reply(message, { parse_mode: "Markdown" });
@@ -511,10 +510,7 @@ export async function handleStopSpecificWalletMonitor(ctx: Context, walletAddres
     if (!userId) return;
 
     try {
-        // This would trigger the socket server to stop monitoring
-        // For now, we'll just show a success message
-        // In a real implementation, you'd send a message to the socket server
-
+        // TODO: Implement Wallet Monitoring Stopping Logic from `wallet-monitor.ts`
         await ctx.answerCbQuery("Wallet Monitoring Stopped");
         return ctx.reply(
             `✅ Stopped Monitoring Wallet:\n\`${walletAddress}\`\n\n` +

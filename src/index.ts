@@ -37,9 +37,7 @@ export async function main() {
         }
     );
 
-    console.log(
-        `Socket Server Initialized on Port ${walletSocketServer.getActiveConnections() >= 0 ? "Ready" : "Error"}`
-    );
+    walletSocketServer.start();
 }
 
 main();

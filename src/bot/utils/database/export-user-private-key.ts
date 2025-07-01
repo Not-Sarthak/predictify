@@ -23,5 +23,10 @@ export async function handleExportPrivateKey(ctx: Context, network: "evm" | "sol
         privateKey = (data as { solana_private_key: string }).solana_private_key;
     }
 
-    return ctx.reply(`Your ${network === "evm" ? "EVM" : "Solana"} Private Key: ${privateKey}`);
+    return ctx.reply(
+        `Your ${network === "evm" ? "EVM" : "Solana"} Private Key: <tg-spoiler>${privateKey}</tg-spoiler>`,
+        {
+            parse_mode: "HTML",
+        }
+    );
 }
