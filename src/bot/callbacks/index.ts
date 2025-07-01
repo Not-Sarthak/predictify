@@ -81,7 +81,8 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_position_view") {
-        return handleViewTradePositions(ctx);
+        await handleViewTradePositions(ctx);
+        return ctx.answerCbQuery();
     }
 
     if (data === "trade_position_open") {

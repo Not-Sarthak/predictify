@@ -1,3 +1,7 @@
+import { getUserDetails } from "@/helpers/get-user-details";
+import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { OrderType, Side } from "@polymarket/clob-client";
+
 export interface MonitorState {
     knownPositions: Map<string, any[]>;
     knownActivities: Set<string>;
@@ -116,6 +120,7 @@ const detectPositionUpdates = (current: any[], previous: any[], walletAddress: s
         );
 
         if (previousPos) {
+            // Check for significant changes that might indicate a trade
             const sizeChanged = Math.abs((currentPos.size || 0) - (previousPos.size || 0)) > 0.001;
             const avgPriceChanged =
                 Math.abs((currentPos.avgPrice || 0) - (previousPos.avgPrice || 0)) > 0.001;
@@ -159,6 +164,7 @@ const monitorWallet = async (walletAddress: string, state: MonitorState): Promis
     );
     const newActivities = detectNewItems(activities, [], state, walletAddress, "activities");
 
+    // Check for position updates that might indicate trades
     if (previousPositions.length > 0) {
         detectPositionUpdates(positions, previousPositions, walletAddress);
     }
@@ -168,6 +174,19 @@ const monitorWallet = async (walletAddress: string, state: MonitorState): Promis
     }
 
     if (newPositions.length > 0 || newActivities.length > 0) {
+        // TODO - GET ACCESS TO USER ID HERE SOMEHOW
+        // const user = await getUserDetails(userId);
+
+        // for (const activity of newActivities) {
+        //     await marketBuyOrder({
+        //         privateKey: user!.private_key,
+        //         creds: JSON.parse(user!.api_credentials),
+        //         tokenId: activity.asset,
+        //         amount: activity.size,
+        //         side: activity.side === "BUY" ? Side.BUY : Side.SELL,
+        //         orderType: OrderType.FOK,
+        //     });
+        // }
         console.log(
             `✨ Total New Items for ${walletAddress}: ${newPositions.length + newActivities.length}`
         );
@@ -276,6 +295,14 @@ export const getStatus = (state: MonitorState): string => {
 };
 
 export const createWalletMonitor = (): MonitorState => createMonitorState();
+
+// const state = createWalletMonitor();
+// const wallets = ["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"];
+
+// console.log(getStatus(state));
+
+// enableWatch(state, wallets);
+// console.log(getStatus(state));
 
 /*
   // USAGE EXAMPLES

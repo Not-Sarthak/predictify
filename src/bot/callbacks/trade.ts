@@ -1,5 +1,5 @@
 import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
-import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     disableUserCopyTrade,
     enableUserCopyTrade,
@@ -70,13 +70,16 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions from your account.").then(() => ctx.answerCbQuery());
     }
 
-    const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(
-        userPositions.slice(0, 2)
+    const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(userPositions);
+
+    const replyPromises = formattedUserPositionsMessages.map((message) =>
+        ctx.reply(message, {
+            parse_mode: "Markdown",
+            reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
+        })
     );
 
-    for (const message of formattedUserPositionsMessages) {
-        await ctx.reply(message, { parse_mode: "Markdown" });
-    }
+    await Promise.all(replyPromises);
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
@@ -244,7 +247,7 @@ export async function handleViewTopMarketsByCategory(
         filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("❌ Close", `close:delete_message`)],
+        [Markup.button.callback("❌ Close", `close_message`)],
     ]);
 
     if (ctx.updateType === "callback_query") {
