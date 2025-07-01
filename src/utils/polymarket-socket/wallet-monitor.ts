@@ -1,3 +1,5 @@
+import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
 
 interface Trade {
@@ -133,7 +135,15 @@ const stopWalletMonitoring = (state: MonitorState): void => {
 
 export let onTradeDetected: (trade: FormattedTrade) => void = (trade: FormattedTrade) => {
     console.log("🔥 New Trade Detected:", trade);
-    // TODO: Add Copy Trading Logic Here
+
+    // await marketBuyOrder({
+    //     privateKey: "",
+    //     creds: "",
+    //     tokenId: trade.asset,
+    //     amount: trade.size * trade.price * userconfig;
+    //     Side: trade.side,
+    //     orderType: OrderType.FOK
+    // });
 };
 
 export let onMonitorError: (error: Error, walletAddress: string) => void = (
@@ -198,25 +208,23 @@ export const stopAllMonitors = (): void => {
 
 export type { Trade, WalletMonitorConfig, MonitorState, FormattedTrade };
 
-/*
 // Usage:
-import { startMonitor, stopMonitor, onTradeDetected, onMonitorError } from './wallet-monitor';
+// import { startMonitor, stopMonitor, onTradeDetected, onMonitorError } from './wallet-monitor';
 
 // Override default handlers
-onTradeDetected = (trade) => {
-  console.log('New trade:', trade);
-  // Your copy trading logic here
-  // io.emit('newTrade', trade); // for socket server
-};
+// onTradeDetected = (trade) => {
+//     console.log("New trade:", trade);
+//     // Your copy trading logic here
+//     // io.emit('newTrade', trade); // for socket server
+// };
 
-onMonitorError = (error, walletAddress) => {
-  console.error(`Error monitoring ${walletAddress}:`, error.message);
-  // io.emit('monitorError', { walletAddress, error: error.message });
-};
+// onMonitorError = (error, walletAddress) => {
+//     console.error(`Error monitoring ${walletAddress}:`, error.message);
+//     // io.emit('monitorError', { walletAddress, error: error.message });
+// };
 
 // Start monitoring (max 3 addresses)
-await startMonitor(['0xaddress1', '0xaddress2', '0xaddress3']);
+// await startMonitor(["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"]);
 
 // Stop monitoring
-stopMonitor(['0xaddress1', '0xaddress2']);
-*/
+// stopMonitor(["0xaddress1", "0xaddress2"]);
