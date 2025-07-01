@@ -40,6 +40,17 @@ bot.on(message("text"), handleUserTextMessage);
 // Button Callback Handlers
 bot.on("callback_query", handleCallbackQuery);
 
+// Error Handling
+bot.catch((err, ctx) => {
+    try {
+        if (ctx.reply) {
+            ctx.reply("❌ An Error Occurred. Please Try Again Later.");
+        }
+    } catch (replyError) {
+        console.error("Failed To Send Error Message To User:", replyError);
+    }
+});
+
 export {
     bot,
     awaitingWalletDetailsInputSet,

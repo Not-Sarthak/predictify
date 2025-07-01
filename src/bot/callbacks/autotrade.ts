@@ -90,10 +90,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
         if (error) throw error;
 
         if (!userWallets || userWallets.length === 0) {
-            const message =
-                `👁️ *Watched Wallets*\n\n` +
-                `⚠️ No Wallets Added\n\n` +
-                `Add wallets to start monitoring their trading activity.`;
+            const message = `👁️ *Watched Wallets*\n\n` + `⚠️ No Wallets Added\n\n`;
 
             const buttons = [
                 [Markup.button.callback("➕ Add Wallet", "add_new_wallet")],
@@ -219,7 +216,7 @@ export async function handleAddNewWalletCallback(ctx: Context) {
 
     const message = `🧾 *Add Wallet Instructions*
 
-Please enter your wallet in the following format:
+Please Enter Your Wallet in the Following Format:
 
 \`<wallet_name> <wallet_address>\`
 

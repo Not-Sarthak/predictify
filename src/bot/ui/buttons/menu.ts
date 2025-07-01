@@ -23,12 +23,12 @@ export const SUBSCRIPTIONS_MENU_BUTTONS = [
 
 export const TRADE_MENU_BUTTONS = [
     [
-        Markup.button.callback("⚡ Open Position", "trade_position_open"),
-        Markup.button.callback("🌂 Close Position", "trade_position_close"),
+        Markup.button.callback("🔎 Top Markets", "trade_top_markets_view"),
+        Markup.button.callback("📈 View Positions", "trade_position_view"),
     ],
     [
-        Markup.button.callback("📈 View Positions", "trade_position_view"),
-        Markup.button.callback("🔎 Top Markets", "trade_top_markets_view"),
+        Markup.button.callback("⚡ Open Position", "trade_position_open"),
+        Markup.button.callback("🌂 Close Position", "trade_position_close"),
     ],
     [BACK_TO_MAIN_MENU_BUTTON],
 ];

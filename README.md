@@ -6,7 +6,6 @@ Final Todo:
 2. Spread and Notifications [Sarthak]
 
 - [Manav]
-
 1. Socket Server using Wallet Monitor Functions with DB [Store the Copy Trading Data in Redis]
 2. Change the Flow of View Position to Close Position
 3. On clicking Close Position in Positions' Close Button
@@ -22,14 +21,7 @@ Final Todo:
 13. In Close Position, ditto of View Positions
 14. Add PnL after closing a position to the user's column.
 15. If any error comes while trading, disable autotrading on that user wallet and notify them on telegram.
-16. Show Top 5 Order Book
-17. Show USDC Amount in Order Book
-18. Replace GTC GTD with "Limit or Market"
-19. Market buy yes, market buy no
-20. limit buy yes limit buy no
-21. Top market should be the first option
-22. add about this market button in top market flow
 
-[Sarthak]
 
+- [Sarthak]
 1. PnL Card

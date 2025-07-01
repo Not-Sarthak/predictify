@@ -10,18 +10,63 @@ import {
     getUserIdFromCtx,
     layoutButtons,
 } from "@/bot/utils";
-import { getMarketDetails } from "@/helpers/get-market-details";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
+import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/shared/utils/capitalize";
-import { fetchMarkets, getMarketById } from "@/utils/polymarket/get-markets";
+import { fetchMarkets, getMarketById, getMarketOrderBook } from "@/utils/polymarket/get-markets";
 import { getUserPosition } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import axios from "axios";
-import { walletSocketServer } from "@/utils/polymarket-socket/socket";
 import { db } from "@/lib/supabase";
+
+async function formatOrderBook(tokenIds: string[], userId: string) {
+    try {
+        const [userDetails] = await Promise.all([getUserDetails(Number(userId))]);
+
+        if (!userDetails) {
+            return "⚠️ Unable to Fetch Orderbook Data.";
+        }
+
+        const { private_key, api_credentials } = userDetails;
+        const apiCreds = JSON.parse(api_credentials);
+
+        const { yesResponse, noResponse } = await getMarketOrderBook({
+            tokenId: tokenIds,
+            privateKey: private_key,
+            creds: apiCreds,
+        });
+
+        const formatOrderBookLine = ({ price, size }: { price: string; size: string }) => {
+            const usdcValue = parseFloat(price) * parseFloat(size);
+            return `$${usdcValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        };
+
+        const yesBids = yesResponse.bids.slice(0, 5).map(formatOrderBookLine);
+        const noBids = noResponse.bids.slice(0, 5).map(formatOrderBookLine);
+
+        let orderBookDisplay = `📈 **Order Book**\n`;
+
+        if (yesBids.length > 0) {
+            orderBookDisplay += `**🟢 YES** (${yesBids.length} orders):\n${yesBids.join(" • ")}\n\n`;
+        } else {
+            orderBookDisplay += `**🟢 YES**: No Liquidity Available\n\n`;
+        }
+
+        if (noBids.length > 0) {
+            orderBookDisplay += `**🔴 NO** (${noBids.length} orders):\n${noBids.join(" • ")}\n\n`;
+        } else {
+            orderBookDisplay += `**🔴 NO**: No Liquidity Available\n\n`;
+        }
+
+        return orderBookDisplay;
+    } catch (error) {
+        console.error("Error Fetching Orderbook:", error);
+        return "⚠️ Unable to Fetch Orderbook Data.\n\n";
+    }
+}
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -29,11 +74,9 @@ export async function handleTradeMenu(ctx: Context) {
 
 export async function handleTradeCallbacks(ctx: Context, action: string, marketId: string) {
     if (action === "yes") {
-        // Call placeSingleOrder Function here w/ Yes
         await ctx.answerCbQuery("✅ Buy Yes Clicked");
         return ctx.reply(`🟢 You Chose to Buy Yes on Market: ${marketId}`);
     } else if (action === "no") {
-        // Call placeSingleOrder Function here w/ No
         await ctx.answerCbQuery("❌ Buy No Clicked");
         return ctx.reply(`🔴 You Chose to Buy No on Market: ${marketId}`);
     }
@@ -61,13 +104,13 @@ export async function handleViewTradePositions(ctx: Context) {
     const userAddress = await getUserAddressFromId(userId);
 
     if (!userAddress) {
-        return ctx.reply("⚠️ No associated wallet address found with your account!");
+        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
 
     if (userPositions.length === 0) {
-        return ctx.reply("⚠️ No Open Positions from your account.").then(() => ctx.answerCbQuery());
+        return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
     }
 
     const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(userPositions);
@@ -91,10 +134,10 @@ export async function handleManageTradePositionsCallback(ctx: Context, action: s
     });
 
     return ctx.reply(
-        `✍️ *Enter a term to search*\n\n` +
+        `✍️ **Enter a Term to Search**\n\n` +
             `<term>\n\n` +
             `Example:\n\`basketball\`\n\n` +
-            `You can enter any keyword to get relevant results.`,
+            `You Can Enter Any Keyword to Get Relevant Results.`,
         { parse_mode: "Markdown" }
     );
 }
@@ -113,7 +156,7 @@ export async function handleFetchMarketWithOffsetCallback(
     const marketData = await response.json();
 
     if (marketData.length == 0) {
-        return ctx.reply("⚠️ There are no more markets!");
+        return ctx.reply("⚠️ There Are No More Markets!");
     }
 
     const marketTitleButtons: InlineKeyboardButton[][] = [];
@@ -145,38 +188,6 @@ export async function handleFetchMarketWithOffsetCallback(
     await ctx.answerCbQuery();
 }
 
-export async function handleSelectedMarketCallback(ctx: Context, marketId: string) {
-    const marketData = await getMarketDetails(marketId);
-
-    if (!marketData) {
-        return ctx.reply("Could not fetch market details. Please try again.");
-    }
-
-    const { question, description, volumeNum, orderMinSize } = marketData;
-
-    const message =
-        `📈 *Market Details*\n\n` +
-        `*Question:* ${question ?? "N/A"}\n` +
-        `*Description:* ${escapeMarkdown(description.trim()) ?? "N/A"}\n\n` +
-        `*Volume:* ${volumeNum ?? "0"}\n` +
-        `*Min Order Size:* ${orderMinSize ?? "N/A"}\n` +
-        `Please select an order type:`;
-
-    const orderTypeButtons: InlineKeyboardButton[][] = [
-        [Markup.button.callback("Good Till Cancel", `selected_order:${marketId}:gtc`)],
-        [Markup.button.callback("Good Till Date", `selected_order:${marketId}:gtd`)],
-        [Markup.button.callback("Fill or Kill Order", `selected_order:${marketId}:fok`)],
-        [Markup.button.callback("Fill and Kill Order", `selected_order:${marketId}:fak`)],
-    ];
-
-    await ctx.reply(message, {
-        parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(orderTypeButtons).reply_markup,
-    });
-
-    await ctx.answerCbQuery();
-}
-
 export async function handleViewTopMarketsByCategory(
     ctx: Context,
     marketCategory: string,
@@ -184,7 +195,7 @@ export async function handleViewTopMarketsByCategory(
     offset: number = 0
 ) {
     const LIMIT = 8;
-    let message = `🔥 Top Markets for ***${marketCategory}*** — _${capitalize(filter)}_\n\n`;
+    let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
 
     const markets = await fetchMarkets(marketCategory, filter, offset);
 
@@ -200,7 +211,7 @@ export async function handleViewTopMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. ***${market.title}***
+        message += `${i + 1}. **${market.title}**
 📊 Volume : ${fVolumne}
 ⏰ Ends: ${fDate}
 
@@ -247,7 +258,7 @@ export async function handleViewTopMarketsByCategory(
         filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("❌ Close", `close_message`)],
+        [Markup.button.callback("❌ Close", "close_message")],
     ]);
 
     if (ctx.updateType === "callback_query") {
@@ -263,8 +274,8 @@ export async function handleViewTopMarketsByCategory(
             ) {
                 await ctx.answerCbQuery();
             } else {
-                console.error("❌ editMessageText failed:", error);
-                await ctx.answerCbQuery("⚠️ Failed to update the message.");
+                console.error("❌ editMessageText Failed:", error);
+                await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
             }
         }
 
@@ -282,56 +293,73 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const data = response.data[0];
 
     const title = data.title;
-    const fDate = formatDate(data.endDate);
-    const fVolume = formatDollarVolume(data.volume1mo || 0);
-    console.log(data.markets);
     const markets = data.markets.filter((m: any) => m.active && m.acceptingOrders && !m.closed);
 
     if (markets.length === 0) {
-        return ctx.reply("❌ No active markets available in this event.");
+        return ctx.reply("❌ No Active Markets Available in This Event.");
     }
 
-    let message = `📌 ***${title}***
-
-📅 Ends: ${fDate}
-📊 Volume: ${fVolume}
-
-`;
+    let message = `📊 **${escapeMarkdown(title)}**\n\n`;
 
     if (markets.length === 1) {
-        const outcomes: number[] = JSON.parse(markets[0].outcomePrices);
-        message += `Current Prices:
-• Up: $${outcomes[0]}
-• Down: $${outcomes[1]}
-`;
+        const market = markets[0];
+        const outcomes: number[] = JSON.parse(market.outcomePrices);
+        const yesPrice = outcomes[0];
+        const noPrice = outcomes[1];
+
+        const userId = ctx.from?.id?.toString();
+        if (userId) {
+            const tokenIds = JSON.parse(market.clobTokenIds);
+            const orderBookData = await formatOrderBook(tokenIds, userId);
+            message += orderBookData;
+            message += `----------------------------------\n\n`;
+        }
+
+        message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
 
         const keyboard = Markup.inlineKeyboard([
-            Markup.button.callback("🛒 Buy", `buy_market:${markets[0].id}`),
-            Markup.button.callback("💵 Sell", `sell_market:${markets[0].id}`),
+            [
+                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            ],
+            [
+                Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+                Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            ],
+            [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+            [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+            [Markup.button.callback("❌ Close", "close_message")],
         ]);
-        return ctx.reply(message, { parse_mode: "Markdown", reply_markup: keyboard.reply_markup });
+
+        return ctx.reply(message, {
+            parse_mode: "Markdown",
+            reply_markup: keyboard.reply_markup,
+        });
     }
 
-    message += `***Available Markets***:
-
-`;
+    message += `🎯 **${markets.length} Markets Available**\n\n`;
 
     const marketButtons = [];
 
     for (let i = 0; i < markets.length; i++) {
         const market = markets[i];
+        const outcomes: number[] = JSON.parse(market.outcomePrices);
+        const yesPrice = outcomes[0];
+        const probability = Math.round(yesPrice * 100);
 
-        const priceYes = parseFloat(JSON.parse(market.outcomePrices)[0]); // "Yes" outcome
-        const probability = Math.min(Math.round(priceYes * 100), 99) + "%";
-        message += `• ${market.groupItemTitle} ***${probability}***\n`;
+        message += `**${i + 1}.** ${escapeMarkdown(market.groupItemTitle)} • ${probability}%\n`;
         marketButtons.push(Markup.button.callback(`#${i + 1}`, `view_market:${market.id}`));
     }
 
     const marketButtonsLayout = layoutButtons(marketButtons);
+    const keyboard = Markup.inlineKeyboard([
+        ...marketButtonsLayout,
+        [Markup.button.callback("❌ Close", "close_message")],
+    ]);
 
     return ctx.reply(message, {
         parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard(marketButtonsLayout).reply_markup,
+        reply_markup: keyboard.reply_markup,
     });
 }
 
@@ -339,32 +367,95 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     const market = await getMarketById(marketId);
 
     if (!market) {
-        return ctx.reply("❌ There was an error fetching market details!");
+        return ctx.reply("❌ There Was an Error Fetching Market Details!");
     }
 
-    console.log(market);
+    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
 
-    const fDate = formatDate(market.endDate);
-    const fVolume = formatDollarVolume(market.volume1mo);
-
-    let message = `📌 ***${market.title}***
-
-📅 Ends: ${fDate}
-📊 Volume: ${fVolume}
-
-`;
+    const userId = ctx.from?.id?.toString();
+    if (userId) {
+        const tokenIds = JSON.parse(market.clobTokenIds);
+        const orderBookData = await formatOrderBook(tokenIds, userId);
+        message += orderBookData;
+        message += `----------------------------------\n\n`;
+    }
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
-    message += `Current Prices:
-• Up: $${outcomes[0]}
-• Down: $${outcomes[1]}
-`;
+    const yesPrice = outcomes[0];
+    const noPrice = outcomes[1];
+
+    message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
 
     const keyboard = Markup.inlineKeyboard([
-        Markup.button.callback("🛒 Buy", `buy_market:${market.id}`),
-        Markup.button.callback("💵 Sell", `sell_market:${market.id}`),
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [Markup.button.callback("❌ Close", "close_message")],
     ]);
-    return ctx.reply(message, { parse_mode: "Markdown", reply_markup: keyboard.reply_markup });
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+export async function handleMarketDetails(ctx: Context, marketId: string) {
+    const market = await getMarketById(marketId);
+
+    if (!market) {
+        return ctx.reply("❌ There Was an Error Fetching Market Details!");
+    }
+
+    const endDate = formatDate(market.endDate);
+    const volume = formatDollarVolume(market.volume1mo || 0);
+    const liquidity = formatDollarVolume(market.liquidityNum || 0);
+
+    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+
+    message += `📝 ${escapeMarkdown(market.description.trim())}\n\n`;
+    message += `----------------------------------\n\n`;
+    message += `⏰ **Ends:** ${endDate}\n`;
+    message += `💰 **Liquidity:** ${liquidity} | **Volume:** ${volume}\n\n`;
+
+    const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const yesPrice = outcomes[0];
+    const noPrice = outcomes[1];
+    const spread = market.spread ? (market.spread * 100).toFixed(2) : "N/A";
+    const minOrderSize = market.orderMinSize || 0;
+    const minOrderValue = (minOrderSize * Math.min(yesPrice, noPrice)).toFixed(2);
+
+    message += `----------------------------------\n\n`;
+    message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n`;
+    message += `📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
+
+    if (market.lastTradePrice) {
+        message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
+    }
+
+    const keyboard = Markup.inlineKeyboard([
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [Markup.button.callback("❌ Close", "close_message")],
+    ]);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }
 
 export async function handleDeleteUserWallet(ctx: Context, walletAddress: string) {
@@ -378,10 +469,10 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
 
         if (error) throw new Error(error.message, { cause: error.cause });
 
-        ctx.reply("✅ Wallet was Successfully deleted!");
+        ctx.reply("✅ Wallet Was Successfully Deleted!");
     } catch (error) {
-        console.error("Error deleting user copy wallet: ", error);
-        return ctx.reply(`❌ There was an error deleting copy wallet! Please try again later.`, {
+        console.error("Error Deleting User Copy Wallet: ", error);
+        return ctx.reply(`❌ There Was an Error Deleting Copy Wallet! Please Try Again Later.`, {
             parse_mode: "Markdown",
         });
     }
@@ -394,8 +485,8 @@ export async function handleWalletMonitoringMenu(ctx: Context) {
     const watchedWallets = ["0x56687bf447db6ffa42ffe2204a05edaa20f55839"];
 
     const message =
-        `🔍 *Wallet Monitoring*\n\n` +
-        `👁️ *Currently Watching:* ${watchedWallets.length}/3 Wallets\n\n` +
+        `🔍 **Wallet Monitoring**\n\n` +
+        `👁️ **Currently Watching:** ${watchedWallets.length}/3 Wallets\n\n` +
         (watchedWallets.length > 0
             ? watchedWallets
                   .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
@@ -441,11 +532,11 @@ async function handleStartWalletMonitoring(ctx: Context) {
     await ctx.answerCbQuery();
 
     const message =
-        `🔍 *Start Wallet Monitoring*\n\n` +
-        `Please Enter the Wallet Address you want to Monitor:\n\n` +
-        `📌 *Example:*\n` +
+        `🔍 **Start Wallet Monitoring**\n\n` +
+        `Please Enter the Wallet Address You Want to Monitor:\n\n` +
+        `📌 **Example:**\n` +
         `\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`\n\n` +
-        `⚠️ *Note:* You can Monitor up to 3 Wallets Simultaneously.`;
+        `⚠️ **Note:** You Can Monitor Up to 3 Wallets Simultaneously.`;
 
     awaitingWalletMonitorInputSet.add(userId);
 
@@ -459,8 +550,8 @@ async function handleStopWalletMonitoring(ctx: Context) {
     const watchedWallets = ["0x56687bf447db6ffa42ffe2204a05edaa20f55839"];
 
     if (watchedWallets.length === 0) {
-        await ctx.answerCbQuery("No wallets being monitored");
-        return ctx.reply("⚠️ You're not currently monitoring any wallets.");
+        await ctx.answerCbQuery("No Wallets Being Monitored");
+        return ctx.reply("⚠️ You're Not Currently Monitoring Any Wallets.");
     }
 
     const walletButtons = watchedWallets.map((wallet: string) => [
@@ -473,7 +564,7 @@ async function handleStopWalletMonitoring(ctx: Context) {
     walletButtons.push([Markup.button.callback("❌ Cancel", "wallet_monitor")]);
 
     await ctx.answerCbQuery();
-    return ctx.reply("🗑️ *Stop Wallet Monitoring*\n\nSelect a wallet to stop monitoring:", {
+    return ctx.reply("🗑️ **Stop Wallet Monitoring**\n\nSelect a Wallet to Stop Monitoring:", {
         parse_mode: "Markdown",
         reply_markup: Markup.inlineKeyboard(walletButtons).reply_markup,
     });
@@ -483,23 +574,7 @@ async function handleWalletMonitoringStatus(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
-    // const userStats = walletSocketServer.getUserStats(userId);
-    // const activeConnections = walletSocketServer.getActiveConnections();
-    // const activeSubscriptions = walletSocketServer.getActiveSubscriptions();
-
-    // const message =
-    //     `📊 *Wallet Monitoring Status*\n\n` +
-    //     `🔗 *Your Connection:* ${userStats ? "✅ Connected" : "❌ Disconnected"}\n` +
-    //     `👁️ *Your Watched Wallets:* ${userStats?.totalWatched || 0}/3\n` +
-    //     `🌐 *Total Active Connections:* ${activeConnections}\n` +
-    //     `📡 *Total Active Subscriptions:* ${activeSubscriptions}\n\n` +
-    //     (userStats?.watchedWallets.length > 0
-    //         ? `*Your Monitored Wallets:*\n` +
-    //           userStats.watchedWallets
-    //               .map((wallet: string, index: number) => `${index + 1}. \`${wallet}\``)
-    //               .join("\n")
-    //         : "*No wallets currently monitored*");
-    const message = `TODO`;
+    const message = `📊 **Wallet Monitoring Status**\n\nFeature Coming Soon...`;
 
     await ctx.answerCbQuery();
     return ctx.reply(message, { parse_mode: "Markdown" });
@@ -510,11 +585,10 @@ export async function handleStopSpecificWalletMonitor(ctx: Context, walletAddres
     if (!userId) return;
 
     try {
-        // TODO: Implement Wallet Monitoring Stopping Logic from `wallet-monitor.ts`
         await ctx.answerCbQuery("Wallet Monitoring Stopped");
         return ctx.reply(
             `✅ Stopped Monitoring Wallet:\n\`${walletAddress}\`\n\n` +
-                `You Will No Longer Receive Updates for this Wallet.`,
+                `You Will No Longer Receive Updates for This Wallet.`,
             { parse_mode: "Markdown" }
         );
     } catch (error) {
@@ -538,8 +612,8 @@ export async function handleEnableCopyTrade(ctx: Context) {
         if (!userWallets || userWallets.length === 0) {
             await ctx.answerCbQuery("No Wallets Added");
             return ctx.reply(
-                "⚠️ *No Wallets Added*\n\n" +
-                    "Please Add Wallets to Copy Trade before Enabling Copy Trading.",
+                "⚠️ **No Wallets Added**\n\n" +
+                    "Please Add Wallets to Copy Trade Before Enabling Copy Trading.",
                 { parse_mode: "Markdown" }
             );
         }
@@ -553,8 +627,8 @@ export async function handleEnableCopyTrade(ctx: Context) {
 
         await ctx.answerCbQuery("Copy Trading Enabled");
         return ctx.reply(
-            `✅ *Copy Trading Enabled*\n\n` +
-                `You are now Copy Trading from ${userWallets.length} Wallet(s):\n` +
+            `✅ **Copy Trading Enabled**\n\n` +
+                `You Are Now Copy Trading From ${userWallets.length} Wallet(s):\n` +
                 userWallets
                     .map(
                         (wallet, index) =>
@@ -579,13 +653,13 @@ export async function handleStopCopyTrade(ctx: Context) {
 
         if (!isSuccess) {
             await ctx.answerCbQuery();
-            return ctx.reply("❌ Failed to Enable Copy Trade.");
+            return ctx.reply("❌ Failed to Stop Copy Trade.");
         }
 
         await ctx.answerCbQuery("Copy Trading Stopped");
         return ctx.reply(
-            "🛑 *Copy Trading Stopped*\n\n" +
-                "You are no longer Copy Trading. Your Added Wallets Remain Saved.",
+            "🛑 **Copy Trading Stopped**\n\n" +
+                "You Are No Longer Copy Trading. Your Added Wallets Remain Saved.",
             { parse_mode: "Markdown" }
         );
     } catch (error) {

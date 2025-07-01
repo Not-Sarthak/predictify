@@ -1,22 +1,11 @@
-import { Markup, type Context } from "telegraf";
-
-import { handleStartMenuCallbacks } from "@/bot/callbacks/start";
-import {
-    handleSubscriptionManagement,
-    handleSubscriptionMenuCallbacks,
-} from "@/bot/callbacks/subscriptions";
-import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
-import { handleWalletSettingsMenu } from "@/bot/callbacks/settings";
-import { formatBidLine, handleExportPrivateKey } from "@/bot/utils";
 import {
     handleDeleteUserWallet,
     handleEnableCopyTrade,
     handleFetchMarketWithOffsetCallback,
     handleManageTradePositionsCallback,
-    handleSelectedMarketCallback,
+    handleMarketDetails,
     handleShowMarkets,
     handleStopCopyTrade,
-    handleStopSpecificWalletMonitor,
     handleTradeCallbacks,
     handleViewMarket,
     handleViewTopMarketsByCategory,
@@ -24,28 +13,32 @@ import {
     handleViewTradePositions,
     handleWalletMonitoringCallbacks,
     handleWalletMonitoringMenu,
-} from "@/bot/callbacks/trade";
-import { redisClient } from "@/lib/redis";
-import { awaitingOrderDetailsInputSet } from "@/bot";
-import { getTokenIds } from "@/helpers/get-token-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getMarketOrderBook } from "@/utils/polymarket/get-markets";
+    handleStopSpecificWalletMonitor,
+} from "./trade";
+import { handleStartMenuCallbacks } from "./start";
+import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
 import {
     handleAddNewWalletCallback,
-    handleCopyTradeConfigCallbacks,
-    handleCopyTradeConfigureMenu,
     handleDeleteWalletCallback,
     handleViewWatchedWallets,
-} from "@/bot/callbacks/autotrade";
-import {
-    handleBridgeFunds,
-    handleBridgeAmount,
-    handleBridgeConfirm,
-    handleBridgeStatus,
-} from "../../utils/debridge/functions/bridge-handler";
+    handleCopyTradeConfigureMenu,
+    handleCopyTradeConfigCallbacks,
+} from "./autotrade";
+import { handleWalletSettingsMenu } from "./settings";
+import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
+import { handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
+import { redisClient } from "@/lib/redis";
+import { awaitingOrderDetailsInputSet } from "@/bot";
+import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { Markup, type Context } from "telegraf";
 
 export async function handleCallbackQuery(ctx: Context) {
-    const data = (ctx.callbackQuery as any).data as string;
+    const data =
+        ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
+
+    if (!data) {
+        return ctx.answerCbQuery();
+    }
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
@@ -53,44 +46,81 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("subscriptions:")) {
-        const target = data.split(":")[1];
-        return handleSubscriptionMenuCallbacks(ctx, target);
+        const action = data.split(":")[1];
+        return handleSubscriptionMenuCallbacks(ctx, action);
     }
 
     if (data.startsWith("subscribe:")) {
-        const [isSubscribe, category] = data.split(":").slice(1);
+        const [, isSubscribe, category] = data.split(":");
         return handleSubscriptionManagement(ctx, isSubscribe, category);
     }
 
+    // Handle autotrade callbacks
+    if (data === "add_new_wallet") {
+        return handleAddNewWalletCallback(ctx);
+    }
+
+    if (data === "delete_wallet") {
+        return handleDeleteWalletCallback(ctx);
+    }
+
+    if (data === "view_watched_wallets") {
+        return handleViewWatchedWallets(ctx);
+    }
+
+    if (data === "copy_trade_configure") {
+        return handleCopyTradeConfigureMenu(ctx);
+    }
+
+    // Handle copy trade config callbacks
+    if (data.startsWith("config_")) {
+        const action = data.replace("config_", "");
+        return handleCopyTradeConfigCallbacks(ctx, action);
+    }
+
+    // Handle settings callbacks
     if (data.startsWith("settings:")) {
         const action = data.split(":")[1];
         if (action === "wallet") {
-            await ctx.answerCbQuery();
             return handleWalletSettingsMenu(ctx);
         }
     }
 
-    if (data.startsWith("buy_yes:")) {
-        const marketId = data.split(":")[1];
-        return handleTradeCallbacks(ctx, "yes", marketId);
+    if (data.startsWith("export_private_key:")) {
+        const network = data.split(":")[1] as "evm" | "solana";
+        return handleExportPrivateKey(ctx, network);
     }
 
-    if (data.startsWith("buy_no:")) {
+    if (data === "bridge_funds") {
+        return handleBridgeFunds(ctx);
+    }
+
+    if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
-        return handleTradeCallbacks(ctx, "no", marketId);
+        return handleViewMarket(ctx, marketId);
+    }
+
+    if (data.startsWith("wallet_0x")) {
+        const walletAddress = data.replace("wallet_", "");
+        await ctx.answerCbQuery("Wallet management coming soon");
+        return ctx.reply(`🔧 **Wallet Management**\n\n` + `Coming Soon!\n\n`, {
+            parse_mode: "Markdown",
+        });
     }
 
     if (data === "trade_position_view") {
-        await handleViewTradePositions(ctx);
-        return ctx.answerCbQuery();
+        return handleViewTradePositions(ctx).then(() => ctx.answerCbQuery());
     }
 
     if (data === "trade_position_open") {
-        const action = data.split("_")[2];
-        return handleManageTradePositionsCallback(ctx, action);
+        return handleManageTradePositionsCallback(ctx, "open");
     }
 
     if (data === "trade_position_close") {
+        return handleManageTradePositionsCallback(ctx, "close");
+    }
+
+    if (data.startsWith("trade_position_")) {
         const action = data.split("_")[2];
         return handleManageTradePositionsCallback(ctx, action);
     }
@@ -107,85 +137,6 @@ export async function handleCallbackQuery(ctx: Context) {
             action as "next" | "prev",
             Number(offset)
         );
-    }
-
-    if (data.startsWith("selected_market:")) {
-        const marketId = data.split(":")[1];
-        return handleSelectedMarketCallback(ctx, marketId);
-    }
-
-    if (data.startsWith("buy_market:")) {
-        const marketId = data.split(":")[1];
-        await redisClient.hSet(`user:order_action:${ctx.from?.id!}`, {
-            action: "OPEN",
-        });
-        return handleSelectedMarketCallback(ctx, marketId);
-    }
-
-    if (data.startsWith("sell_market:")) {
-        const marketId = data.split(":")[1];
-        await redisClient.hSet(`user:order_action:${ctx.from?.id!}`, {
-            action: "CLOSE",
-        });
-
-        return handleSelectedMarketCallback(ctx, marketId);
-    }
-
-    if (data.startsWith("selected_order:")) {
-        const userId = ctx.from?.id.toString()!;
-        const [marketId, orderType] = data.split(":").splice(1);
-
-        await redisClient.hSet(`user:order_context:${userId}`, {
-            marketId,
-            orderType,
-        });
-        awaitingOrderDetailsInputSet.add(userId);
-
-        const { action } = await redisClient.hGetAll(`user:order_action:${userId}`);
-
-        const [tokenIds, user] = await Promise.all([
-            await getTokenIds(marketId),
-            await getUserDetails(Number(userId)),
-        ]);
-
-        if (!tokenIds || !user) {
-            return ctx.reply("⚠️ Error fetching Order Book Details.");
-        }
-
-        const { yesResponse, noResponse } = await getMarketOrderBook({
-            tokenId: tokenIds,
-            privateKey: user.private_key,
-            creds: JSON.parse(user.api_credentials),
-        });
-
-        const yesLines = yesResponse.bids.map(formatBidLine).join("\n");
-        const noLines = noResponse.bids.map(formatBidLine).join("\n");
-
-        const message = `📈 *Order Book - Available Bids*
-
-*YES Bids* (to close a YES position):
-${yesLines}
-
-*NO Bids* (to close a NO position):
-${noLines}
-`;
-
-        await ctx.reply(message, { parse_mode: "Markdown" });
-
-        await ctx.reply(
-            `✍️ Send Order Details in this format:
-
-<yes OR no> <price> <size>
-
-Example:
-yes 123.45 100
-`,
-            {
-                parse_mode: "Markdown",
-            }
-        );
-
-        await ctx.answerCbQuery();
     }
 
     if (data.startsWith("view_top_markets:")) {
@@ -206,6 +157,76 @@ yes 123.45 100
     if (data.startsWith("view_market:")) {
         const marketId = data.split(":")[1];
         return handleViewMarket(ctx, marketId);
+    }
+
+    if (data.startsWith("market_details:")) {
+        const marketId = data.split(":")[1];
+        return handleMarketDetails(ctx, marketId);
+    }
+
+    if (data.startsWith("limit_order:")) {
+        const [marketId, side] = data.split(":").slice(1);
+        const userId = ctx.from?.id.toString()!;
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId,
+            orderType: "gtc",
+            side: side.toUpperCase(),
+        });
+
+        awaitingOrderDetailsInputSet.add(userId);
+        await ctx.answerCbQuery();
+        return ctx.reply(
+            `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
+                `Enter Your Order Details:\n\n` +
+                `**Format:** \`<price> <size>\`\n` +
+                `**Example:** \`0.65 100\`\n\n` +
+                `• **Price:** The Limit Price You Want to Pay\n` +
+                `• **Size:** Number of Shares to Buy`,
+            { parse_mode: "Markdown" }
+        );
+    }
+
+    if (data.startsWith("market_order:")) {
+        const [marketId, side] = data.split(":").slice(1);
+        const userId = ctx.from?.id.toString()!;
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId,
+            orderType: "fok",
+            side: side.toUpperCase(),
+        });
+
+        awaitingOrderDetailsInputSet.add(userId);
+        await ctx.answerCbQuery();
+        return ctx.reply(
+            `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
+                `Enter The Amount in USDC You Want to Spend:\n\n` +
+                `**Format:** \`<amount>\`\n` +
+                `**Example:** \`50\`\n\n`,
+            { parse_mode: "Markdown" }
+        );
+    }
+
+    if (data.startsWith("sell_position:")) {
+        const marketId = data.split(":")[1];
+        const userId = ctx.from?.id.toString()!;
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId,
+            orderType: "fok_sell",
+            side: "SELL",
+        });
+
+        awaitingOrderDetailsInputSet.add(userId);
+        await ctx.answerCbQuery();
+        return ctx.reply(
+            `💵 **Sell Position**\n\n` +
+                `Enter The Amount in USDC You Want to Sell:\n\n` +
+                `**Format:** \`<amount>\`\n` +
+                `**Example:** \`25\`\n\n`,
+            { parse_mode: "Markdown" }
+        );
     }
 
     if (data.startsWith("delete_copy_wallet:")) {
@@ -233,51 +254,6 @@ yes 123.45 100
 
     if (data === "stop_copy_trade") {
         return handleStopCopyTrade(ctx);
-    }
-
-    if (data === "copy_trade_configure") {
-        return handleCopyTradeConfigureMenu(ctx);
-    }
-
-    if (data === "view_watched_wallets") {
-        return handleViewWatchedWallets(ctx);
-    }
-
-    if (data.startsWith("config_")) {
-        const action = data.replace("config_", "");
-        return handleCopyTradeConfigCallbacks(ctx, action);
-    }
-
-    if (data === "add_new_wallet") {
-        return handleAddNewWalletCallback(ctx);
-    }
-
-    if (data === "delete_wallet") {
-        return handleDeleteWalletCallback(ctx);
-    }
-
-    if (data.startsWith("export_private_key:")) {
-        const network = data.split(":")[1];
-        return handleExportPrivateKey(ctx, network as "evm" | "solana");
-    }
-
-    if (data === "bridge_funds") {
-        return handleBridgeFunds(ctx);
-    }
-
-    if (data.startsWith("bridge_amount:")) {
-        const amount = data.split(":")[1];
-        return handleBridgeAmount(ctx, amount);
-    }
-
-    if (data.startsWith("bridge_confirm:")) {
-        const userId = data.split(":")[1];
-        return handleBridgeConfirm(ctx, userId);
-    }
-
-    if (data.startsWith("bridge_status:")) {
-        const userId = data.split(":")[1];
-        return handleBridgeStatus(ctx, userId);
     }
 
     if (data === "back_to_main_menu") {

@@ -105,7 +105,6 @@ export async function fetchMarkets(
     const res = await axios.get(url);
     let markets: Market[] = res.data.data;
 
-    // Apply local filtering if filter is 'trending'
     if (filter === "trending") {
         markets = markets
             .filter(

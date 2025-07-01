@@ -6,21 +6,53 @@ import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 const USDC_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 
 export const getUserUSDCBalance = async (address: string): Promise<number> => {
-    const rpcProvider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
-    const usdcContract = new ethers.Contract(env.USDC_CONTRACT_ADDRESS, USDC_ABI, rpcProvider);
-    const balance_usdc = await usdcContract.balanceOf(address);
-    const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
-    return parseFloat(balance_usdc_real);
+    try {
+        if (!ethers.isAddress(address)) {
+            console.warn(`Invalid address format: ${address}`);
+            return 0;
+        }
+
+        const rpcProvider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
+        const usdcContract = new ethers.Contract(env.USDC_CONTRACT_ADDRESS, USDC_ABI, rpcProvider);
+
+        const balance_usdc = await Promise.race([
+            usdcContract.balanceOf(address),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("RPC call timeout")), 10000)
+            ),
+        ]);
+
+        const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
+        return parseFloat(balance_usdc_real);
+    } catch (error) {
+        console.error(`Error Fetching USDC Balance for ${address}:`, error);
+        return 0;
+    }
 };
 
 export const getUserWrappedUSDCBalance = async (address: string): Promise<number> => {
-    const rpcProvider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
-    const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, rpcProvider);
+    try {
+        if (!ethers.isAddress(address)) {
+            console.warn(`Invalid address format: ${address}`);
+            return 0;
+        }
 
-    const balance_usdc = await usdcContract.balanceOf(address);
-    const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
+        const rpcProvider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
+        const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, rpcProvider);
 
-    return parseFloat(balance_usdc_real);
+        const balance_usdc = await Promise.race([
+            usdcContract.balanceOf(address),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("RPC call timeout")), 10000)
+            ),
+        ]);
+
+        const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
+        return parseFloat(balance_usdc_real);
+    } catch (error) {
+        console.error(`Error fetching wrapped USDC balance for ${address}:`, error);
+        return 0;
+    }
 };
 
 // getUserWrappedUSDCBalance("0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB").then((result) => {
@@ -31,12 +63,19 @@ export const getSOLBalance = async (address: string): Promise<number> => {
     try {
         const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
         const publicKey = new PublicKey(address);
-        const lamports = await connection.getBalance(publicKey);
+
+        const lamports = (await Promise.race([
+            connection.getBalance(publicKey),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("Solana RPC call timeout")), 10000)
+            ),
+        ])) as number;
+
         const sol = lamports / 1e9;
         return sol;
     } catch (error) {
         console.error("Failed to Get SOL Balance:", error);
-        throw error;
+        return 0;
     }
 };
 
@@ -44,7 +83,12 @@ export const getUserTotalBalance = async (
     evmAddress: string,
     solanaAddress?: string | null
 ): Promise<number> => {
-    const usdcBalance = await getUserUSDCBalance(evmAddress);
-    const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
-    return usdcBalance + solBalance;
+    try {
+        const usdcBalance = await getUserUSDCBalance(evmAddress);
+        const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
+        return usdcBalance + solBalance;
+    } catch (error) {
+        console.error("Error calculating total balance:", error);
+        return 0;
+    }
 };
