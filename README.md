@@ -1,9 +1,4 @@
-- Tag bot and give info
-
 Final Todo:
-
-1. Test all kind of Trades [Sarthak]
-2. Spread and Notifications [Sarthak]
 
 - [Manav]
 1. Socket Server using Wallet Monitor Functions with DB [Store the Copy Trading Data in Redis]
@@ -25,3 +20,6 @@ Final Todo:
 
 - [Sarthak]
 1. PnL Card
+2. Test all kind of Trades
+3. Notifications
+4. Tag Bot and Give Info
