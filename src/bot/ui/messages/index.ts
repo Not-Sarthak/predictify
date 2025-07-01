@@ -1,30 +1,29 @@
-// TODO:FIX - UPDATE IMPORTS (NAMES HAVE BEEN CHANGED)
-
 import { generateTradeButtons } from "@/bot/ui/buttons/trade";
 import { truncate } from "@/shared/utils/truncate";
 import type { MarketData } from "@/shared/types/polymarket/market-data";
 import { Markup } from "telegraf";
 
-// Message Functions
 export const generateWelcomeMessage = (
     evm_address: string,
     solana_address: string,
-    balance: string,
+    usdcBalance: string,
+    solBalance: number,
     apiCreds: { key: string; secret: string; passphrase: string }
 ): string => {
     return `
 Welcome back to Polymarket Bot!
 
 🔐 Your New Wallet:
-EVM Address: <code>${evm_address}</code>
+EVM Address: <code>${evm_address || "N/A"}</code>
 Solana Address: <code>${solana_address || "N/A"}</code>
 
-Balance: ${balance} USDC
+💵 USDC Balance: ${usdcBalance} USDC
+🌟 SOL Balance: ${solBalance.toFixed(4)} SOL
 
 🔑 Credentials:
-Key: <code>${apiCreds.key}</code>
-Secret: <code>${apiCreds.secret}</code>
-Passphrase: <code>${apiCreds.passphrase}</code>
+Key: <code>${apiCreds.key || "N/A"}</code>
+Secret: <code>${apiCreds.secret || "N/A"}</code>
+Passphrase: <code>${apiCreds.passphrase || "N/A"}</code>
 
 How to use:
 1. 📢 Set Alerts for Market Categories
@@ -66,12 +65,19 @@ export const generateWalletDetailsMessage = (
     evmWalletAddress: string,
     solanaWalletAddress: string | null,
     usdcBalance: number,
+    solBalance: number,
     totalBalance: number
 ) => {
-    return (
-        `🔑 <b>Your EVM Wallet Address:</b>\n<code>${evmWalletAddress}</code>\n\n` +
-        `🔑 <b>Your Solana Wallet Address:</b>\n<code>${solanaWalletAddress || "N/A"}</code>\n\n` +
-        `💵 <b>USDC Balance:</b> $${usdcBalance}\n` +
-        `💰 <b>Total Balance (All tokens):</b> $${totalBalance}`
-    );
+    return `
+<b>💼 Wallet Overview</b>
+
+<b>🔗 Addresses</b>
+<b>EVM:</b> <code>${evmWalletAddress}</code>
+<b>Solana:</b> <code>${solanaWalletAddress || "N/A"}</code>
+
+<b>💰 Balances</b>
+<b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
+<b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL
+<b>📊 Total:</b> $${totalBalance.toLocaleString()}
+`.trim();
 };

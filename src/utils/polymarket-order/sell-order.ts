@@ -25,7 +25,7 @@ export async function sellOrder(sellOrderDetails: SellOrderDetailsInterface) {
             host,
             chainId,
             createLegacyWallet(wallet) as any,
-            sellOrderDetails.creds // API credentials
+            sellOrderDetails.creds
         );
 
         const priceRange = await fetchClobPriceHistory(sellOrderDetails.tokenId);

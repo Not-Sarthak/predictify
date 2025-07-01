@@ -6,7 +6,9 @@ export async function insertUserInDb(
     username: string,
     walletAddress: string,
     privateKey: string,
-    api_credentials: string
+    api_credentials: string,
+    solanaAddress: string,
+    solanaPrivateKey: string
 ): Promise<{ success: true; error: null } | { success: false; error: PostgrestError }> {
     const { error } = await db("Users").insert([
         {
@@ -15,6 +17,8 @@ export async function insertUserInDb(
             wallet_address: walletAddress,
             private_key: privateKey,
             api_credentials,
+            solana_address: solanaAddress,
+            solana_private_key: solanaPrivateKey,
         },
     ]);
 

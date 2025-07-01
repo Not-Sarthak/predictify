@@ -20,6 +20,7 @@ const awaitingMarketTermInputSet = new Set<string>();
 const awaitingOrderDetailsInputSet = new Set<string>();
 const awaitingWalletMonitorInputSet = new Set<string>();
 const awaitingConfigInputSet = new Map<string, string>();
+const awaitingBridgeAmountInputSet = new Set<string>();
 
 bot.telegram.setMyCommands(botCommands);
 
@@ -46,4 +47,5 @@ export {
     awaitingOrderDetailsInputSet,
     awaitingWalletMonitorInputSet,
     awaitingConfigInputSet,
+    awaitingBridgeAmountInputSet,
 };

@@ -38,7 +38,7 @@ class WalletSocketServer {
         this.wss = new WebSocketServer({ port });
         this.globalMonitorState = createWalletMonitor();
 
-        console.log(`🚀 WebSocket server started on port ${port}`);
+        console.log(`🚀 WebSocket Server Started on Port ${port}`);
         this.setupEventHandlers();
         this.startHeartbeat();
     }
@@ -149,13 +149,11 @@ class WalletSocketServer {
         const client = this.clients.get(userId);
         if (!client) return;
 
-        // Check if user already has 3 wallets
         if (client.watchedWallets.size >= 3) {
             this.sendError(userId, "Maximum 3 wallets allowed per user");
             return;
         }
 
-        // Check if wallet is already being watched by this user
         if (client.watchedWallets.has(walletAddress)) {
             this.sendError(userId, "Wallet already being watched");
             return;
@@ -164,10 +162,8 @@ class WalletSocketServer {
         try {
             await this.saveWalletSubscription(userId, walletAddress);
 
-            // Add to user's watched wallets
             client.watchedWallets.add(walletAddress);
 
-            // Create subscription entry
             const subscription: WalletSubscription = {
                 userId,
                 walletAddress,
@@ -177,7 +173,6 @@ class WalletSocketServer {
 
             this.walletSubscriptions.set(`${userId}:${walletAddress}`, subscription);
 
-            // Start monitoring this wallet
             const allWatchedWallets = Array.from(client.watchedWallets);
             enableWatch(subscription.monitorState, [walletAddress]);
 
@@ -191,7 +186,6 @@ class WalletSocketServer {
                 },
             });
 
-            // Send Telegram notification
             this.sendTelegramNotification(
                 userId,
                 `🔍 Started monitoring wallet: \`${walletAddress}\``
@@ -221,10 +215,8 @@ class WalletSocketServer {
         try {
             await this.removeWalletSubscription(userId, walletAddress);
 
-            // Remove from user's watched wallets
             client.watchedWallets.delete(walletAddress);
 
-            // Stop monitoring and remove subscription
             const subscriptionKey = `${userId}:${walletAddress}`;
             const subscription = this.walletSubscriptions.get(subscriptionKey);
 
@@ -243,7 +235,6 @@ class WalletSocketServer {
                 },
             });
 
-            // Send Telegram notification
             this.sendTelegramNotification(
                 userId,
                 `🛑 Stopped monitoring wallet: \`${walletAddress}\``
@@ -305,7 +296,6 @@ class WalletSocketServer {
         const client = this.clients.get(userId);
         if (!client) return;
 
-        // Stop all wallet monitoring for this user
         client.watchedWallets.forEach((walletAddress) => {
             const subscriptionKey = `${userId}:${walletAddress}`;
             const subscription = this.walletSubscriptions.get(subscriptionKey);
@@ -332,7 +322,7 @@ class WalletSocketServer {
                 client.isAlive = false;
                 client.ws.ping();
             });
-        }, 30000); // 30 seconds
+        }, 30000);
     }
 
     private isValidWalletAddress(address: string): boolean {
@@ -354,7 +344,6 @@ class WalletSocketServer {
                 watchedWallets.forEach(({ wallet_address }) => {
                     client.watchedWallets.add(wallet_address);
 
-                    // Restore monitoring state
                     const subscription: WalletSubscription = {
                         userId,
                         walletAddress: wallet_address,
@@ -426,59 +415,5 @@ class WalletSocketServer {
     }
 }
 
-// Export singleton instance
 export const walletSocketServer = new WalletSocketServer();
 export { WalletSocketServer };
-
-/*
-USAGE GUIDE:
-
- 1. CLIENT CONNECTION:
-    Connect to: ws://localhost:${SOCKET_SERVER_PORT}?userId=123456789
-
-2. MESSAGE FORMATS:
-
-   Start Watching:
-   {
-     "type": "START_WATCHING",
-     "payload": {
-       "walletAddress": "0x1234567890abcdef1234567890abcdef12345678"
-     }
-   }
-
-   Stop Watching:
-   {
-     "type": "STOP_WATCHING", 
-     "payload": {
-       "walletAddress": "0x1234567890abcdef1234567890abcdef12345678"
-     }
-   }
-
-   Get Status:
-   {
-     "type": "GET_STATUS"
-   }
-
-   Ping:
-   {
-     "type": "PING"
-   }
-
-3. SERVER RESPONSES:
-   - Success responses include the action type and payload with status info
-   - Error responses have type "ERROR" with error message
-   - Status updates are sent automatically
-
-4. TELEGRAM INTEGRATION:
-   - Users receive notifications when starting/stopping wallet monitoring
-   - Real-time wallet activity updates are sent via Telegram
-
-5. DATABASE INTEGRATION (TODO):
-   - Uncomment the database methods when ready to implement
-   - Add Redis caching for performance
-
-6. LIMITATIONS:
-   - Maximum 3 wallets per user
-   - Valid Ethereum addresses only
-   - Automatic cleanup on disconnect
-*/

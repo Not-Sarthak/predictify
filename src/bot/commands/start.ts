@@ -3,7 +3,7 @@ import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx, insertUserInDb } from "@/bot/utils";
 import { getUsernameFromCtx } from "@/bot/utils";
 import { getUserByIdFromDb } from "@/bot/utils/get-user-db";
-import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
@@ -20,10 +20,14 @@ export async function handleStartCommand(ctx: Context) {
 
     if (existingUser) {
         const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
+        const solBalance = existingUser.solana_address
+            ? await getSOLBalance(existingUser.solana_address)
+            : 0;
         const message = generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
+            solBalance,
             JSON.parse(existingUser.api_credentials)
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
@@ -40,13 +44,16 @@ export async function handleStartCommand(ctx: Context) {
     });
     const address = walletData.address;
     const balance = await getUserWrappedUSDCBalance(address);
+    const newUserSolBalance = await getSOLBalance(walletData.solanaAddress);
 
     const { success, error: insertError } = await insertUserInDb(
         userId,
         userName,
         address,
         walletData.privateKey,
-        JSON.stringify(walletData.apiCreds)
+        JSON.stringify(walletData.apiCreds),
+        walletData.solanaAddress,
+        walletData.solanaPrivateKey
     );
     if (!success) {
         console.error(insertError);
@@ -54,7 +61,13 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
-    const message = generateWelcomeMessage(address, "", balance.toString(), walletData.apiCreds);
+    const message = generateWelcomeMessage(
+        address,
+        walletData.solanaAddress,
+        balance.toString(),
+        newUserSolBalance,
+        walletData.apiCreds
+    );
 
     return ctx.reply(message, {
         parse_mode: "HTML",

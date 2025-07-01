@@ -1,6 +1,3 @@
-// TODO:FIX - CREATE REDIS WRAPPER FOR CACHING
-// TODO:FIX - FUNCTION LEVEL CLEAN-UP
-
 import { env } from "./config/env";
 import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
@@ -14,11 +11,11 @@ export async function main() {
     const { error } = await tryCatch(apiServer.listen({ port: API_SERVER_PORT, host: "0.0.0.0" }));
 
     if (error) {
-        apiServer.log.error(error, "Failed to start API server");
+        apiServer.log.error(error, "Failed to Start API Server");
         process.exit(1);
     }
 
-    apiServer.log.info(`API Server listening on PORT ${API_SERVER_PORT}`);
+    apiServer.log.info(`API Server Started on PORT ${API_SERVER_PORT}`);
 
     // Interval to Fetch new Markets
     // setInterval(() => {
@@ -40,9 +37,9 @@ export async function main() {
         }
     );
 
-    // console.log(
-    //     `Socket Server Initialized on port ${walletSocketServer.getActiveConnections() >= 0 ? "ready" : "error"}`
-    // );
+    console.log(
+        `Socket Server Initialized on Port ${walletSocketServer.getActiveConnections() >= 0 ? "Ready" : "Error"}`
+    );
 }
 
 main();

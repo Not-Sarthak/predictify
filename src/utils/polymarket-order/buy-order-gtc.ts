@@ -4,8 +4,6 @@ import { checkNetworkConnection } from "../../shared/utils/check-network-connect
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 import { createLegacyWallet } from "../../shared/utils";
-import { env } from "../../config/env";
-import type { Context } from "telegraf";
 
 interface BuyOrderGTCRequest {
     size: number;
@@ -57,7 +55,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
             host,
             chainId,
             createLegacyWallet(wallet) as any,
-            orderRequest.apiCreds // API Credentials
+            orderRequest.apiCreds
         );
 
         try {
@@ -108,5 +106,5 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
 //     side: Side.BUY,
 //     feeRateBps: 0,
 //     apiCreds: creds,
-//     privateKey: PRIVATE_KEY
+//     privateKey: "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3"
 // });

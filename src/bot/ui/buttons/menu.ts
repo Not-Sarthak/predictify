@@ -53,6 +53,11 @@ export const SETTINGS_MENU_BUTTONS = [
 export const WALLET_SETTINGS_MENU = [
     [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
     [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
-    [Markup.button.callback("🚀 Bridge Funds to Polygon", "bridge_funds")],
+    [
+        Markup.button.callback(
+            "🚀 Bridge Solana to Bridged USDC (Polygon PoS Bridge)",
+            "bridge_funds"
+        ),
+    ],
     [CLOSE_BUTTON],
 ];

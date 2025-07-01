@@ -8,7 +8,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:typegen": "bun run scripts/supabase-typegen.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lfg": "bun run src/utils/debridge/functions/get-token-list.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

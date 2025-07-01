@@ -10,7 +10,7 @@ export async function getDebridgeTokensInfo(
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+        throw new Error(`HTTP Error! Status: ${response.status}, Body: ${text}`);
     }
     const responseData = (await response.json()) as { tokens: Record<string, any> };
     const data = responseData.tokens;
@@ -25,7 +25,7 @@ export async function getDebridgeTokensInfo(
         const tokenInfo = data[parameters.tokenAddress];
         if (!tokenInfo) {
             throw new Error(
-                `Token ${parameters.tokenAddress} not found on chain ${parameters.chainId}`
+                `Token ${parameters.tokenAddress} Not Found on Chain ${parameters.chainId}`
             );
         }
 

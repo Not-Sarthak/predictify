@@ -11,7 +11,7 @@ Final Todo:
     - Add Close All Button
 3. Add delete message animation [Manav]
 4. Execute only FOK on copy trading [Manav]
-
+5. Hide Private Key in TG Message [Manav]
 
 2. Test all kind of Trades [Sarthak]
 5. Add Bridge button and functionality [Sarthak]

@@ -1,7 +1,11 @@
 import { SETTINGS_MENU_BUTTONS, WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
 import { generateWalletDetailsMessage } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
-import { getUserTotalBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
+import {
+    getSOLBalance,
+    getUserTotalBalance,
+    getUserWrappedUSDCBalance,
+} from "@/helpers/get-user-balance";
 import { db } from "@/lib/supabase";
 import { Markup, type Context } from "telegraf";
 
@@ -20,15 +24,18 @@ export async function handleWalletSettingsMenu(ctx: Context) {
 
     const evmWalletAddress = user.wallet_address;
     const solanaWalletAddress = user.solana_address;
-    const [usdcBalance, totalBalance] = await Promise.all([
+
+    const [usdcBalance, solBalance, totalBalance] = await Promise.all([
         getUserWrappedUSDCBalance(evmWalletAddress),
-        getUserTotalBalance(evmWalletAddress),
+        solanaWalletAddress ? getSOLBalance(solanaWalletAddress) : Promise.resolve(0),
+        getUserTotalBalance(evmWalletAddress, solanaWalletAddress),
     ]);
 
     const message = generateWalletDetailsMessage(
         evmWalletAddress,
         solanaWalletAddress,
         usdcBalance,
+        solBalance,
         totalBalance
     );
 

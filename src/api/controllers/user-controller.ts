@@ -41,10 +41,11 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
         throw new BadRequestError("Invalid Request Body");
     }
 
-    const { address, privateKey, apiCreds } = await generateAPIKeyAndWallet({
-        host: HOST,
-        chainId: CHAIN_ID,
-    });
+    const { address, privateKey, apiCreds, solanaAddress, solanaPrivateKey } =
+        await generateAPIKeyAndWallet({
+            host: HOST,
+            chainId: CHAIN_ID,
+        });
 
     const { error } = await supabase.from("Users").insert([
         {
@@ -53,6 +54,8 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
             wallet_address: address,
             private_key: privateKey,
             api_credentials: JSON.stringify(apiCreds),
+            solana_address: solanaAddress,
+            solana_private_key: solanaPrivateKey,
         },
     ]);
 

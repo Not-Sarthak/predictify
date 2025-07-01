@@ -46,7 +46,7 @@ export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBrid
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to get bridge quote: ${response.status} - ${errorText}`);
+        throw new Error(`Failed To Get Bridge Quote: ${response.status} - ${errorText}`);
     }
 
     const data = (await response.json()) as deBridgeOrderResponse;

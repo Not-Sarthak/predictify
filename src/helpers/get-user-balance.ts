@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { env } from "../config/env";
 import { USDC_ADDRESS } from "../shared/constants";
+import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 
 const USDC_ABI = ["function balanceOf(address owner) view returns (uint256)"];
 
@@ -26,6 +27,24 @@ export const getUserWrappedUSDCBalance = async (address: string): Promise<number
 //     console.log(result);
 // });
 
-export const getUserTotalBalance = async (address: string): Promise<number> => {
-    return 0;
+export const getSOLBalance = async (address: string): Promise<number> => {
+    try {
+        const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+        const publicKey = new PublicKey(address);
+        const lamports = await connection.getBalance(publicKey);
+        const sol = lamports / 1e9;
+        return sol;
+    } catch (error) {
+        console.error("Failed to Get SOL Balance:", error);
+        throw error;
+    }
+};
+
+export const getUserTotalBalance = async (
+    evmAddress: string,
+    solanaAddress?: string | null
+): Promise<number> => {
+    const usdcBalance = await getUserUSDCBalance(evmAddress);
+    const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
+    return usdcBalance + solBalance;
 };
