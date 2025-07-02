@@ -1,6 +1,9 @@
+import { getUserDetails } from "@/helpers/get-user-details";
+import { redisClient } from "@/lib/redis";
 import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
+import { env } from "bun";
 
 interface Trade {
     proxyWallet: string;
@@ -133,17 +136,81 @@ const stopWalletMonitoring = (state: MonitorState): void => {
     state.isRunning = false;
 };
 
-export let onTradeDetected: (trade: FormattedTrade) => void = (trade: FormattedTrade) => {
+export const onTradeDetected = async (trade: FormattedTrade, userId: string) => {
     console.log("🔥 New Trade Detected:", trade);
+    const user = await getUserDetails(Number(userId));
 
-    // await marketBuyOrder({
-    //     privateKey: "",
-    //     creds: "",
-    //     tokenId: trade.asset,
-    //     amount: trade.size * trade.price * userconfig;
-    //     Side: trade.side,
-    //     orderType: OrderType.FOK
-    // });
+    if (!user) return;
+
+    try {
+        if (user.is_copytrading_enabled) {
+            const amount = trade.size * trade.price * Number(user.config_value);
+
+            await marketBuyOrder({
+                privateKey: user.private_key,
+                creds: JSON.parse(user.api_credentials),
+                tokenId: trade.asset,
+                amount,
+                side: trade.side === "BUY" ? Side.BUY : Side.SELL,
+                orderType: OrderType.FOK,
+            });
+
+            const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
+            await redisClient.set(
+                redisKey,
+                JSON.stringify({
+                    userId,
+                    market: trade.market,
+                    side: trade.side,
+                    size: trade.size,
+                    price: trade.price,
+                    value: amount,
+                    timestamp: new Date().toISOString(),
+                }),
+                { EX: 60 * 60 * 24 } // expire in 24 hours
+            );
+
+            return sendTelegramMessage(
+                userId,
+                `✅ *Order Executed Successfully!*
+*Market:* ${trade.market}
+*Side:* ${trade.side}
+*Size:* ${trade.size}
+*Price:* ${trade.price}
+*Value:* ${(trade.size * trade.price).toFixed(4)}`
+            );
+        }
+
+        await sendTelegramMessage(
+            userId,
+            `🔥 *New Trade Detected*\nMarket: ${trade.market}\nSide: ${trade.side}\nSize: ${trade.size}\nPrice: ${trade.price}`
+        );
+    } catch (error) {
+        console.error("❌ Error placing market order:", error);
+
+        const errorKey = `copytrade:error:${userId}:${Date.now()}`;
+        await redisClient.set(
+            errorKey,
+            JSON.stringify({
+                trade,
+                error: error instanceof Error ? error.message : String(error),
+                timestamp: new Date().toISOString(),
+            }),
+            { EX: 60 * 60 * 6 } // 6-hour TTL
+        );
+
+        await sendTelegramMessage(
+            userId,
+            `❌ *Order Execution Failed*
+*Market:* ${trade.market}
+*Side:* ${trade.side}
+*Size:* ${trade.size}
+*Price:* ${trade.price}
+*Value:* ${(trade.size * trade.price).toFixed(4)}
+
+*Reason:* ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
 };
 
 export let onMonitorError: (error: Error, walletAddress: string) => void = (
@@ -154,14 +221,14 @@ export let onMonitorError: (error: Error, walletAddress: string) => void = (
 };
 
 export const startMonitor = async (
-    walletAddresses: string[],
+    walletAddresses: Array<[string, string]>,
     pollIntervalMs: number = 3000
 ): Promise<void> => {
     if (walletAddresses.length > 3) {
         throw new Error("Maximum 3 Wallets Allowed");
     }
 
-    for (const walletAddress of walletAddresses) {
+    for (const [userId, walletAddress] of walletAddresses) {
         if (activeMonitors.has(walletAddress)) {
             console.log(`Already Monitoring Wallet: ${walletAddress}`);
             continue;
@@ -172,8 +239,12 @@ export const startMonitor = async (
             pollIntervalMs,
         };
 
+        const onTradeWithUser = async (trade: FormattedTrade) => {
+            await onTradeDetected(trade, userId);
+        };
+
         try {
-            const state = await startWalletMonitoring(config, onTradeDetected, (error) =>
+            const state = await startWalletMonitoring(config, onTradeWithUser, (error) =>
                 onMonitorError(error, walletAddress)
             );
             activeMonitors.set(walletAddress, state);
@@ -206,6 +277,27 @@ export const stopAllMonitors = (): void => {
     stopMonitor(walletAddresses);
 };
 
+const sendTelegramMessage = async (telegramUserId: string, message: string) => {
+    const botToken = env.TG_BOT_TOKEN;
+
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const body = {
+        chat_id: telegramUserId,
+        text: message,
+        parse_mode: "Markdown",
+    };
+
+    try {
+        await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+    } catch (error) {
+        console.error("❌ Failed to send Telegram message:", error);
+    }
+};
+
 export type { Trade, WalletMonitorConfig, MonitorState, FormattedTrade };
 
 // Usage:
@@ -224,7 +316,7 @@ export type { Trade, WalletMonitorConfig, MonitorState, FormattedTrade };
 // };
 
 // Start monitoring (max 3 addresses)
-// await startMonitor(["0xfB081A36e44E0cb39711118C7fFb0ce5200a8A39"]);
+// await startMonitor([["user_id", "wallet_address"]]);
 
 // Stop monitoring
 // stopMonitor(["0xaddress1", "0xaddress2"]);

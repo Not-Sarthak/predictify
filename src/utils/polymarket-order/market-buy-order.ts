@@ -110,6 +110,8 @@ export async function marketSellOrder(request: MarketSellOrderRequest) {
     const clobClient = new ClobClient(host, chainId, createLegacyWallet(wallet) as any, creds);
 
     try {
+        await ensureTokenApproval(request.privateKey);
+
         const marketSellOrder = await clobClient.createMarketOrder({
             tokenID: request.tokenId,
             amount: request.amount,
