@@ -1,7 +1,10 @@
 import { awaitingConfigInputSet, awaitingWalletDetailsInputSet } from "@/bot";
 import { AUTO_TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { getUserIdFromCtx } from "@/bot/utils";
-import { checkCopyTradeStatus } from "@/bot/utils/database/check-copy-trade-status";
+import {
+    checkCopyTradeUserStatus,
+    checkWalletCopyTradeStatus,
+} from "@/bot/utils/database/check-copy-trade-status";
 import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
@@ -9,7 +12,11 @@ import { Context, Markup } from "telegraf";
 export async function handleAutoTradeMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
 
-    const walletStatusList = await checkCopyTradeStatus(userId.toString());
+    const [walletStatusList, userCopyTradeStatus] = await Promise.all([
+        await checkWalletCopyTradeStatus(userId.toString()),
+        await checkCopyTradeUserStatus(userId.toString()),
+    ]);
+
     if (!walletStatusList) {
         return ctx.reply("No Added Wallets");
     }
@@ -26,11 +33,23 @@ export async function handleAutoTradeMenu(ctx: Context) {
         const shortAddress =
             wallet.wallet_address.slice(0, 6) + "..." + wallet.wallet_address.slice(-4);
         return [
-            Markup.button.callback(`${emoji} ${shortAddress}`, `wallet_${wallet.wallet_address}`),
+            Markup.button.callback(
+                `${emoji} ${shortAddress}`,
+                `toggle_wallet_ct:${wallet.wallet_address}`
+            ),
         ];
     });
 
-    const combinedButtons = [...walletButtons, ...AUTO_TRADE_MENU_BUTTONS];
+    const combinedButtons = [
+        ...walletButtons,
+        [
+            Markup.button.callback(
+                userCopyTradeStatus ? "❌ Disable CopyTrade" : "✅ Enable CopyTrade",
+                `toggle_copy_trade:${!userCopyTradeStatus}`
+            ),
+        ],
+        ...AUTO_TRADE_MENU_BUTTONS,
+    ];
 
     await ctx.editMessageText(statusMessage, {
         parse_mode: "Markdown",
@@ -64,11 +83,6 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             Markup.button.callback("100%", "config_position_100"),
             Markup.button.callback("Custom", "config_position_custom"),
         ],
-        [
-            Markup.button.callback("Same Proportion", "config_same_proportion"),
-            Markup.button.callback("Same Amount", "config_same_amount"),
-        ],
-        [Markup.button.callback("Max Amount", "config_max_amount")],
         [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
     ];
 
@@ -111,8 +125,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
                         `${index + 1}. *${wallet.wallet_name}*\n` +
                         `   \`${wallet.wallet_address}\``
                 )
-                .join("\n\n") +
-            `\n\n💡 *Tip:* ${userWallets.length < 3 ? "You can add more wallets." : "Maximum wallets reached."}`;
+                .join("\n\n");
 
         const buttons = [
             [

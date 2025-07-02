@@ -112,11 +112,13 @@ export type Database = {
                     created_at: string;
                     fees_total: number;
                     id: number;
+                    is_copytrading_enabled: boolean;
                     private_key: string;
                     solana_address: string | null;
                     solana_private_key: string | null;
                     telegram_username: string;
                     total_balance: number | null;
+                    total_pnl: number;
                     wallet_address: string;
                 };
                 Insert: {
@@ -127,11 +129,13 @@ export type Database = {
                     created_at?: string;
                     fees_total?: number;
                     id: number;
+                    is_copytrading_enabled?: boolean;
                     private_key: string;
                     solana_address?: string | null;
                     solana_private_key?: string | null;
                     telegram_username: string;
                     total_balance?: number | null;
+                    total_pnl?: number;
                     wallet_address: string;
                 };
                 Update: {
@@ -142,11 +146,13 @@ export type Database = {
                     created_at?: string;
                     fees_total?: number;
                     id?: number;
+                    is_copytrading_enabled?: boolean;
                     private_key?: string;
                     solana_address?: string | null;
                     solana_private_key?: string | null;
                     telegram_username?: string;
                     total_balance?: number | null;
+                    total_pnl?: number;
                     wallet_address?: string;
                 };
                 Relationships: [];

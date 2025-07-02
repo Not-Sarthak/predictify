@@ -31,6 +31,11 @@ import { redisClient } from "@/lib/redis";
 import { awaitingOrderDetailsInputSet } from "@/bot";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
+import {
+    handleToggleCopyTradeStatus,
+    handleToggleWalletCopyTradeStatus,
+} from "@/bot/utils/database/toggle-copytrade-status";
+import { handleAutoTradeCommand } from "@/bot/commands";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -98,14 +103,6 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
         return handleViewMarket(ctx, marketId);
-    }
-
-    if (data.startsWith("wallet_0x")) {
-        const walletAddress = data.replace("wallet_", "");
-        await ctx.answerCbQuery("Wallet management coming soon");
-        return ctx.reply(`🔧 **Wallet Management**\n\n` + `Coming Soon!\n\n`, {
-            parse_mode: "Markdown",
-        });
     }
 
     if (data === "trade_position_view") {
@@ -231,7 +228,9 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("delete_copy_wallet:")) {
         const walletAddress = data.split(":")[1];
-        return handleDeleteUserWallet(ctx, walletAddress);
+        await handleDeleteUserWallet(ctx, walletAddress);
+        await ctx.deleteMessage();
+        return;
     }
 
     if (data === "wallet_monitor") {
@@ -246,6 +245,19 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("stop_wallet_monitor:")) {
         const walletAddress = data.split(":")[1];
         return handleStopSpecificWalletMonitor(ctx, walletAddress);
+    }
+
+    if (data.startsWith("toggle_copy_trade:")) {
+        const action = data.split(":")[1];
+        await ctx.answerCbQuery();
+        return handleToggleCopyTradeStatus(ctx, action === "true" ? true : false);
+    }
+
+    if (data.startsWith("toggle_wallet_ct:")) {
+        const address = data.split(":")[1];
+        await ctx.answerCbQuery();
+        await handleToggleWalletCopyTradeStatus(ctx, address);
+        return handleAutoTradeCommand(ctx);
     }
 
     if (data === "enable_copy_trade") {
