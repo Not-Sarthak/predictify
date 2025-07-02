@@ -8,7 +8,7 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import type { ApiKeyCreds } from "@/shared/types/polymarket/api-key";
 import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
-import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { ensureTokenApproval, marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
 import { sellOrder } from "@/utils/polymarket-order/sell-order";
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
@@ -186,6 +186,8 @@ export async function handleOrderDetailsTextMessage(
                 transactionType: "OPEN",
             });
         }
+
+        await ensureTokenApproval(private_key);
     } catch (error) {
         console.error("Error placing the order: ", error);
         await ctx.telegram.editMessageText(

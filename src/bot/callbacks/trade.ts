@@ -1,12 +1,14 @@
 import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
-import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     disableUserCopyTrade,
     enableUserCopyTrade,
     escapeMarkdown,
     formatCurrentTradePositionsMessage,
+    formatCurrentTradePositionsMessageForViewing,
     formatDate,
     formatDollarVolume,
+    getUserByIdFromDb,
     getUserIdFromCtx,
     layoutButtons,
 } from "@/bot/utils";
@@ -16,11 +18,15 @@ import { redisClient } from "@/lib/redis";
 import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/shared/utils/capitalize";
 import { fetchMarkets, getMarketById, getMarketOrderBook } from "@/utils/polymarket/get-markets";
-import { getUserPosition } from "@/utils/polymarket/get-user-position";
+import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import axios from "axios";
 import { db } from "@/lib/supabase";
+import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
+import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
+import { OrderType } from "@polymarket/clob-client";
+import { decodeMarketId, encodeMarketId } from "@/shared/utils/encoding";
 
 async function formatOrderBook(tokenIds: string[], userId: string) {
     try {
@@ -99,7 +105,7 @@ export async function handleViewTopMarketsCallback(ctx: Context) {
     });
 }
 
-export async function handleViewTradePositions(ctx: Context) {
+export async function handleCloseTradePositions(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const userAddress = await getUserAddressFromId(userId);
 
@@ -115,14 +121,36 @@ export async function handleViewTradePositions(ctx: Context) {
 
     const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(userPositions);
 
-    const replyPromises = formattedUserPositionsMessages.map((message) =>
-        ctx.reply(message, {
+    const replyPromises = formattedUserPositionsMessages.map((data) =>
+        ctx.reply(data.message, {
             parse_mode: "Markdown",
-            reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
+            reply_markup: Markup.inlineKeyboard([
+                generateClosePositionButton(encodeMarketId(data.marketId)),
+            ]).reply_markup,
         })
     );
 
     await Promise.all(replyPromises);
+}
+
+export async function handleViewTradePositions(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const userAddress = await getUserAddressFromId(userId);
+
+    if (!userAddress) {
+        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+    }
+
+    const userPositions = await getUserPosition({ user: userAddress });
+
+    if (userPositions.length === 0) {
+        return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
+    }
+
+    const formattedMessages = formatCurrentTradePositionsMessageForViewing(userPositions);
+
+    const replyText = formattedMessages.join("\n\n");
+    return ctx.reply(replyText, { parse_mode: "Markdown" });
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
@@ -667,4 +695,64 @@ export async function handleStopCopyTrade(ctx: Context) {
         await ctx.answerCbQuery("Error Occurred");
         return ctx.reply("❌ Failed to Stop Copy Trading. Please Try Again.");
     }
+}
+
+export async function handleCloseOpenPosition(ctx: Context, conditionId: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const user = await getUserDetails(userId);
+
+    const { message_id } = await ctx.reply("⌛ Closing your position...");
+
+    if (!user) {
+        ctx.deleteMessage(message_id);
+        return ctx.reply("⚠️ Internal Server Error. Please try again later.");
+    }
+
+    const decodedConditionId = decodeMarketId(conditionId);
+
+    const [userDataResponse, marketDetails] = await Promise.all([
+        getUserByIdFromDb(userId),
+        getUserPositionByMarket(user.wallet_address, decodedConditionId),
+    ]);
+
+    const { data, error } = userDataResponse;
+
+    if (error || !data) {
+        ctx.deleteMessage(message_id);
+        return ctx.reply("⚠️ Internal Server Error. Please try again later.");
+    }
+
+    if (!marketDetails) {
+        ctx.deleteMessage(message_id);
+        return ctx.reply("⚠️ Market not found.");
+    }
+
+    const { error: sellError } = await marketSellOrder({
+        privateKey: data.private_key,
+        creds: JSON.parse(data.api_credentials),
+        tokenId: marketDetails.asset,
+        amount: marketDetails.size,
+        orderType: OrderType.FOK,
+    });
+
+    if (sellError) {
+        await ctx.deleteMessage(message_id);
+        return ctx.reply("⚠️ There was a problem closing your position.");
+    }
+
+    const { data: pnlData, error: userDataError } = await db("Users")
+        .select("total_pnl")
+        .eq("id", userId)
+        .single();
+
+    if (userDataError || !pnlData) {
+        ctx.reply("❌ Error updating your PnL details");
+    }
+
+    await db("Users")
+        .update({ total_pnl: pnlData?.total_pnl || 0 + marketDetails.cashPnl })
+        .eq("id", userId);
+
+    await ctx.deleteMessage(message_id);
+    ctx.reply("✅ Your position was closed successfully!");
 }

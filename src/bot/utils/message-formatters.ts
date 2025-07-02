@@ -29,8 +29,31 @@ export function formatActiveSubscriptionsMessage(categories: string[]): string {
     return `You're Subscribed To:\n• ${categories.join("\n• ")}`;
 }
 
+export function formatCurrentTradePositionsMessageForViewing(
+    userPositions: UserPositionResponse[]
+) {
+    let total = 0;
+
+    const messages = userPositions.map((position, index) => {
+        const { title, cashPnl } = position;
+        total += cashPnl;
+
+        const isProfit = cashPnl > 0;
+        const pnlEmoji = isProfit ? "📈" : "📉";
+        const pnlLabel = isProfit ? "Profit" : "Loss";
+        const pnlColor = isProfit ? "🟢" : "🔴";
+
+        return `*${index + 1})* ${title}\n${pnlEmoji} ${pnlLabel}: ${pnlColor} *${cashPnl.toFixed(2)}* USDC`;
+    });
+
+    const netEmoji = total >= 0 ? "✅" : "⚠️";
+    const netPnl = `*Total PnL:* ${netEmoji} ${total >= 0 ? "🟢" : "🔴"} *${total.toFixed(2)}* USDC`;
+
+    return [...messages, netPnl];
+}
+
 export function formatCurrentTradePositionsMessage(userPositions: UserPositionResponse[]) {
-    const userPositionsMessages: string[] = [];
+    const userPositionsMessages: { message: string; marketId: string }[] = [];
 
     for (const position of userPositions) {
         const {
@@ -57,7 +80,7 @@ ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPr
 📆 Ends: ${formatDate(endDate)}
 🔗 [View Market](https://polymarket.com/market/${slug})`;
 
-        userPositionsMessages.push(message);
+        userPositionsMessages.push({ message, marketId: position.conditionId });
     }
 
     return userPositionsMessages;

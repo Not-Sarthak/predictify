@@ -6,14 +6,15 @@ import {
     handleMarketDetails,
     handleShowMarkets,
     handleStopCopyTrade,
-    handleTradeCallbacks,
     handleViewMarket,
     handleViewTopMarketsByCategory,
     handleViewTopMarketsCallback,
-    handleViewTradePositions,
     handleWalletMonitoringCallbacks,
     handleWalletMonitoringMenu,
     handleStopSpecificWalletMonitor,
+    handleCloseOpenPosition,
+    handleCloseTradePositions,
+    handleViewTradePositions,
 } from "./trade";
 import { handleStartMenuCallbacks } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -58,6 +59,12 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("subscribe:")) {
         const [, isSubscribe, category] = data.split(":");
         return handleSubscriptionManagement(ctx, isSubscribe, category);
+    }
+
+    if (data.startsWith("close_position:")) {
+        const partialConditionId = data.split(":")[1];
+        await ctx.answerCbQuery();
+        return handleCloseOpenPosition(ctx, partialConditionId);
     }
 
     // Handle autotrade callbacks
@@ -114,7 +121,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_position_close") {
-        return handleManageTradePositionsCallback(ctx, "close");
+        return handleCloseTradePositions(ctx).then(() => ctx.answerCbQuery());
     }
 
     if (data.startsWith("trade_position_")) {

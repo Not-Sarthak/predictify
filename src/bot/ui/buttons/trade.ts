@@ -1,3 +1,5 @@
+import { Markup } from "telegraf";
+
 export const generateTradeButtons = (marketId: string) => {
     return [
         [
@@ -11,4 +13,8 @@ export const generateTradeButtons = (marketId: string) => {
             },
         ],
     ];
+};
+
+export const generateClosePositionButton = (marketId: string) => {
+    return Markup.button.callback("💵 Close Position", `close_position:${marketId}`);
 };

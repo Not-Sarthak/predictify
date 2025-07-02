@@ -44,6 +44,7 @@ bot.on("callback_query", handleCallbackQuery);
 bot.catch((err, ctx) => {
     try {
         if (ctx.reply) {
+            console.error(err);
             ctx.reply("❌ An Error Occurred. Please Try Again Later.");
         }
     } catch (replyError) {

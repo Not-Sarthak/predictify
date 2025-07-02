@@ -15,6 +15,18 @@ export const getUserPosition = async (request: UserPositionRequest) => {
     return response.data;
 };
 
+export const getUserPositionByMarket = async (userId: string, conditionId: string) => {
+    const response = await axios.get<UserPositionResponse[]>(
+        `https://data-api.polymarket.com/positions?user=${userId}&market=${conditionId}`
+    );
+
+    if (response.data.length == 0) {
+        return null;
+    }
+
+    return response.data[0];
+};
+
 // getUserPosition({
 //   user: "0xef7E2F8F5c7c8ae0Bfd1A7D55628616175BC25FB",
 // });
