@@ -47,7 +47,7 @@ export const AUTO_TRADE_MENU_BUTTONS = [
 
 export const SETTINGS_MENU_BUTTONS = [
     [Markup.button.callback("💼 Wallet Settings", "settings:wallet")],
-    [CLOSE_BUTTON],
+    [BACK_TO_MAIN_MENU_BUTTON],
 ];
 
 export const WALLET_SETTINGS_MENU = [

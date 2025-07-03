@@ -95,6 +95,7 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("settings:")) {
         const action = data.split(":")[1];
         if (action === "wallet") {
+            await ctx.answerCbQuery();
             return handleWalletSettingsMenu(ctx);
         }
     }
