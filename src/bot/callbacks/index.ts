@@ -37,6 +37,7 @@ import {
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
 import { handleAutoTradeCommand } from "@/bot/commands";
+import { getUserIdFromCtx } from "@/bot/utils";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -170,7 +171,7 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("limit_order:")) {
         const [marketId, side] = data.split(":").slice(1);
-        const userId = ctx.from?.id.toString()!;
+        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -178,7 +179,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        awaitingOrderDetailsInputSet.add(userId);
+        awaitingOrderDetailsInputSet.add(userId.toString());
         await ctx.answerCbQuery();
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
@@ -193,7 +194,7 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("market_order:")) {
         const [marketId, side] = data.split(":").slice(1);
-        const userId = ctx.from?.id.toString()!;
+        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -201,7 +202,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        awaitingOrderDetailsInputSet.add(userId);
+        awaitingOrderDetailsInputSet.add(userId.toString());
         await ctx.answerCbQuery();
         return ctx.reply(
             `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
@@ -214,7 +215,7 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("sell_position:")) {
         const marketId = data.split(":")[1];
-        const userId = ctx.from?.id.toString()!;
+        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -222,7 +223,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: "SELL",
         });
 
-        awaitingOrderDetailsInputSet.add(userId);
+        awaitingOrderDetailsInputSet.add(userId.toString());
         await ctx.answerCbQuery();
         return ctx.reply(
             `💵 **Sell Position**\n\n` +

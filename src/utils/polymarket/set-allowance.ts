@@ -20,7 +20,7 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             EXCHANGE_ADDRESS
         );
 
-        const currentAllowanceFormatted = ethers.formatUnits(currentAllowance, 6);
+        // const currentAllowanceFormatted = ethers.formatUnits(currentAllowance, 6);
 
         const amountInUnits = ethers.parseUnits(amount, 6);
 
@@ -30,7 +30,7 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             const tx = await usdcContract.approve(EXCHANGE_ADDRESS, allowanceAmount);
 
             const receipt = await tx.wait();
-            // console.log("Transaction Receipt for Wallet `", wallet.address, "`: ", receipt);
+            console.log("Transaction Receipt for Wallet `", wallet.address, "`: ", receipt);
 
             return true;
         } else {

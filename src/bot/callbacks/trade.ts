@@ -487,7 +487,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
 }
 
 export async function handleDeleteUserWallet(ctx: Context, walletAddress: string) {
-    const userId = ctx.from?.id.toString()!;
+    const userId = getUserIdFromCtx(ctx);
 
     try {
         const { error } = await db("Copy_Wallets")

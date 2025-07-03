@@ -150,8 +150,8 @@ export async function handleOrderDetailsTextMessage(
 
                 await db("Users")
                     .update({
-                        amount_deposited: data?.amount_deposited! + finalAmount,
-                        fees_total: data?.fees_total! + fee,
+                        amount_deposited: data?.amount_deposited || 0 + finalAmount,
+                        fees_total: data?.fees_total || 0 + fee,
                     })
                     .eq("id", userId);
             } catch (error) {

@@ -1,8 +1,9 @@
 import type { Context } from "telegraf";
 import { supabase } from "../../../lib/supabase";
+import { getUserIdFromCtx } from "@/bot/utils/get-user-id-ctx";
 
 export async function handleExportPrivateKey(ctx: Context, network: "evm" | "solana") {
-    const userId = ctx.from?.id!;
+    const userId = getUserIdFromCtx(ctx);
     const privateKeyToExport = network === "evm" ? "private_key" : "solana_private_key";
 
     const { data, error } = await supabase

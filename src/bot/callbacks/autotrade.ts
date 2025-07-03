@@ -208,7 +208,7 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
 }
 
 export async function handleAddNewWalletCallback(ctx: Context) {
-    const userId = ctx.from?.id.toString()!;
+    const userId = getUserIdFromCtx(ctx);
 
     try {
         const { count, error: countError } = await db("Copy_Wallets")
@@ -225,7 +225,7 @@ export async function handleAddNewWalletCallback(ctx: Context) {
         });
     }
 
-    awaitingWalletDetailsInputSet.add(userId!);
+    awaitingWalletDetailsInputSet.add(userId.toString());
 
     const message = `🧾 *Add Wallet Instructions*
 
@@ -241,7 +241,7 @@ Please Enter Your Wallet in the Following Format:
 }
 
 export async function handleDeleteWalletCallback(ctx: Context) {
-    const userId = ctx.from?.id.toString()!;
+    const userId = getUserIdFromCtx(ctx);
 
     try {
         const { data, error: countError } = await db("Copy_Wallets")

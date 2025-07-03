@@ -1,6 +1,6 @@
 import { redisClient } from "../../lib/redis";
 import { CATEGORY_LIST } from "../../shared/constants";
-import { sendNotification } from "../telegram/notify-users";
+import { sendNotificationToUser } from "@/bot/utils/notify-user";
 
 const seenMarketIdsMap: Record<string, Set<string>> = {};
 
@@ -35,7 +35,7 @@ export async function pollNewMarkets() {
                             seenSet.add(market.id);
 
                             for (const userId of subscribers) {
-                                await sendNotification(userId, market, category);
+                                await sendNotificationToUser(userId, market, category);
                             }
                         }
                     }

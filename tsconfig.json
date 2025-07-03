@@ -25,7 +25,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "resolveJsonModule": true,
-     "allowSyntheticDefaultImports": true,
+    "allowSyntheticDefaultImports": true,
 
     "baseUrl": "src",
     "paths": {

@@ -213,7 +213,7 @@ export const onTradeDetected = async (trade: FormattedTrade, userId: string) => 
     }
 };
 
-export let onMonitorError: (error: Error, walletAddress: string) => void = (
+export const onMonitorError: (error: Error, walletAddress: string) => void = (
     error: Error,
     walletAddress: string
 ) => {

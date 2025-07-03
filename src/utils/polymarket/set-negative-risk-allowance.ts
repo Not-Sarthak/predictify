@@ -4,6 +4,7 @@ import { getCtfContract, getUsdcContract } from "../../helpers/contract-utilitie
 import type { BigNumberish } from "ethers";
 import { ethers } from "ethers";
 
+// TODO:FIX - CONFIRM IF THIS FN IS NEEDED AND REMOVE IT
 export async function setNegativeRiskAllowance(mainnet: boolean) {
     const wallet = getWallet(mainnet);
     const chainId = mainnet ? 137 : 80002;
@@ -30,25 +31,25 @@ export async function setNegativeRiskAllowance(mainnet: boolean) {
         contractConfig.negRiskAdapter
     )) as BigNumberish;
 
-    let txn;
+    // let txn;
 
     // For Splitting through the NegRiskAdapter
     if (ethers.toBigInt(usdcAllowanceNegRiskAdapter) === 0n) {
-        txn = await usdc.approve(contractConfig.negRiskAdapter, ethers.MaxUint256, {
+        await usdc.approve(contractConfig.negRiskAdapter, ethers.MaxUint256, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
         // console.log(`Setting USDC Allowance for NegRiskAdapter: ${txn.hash}`);
     }
     if (ethers.toBigInt(usdcAllowanceNegRiskExchange) === 0n) {
-        txn = await usdc.approve(contractConfig.negRiskExchange, ethers.MaxUint256, {
+        await usdc.approve(contractConfig.negRiskExchange, ethers.MaxUint256, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
         // console.log(`Setting USDC Allowance for NegRiskExchange: ${txn.hash}`);
     }
     if (ethers.toBigInt(conditionalTokensAllowanceNegRiskExchange) === 0n) {
-        txn = await ctf.setApprovalForAll(contractConfig.negRiskExchange, true, {
+        await ctf.setApprovalForAll(contractConfig.negRiskExchange, true, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
@@ -57,7 +58,7 @@ export async function setNegativeRiskAllowance(mainnet: boolean) {
         // );
     }
     if (ethers.toBigInt(conditionalTokensAllowanceNegRiskAdapter) === 0n) {
-        txn = await ctf.setApprovalForAll(contractConfig.negRiskAdapter, true, {
+        await ctf.setApprovalForAll(contractConfig.negRiskAdapter, true, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
