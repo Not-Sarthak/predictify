@@ -23,7 +23,9 @@ const awaitingConfigInputSet = new Map<string, string>();
 const awaitingBridgeAmountInputSet = new Set<string>();
 
 if (env.NODE_ENV === "production") {
-    await bot.telegram.setWebhook(`${env.WEBHOOK_DOMAIN}/telegram/webhook`);
+    await bot.telegram.setWebhook(`${env.WEBHOOK_DOMAIN}/telegram/webhook`, {
+        secret_token: env.SECRET_TOKEN,
+    });
 }
 
 bot.telegram.setMyCommands(botCommands);
