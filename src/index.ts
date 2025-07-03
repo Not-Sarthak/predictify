@@ -27,6 +27,7 @@ export async function main() {
         {
             webhook: {
                 domain: env.WEBHOOK_DOMAIN,
+                host: "0.0.0.0",
                 port: Number(PORT),
                 path: "/telegram/webhook",
                 secretToken: env.SECRET_TOKEN,

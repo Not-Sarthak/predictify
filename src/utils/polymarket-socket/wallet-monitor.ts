@@ -3,7 +3,7 @@ import { redisClient } from "@/lib/redis";
 import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
-import { env } from "bun";
+import { env } from "@/config";
 
 interface Trade {
     proxyWallet: string;

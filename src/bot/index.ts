@@ -22,6 +22,10 @@ const awaitingWalletMonitorInputSet = new Set<string>();
 const awaitingConfigInputSet = new Map<string, string>();
 const awaitingBridgeAmountInputSet = new Set<string>();
 
+if (env.NODE_ENV === "production") {
+    await bot.telegram.setWebhook(`${env.WEBHOOK_DOMAIN}/telegram/webhook`);
+}
+
 bot.telegram.setMyCommands(botCommands);
 
 // Register Middlewares

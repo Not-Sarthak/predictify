@@ -20,7 +20,6 @@ eslint.config.js
 # Docs / Metadata
 README.md
 Dockerfile
-tsconfig.json
 
 # Development
 scripts/

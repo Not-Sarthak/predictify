@@ -27,6 +27,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
 
+    "outDir": "dist",
     "baseUrl": "src",
     "paths": {
       "@/*": ["*"],
@@ -36,5 +37,6 @@
       "@/lib/*": ["lib/*"],
       "@/shared/*": ["shared/*"]
     }
-  }
+  },
+  "include": ["src"]
 }
