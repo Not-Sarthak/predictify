@@ -1,0 +1,26 @@
+# Node & Bun
+node_modules
+
+# Env
+.env
+.env.example
+
+# VCS / IDE
+.git
+.gitignore
+.vscode
+.husky
+
+# Prettier / ESLint
+.prettierrc
+.prettierignore
+.eslintrc
+eslint.config.js
+
+# Docs / Metadata
+README.md
+Dockerfile
+tsconfig.json
+
+# Development
+scripts/
