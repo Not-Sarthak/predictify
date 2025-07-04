@@ -66,7 +66,7 @@ export async function establishConnection({
         console.log("Error", err);
         process.exit(1);
     });
-    ws.on("close", function (code: number, reason: Buffer) {
+    ws.on("close", function (_code: number, _reason: Buffer) {
         process.exit(1);
     });
 

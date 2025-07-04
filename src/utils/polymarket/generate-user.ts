@@ -11,7 +11,7 @@ export async function generateAPIKeyAndWallet(request: APIKeyRequest): Promise<G
     const walletWithLegacyMethods = {
         ...wallet,
         _signTypedData: async (domain: any, types: any, value: any) => {
-            const { EIP712Domain, ...typesWithoutDomain } = types;
+            const { ...typesWithoutDomain } = types;
             return await wallet.signTypedData(domain, typesWithoutDomain, value);
         },
         getAddress: async () => wallet.address,

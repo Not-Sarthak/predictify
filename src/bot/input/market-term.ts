@@ -1,4 +1,5 @@
 import { awaitingMarketTermInputSet } from "@/bot";
+import { padButtonText } from "@/bot/utils";
 import { Markup, type Context } from "telegraf";
 
 export async function handleMarketTermTextMessage(
@@ -6,7 +7,7 @@ export async function handleMarketTermTextMessage(
     textMessage: string,
     userId: string
 ) {
-    const queryText = textMessage.split(/\s+/)[0];
+    const queryText = textMessage.split(/\s+/)[0].toLowerCase();
 
     const response = await fetch(
         `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=0&closed=false`
@@ -14,11 +15,15 @@ export async function handleMarketTermTextMessage(
 
     const marketData = await response.json();
 
+    if (marketData.length === 0) {
+        return ctx.reply("❌ There are no markets available for this term.");
+    }
+
     const marketTitleButtons = [];
     for (const market of marketData) {
         marketTitleButtons.push([
             Markup.button.callback(
-                market.markets[0].question,
+                padButtonText(market.markets[0].question),
                 `selected_market:${market.markets[0].id}`
             ),
         ]);

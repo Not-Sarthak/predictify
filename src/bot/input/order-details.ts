@@ -54,9 +54,6 @@ export async function handleOrderDetailsTextMessage(
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
 
-            const amount = Number(price) * Number(size);
-            const { fee, finalAmount } = feeTransaction(amount);
-
             orderResponse = await buyOrderGTC({
                 size: Number(size),
                 price: Number(price),
@@ -83,7 +80,7 @@ export async function handleOrderDetailsTextMessage(
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
 
-            const { fee, finalAmount } = feeTransaction(amount);
+            const { finalAmount } = feeTransaction(amount);
 
             orderResponse = await marketBuyOrder({
                 privateKey: private_key,

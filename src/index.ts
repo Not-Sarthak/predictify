@@ -1,10 +1,10 @@
 import { env } from "./config/env";
 import { API_SERVER_PORT, PORT } from "./shared/constants";
-import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
 import { walletSocketServer } from "./utils/polymarket-socket/socket";
 import { tryCatch } from "./shared/utils";
+// import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
 export async function main() {
     // Starts the API Server

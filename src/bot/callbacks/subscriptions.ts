@@ -71,10 +71,10 @@ export async function handleSubscriptionManagement(
     if (isSubscribe === "yes") {
         await redisClient.sAdd(`subscriptions:${category}`, userId);
         await ctx.answerCbQuery(`✅ Subscribed to ${category}`);
-        return ctx.reply(`📬 You'll Now Receive Alerts for: ${category}`);
+        return ctx.editMessageText(`📬 You'll Now Receive Alerts for: ${category}`);
     }
 
     await redisClient.sRem(`subscriptions:${category}`, userId);
     await ctx.answerCbQuery(`❌ Unsubscribed from ${category}`);
-    return ctx.reply(`🗑️ Alerts Removed For: ${category}`);
+    return ctx.editMessageText(`🗑️ Alerts Removed For: ${category}`);
 }

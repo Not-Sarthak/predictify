@@ -33,6 +33,7 @@ export async function fetchClobPriceHistory(tokenId: string) {
         const results = await Promise.all(priceHistoryPromises);
         return results;
     } catch (error) {
+        console.error("Error fetching CLOB Price History: ", error);
         return null;
     }
 }

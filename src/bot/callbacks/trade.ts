@@ -1,5 +1,5 @@
 import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
-import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     disableUserCopyTrade,
     enableUserCopyTrade,
@@ -11,6 +11,7 @@ import {
     getUserByIdFromDb,
     getUserIdFromCtx,
     layoutButtons,
+    padButtonText,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
@@ -150,7 +151,10 @@ export async function handleViewTradePositions(ctx: Context) {
     const formattedMessages = formatCurrentTradePositionsMessageForViewing(userPositions);
 
     const replyText = formattedMessages.join("\n\n");
-    return ctx.reply(replyText, { parse_mode: "Markdown" });
+    return ctx.reply(replyText, {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
+    });
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
@@ -191,7 +195,7 @@ export async function handleFetchMarketWithOffsetCallback(
 
     for (const market of marketData) {
         marketTitleButtons.push([
-            Markup.button.callback(market.title, `selected_market:${market.id}`),
+            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
         ]);
     }
 

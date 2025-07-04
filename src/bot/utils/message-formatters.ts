@@ -99,3 +99,13 @@ export function formatDollarVolume(n: number): string {
 export function escapeMarkdown(text: string): string {
     return text.replace(/[_*[\]()~`>#+=|{}.!]/g, "\\$&");
 }
+
+export function padButtonText(text: string, maxLength = 40): string {
+    const plainText = text.replace(/[*_`~]/g, ""); // Strip markdown for accurate length
+    const extraSpaces = maxLength - plainText.length;
+
+    if (extraSpaces <= 0) return text; // No need to pad
+
+    const pad = "\u00A0".repeat(extraSpaces); // Non-breaking space padding
+    return text + pad;
+}
