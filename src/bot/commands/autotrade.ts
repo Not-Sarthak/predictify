@@ -48,7 +48,7 @@ export async function handleAutoTradeCommand(ctx: Context) {
         ...AUTO_TRADE_MENU_BUTTONS,
     ];
 
-    await ctx.editMessageText(statusMessage, {
+    await ctx.reply(statusMessage, {
         parse_mode: "Markdown",
         reply_markup: Markup.inlineKeyboard(combinedButtons).reply_markup,
     });

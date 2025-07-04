@@ -30,12 +30,13 @@ import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private
 import { handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
 import { awaitingOrderDetailsInputSet } from "@/bot";
-import { type Context } from "telegraf";
+import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { Markup, type Context } from "telegraf";
 import {
     handleToggleCopyTradeStatus,
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
-import { handleAutoTradeCommand, handleStartCommand } from "@/bot/commands";
+import { handleAutoTradeCommand } from "@/bot/commands";
 import { getUserIdFromCtx } from "@/bot/utils";
 
 export async function handleCallbackQuery(ctx: Context) {
@@ -277,7 +278,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "back_to_main_menu") {
-        return handleStartCommand(ctx);
+        return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup);
     }
 
     if (data === "close_message") {
