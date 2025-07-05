@@ -48,7 +48,6 @@ export async function ensureTokenApproval(privateKey: string): Promise<void> {
         }
     } catch (err) {
         console.error("Approval check failed:", err);
-        throw err;
     }
 }
 

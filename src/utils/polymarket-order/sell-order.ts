@@ -74,7 +74,6 @@ export async function sellOrder(sellOrderDetails: SellOrderDetailsInterface) {
         return response;
     } catch (error) {
         console.error("Error Selling Order:", error);
-        throw error;
     }
 }
 

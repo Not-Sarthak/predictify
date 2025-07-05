@@ -38,7 +38,6 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
         }
     } catch (error) {
         console.error("Error Setting USDC Allowance for Wallet: ", wallet.address, error);
-        throw error;
     }
 }
 

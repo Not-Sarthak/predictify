@@ -4,6 +4,7 @@ import { apiServer } from "@/api";
 import { bot } from "./bot";
 import { channel } from "@/watcher";
 import { tryCatch } from "./shared/utils";
+import { resumeAllWalletMonitors } from "@/watcher/monitor-handlers";
 // import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
 export async function main() {
@@ -22,8 +23,11 @@ export async function main() {
     //     pollNewMarkets().catch(console.error);
     // }, 5_000);
 
-    // Listens to copy wallets db updates
-    channel.subscribe();
+    // Resumes Intervals and listens to copy wallets db updates
+    await resumeAllWalletMonitors();
+    channel.subscribe((status) => {
+        console.log("[SUBSCRIPTION STATUS]:", status);
+    });
 
     // Initialize Telegram Bot Webhook
     bot.launch(

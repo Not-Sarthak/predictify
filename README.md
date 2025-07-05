@@ -1,7 +1,8 @@
 Final Todo:
 
 - [ ] FIX Remaining Issues & Polish
-    - [ ] AutoTrading
+    - [ ] AutoTrading (Fix remaining issues)
+    - [ ] add `answerCbQuery()`
     - [ ] Update Imports
     - [ ] Remove Duplicate Code
     - [ ] Further Refactor
@@ -11,3 +12,8 @@ Final Todo:
 2. Notifications
 3. Tag Bot and Give Info
 4. Add github actions for automatic deployment of container
+
+<!-- FOR LATER (SCALING) -->
+
+- [ ] Lambda for Trade Execution
+- [ ] SQS + Lambda for Notification

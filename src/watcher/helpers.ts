@@ -43,7 +43,7 @@ export const pollForNewTrades = async (walletAddress: string) => {
     }
 
     const allTrades = await fetchTrades(walletAddress);
-    const newTrades = filterNewTrades(allTrades, lastTimestamp);
+    const newTrades = filterNewTrades(allTrades!, lastTimestamp);
     if (newTrades.length === 0) return;
 
     const redisSetKey = `wallet:MONITOR:${walletAddress.toLowerCase()}`;
@@ -69,7 +69,10 @@ export const pollForNewTrades = async (walletAddress: string) => {
     lastTimestamps.set(walletAddress, getLatestTimestamp(newTrades));
 };
 
-export const fetchTrades = async (walletAddress: string, limit: number = 100): Promise<Trade[]> => {
+export const fetchTrades = async (
+    walletAddress: string,
+    limit: number = 100
+): Promise<Trade[] | null> => {
     try {
         const response = await axios.get("https://data-api.polymarket.com/trades", {
             params: {
@@ -80,7 +83,8 @@ export const fetchTrades = async (walletAddress: string, limit: number = 100): P
         });
         return response.data || [];
     } catch (error) {
-        throw new Error(`Failed to fetch trades: ${error}`);
+        console.error(`Failed to fetch trades: ${error}`);
+        return null;
     }
 };
 
@@ -107,7 +111,7 @@ export const getLatestTimestamp = (trades: Trade[]): number =>
 export const getInitialTimestamp = async (walletAddress: string): Promise<number> => {
     try {
         const trades = await fetchTrades(walletAddress, 1);
-        return trades.length > 0 ? trades[0].timestamp : Math.floor(Date.now() / 1000);
+        return trades!.length > 0 ? trades![0].timestamp : Math.floor(Date.now() / 1000);
     } catch (error) {
         console.error(`Failed to Get Initial Timestamp: ${error}`);
         return Math.floor(Date.now() / 1000);

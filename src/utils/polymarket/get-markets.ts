@@ -137,7 +137,6 @@ export async function getMarketBySlug(slug: string) {
         }
     } catch (error) {
         console.error("Error fetching market:", error);
-        throw error;
     }
 }
 
@@ -164,7 +163,6 @@ export async function getTokenIdsForMarket(conditionId: string): Promise<any> {
         }
     } catch (error) {
         console.error("Error Fetching Token IDs for Market:", error);
-        throw error;
     }
 }
 

@@ -21,7 +21,6 @@ export async function getOrderStatus(orderStatusDetails: OrderStatusDetailsInter
     } catch (error) {
         console.error("💥 Error getting order status:");
         console.error(error);
-        throw error;
     }
 }
 
