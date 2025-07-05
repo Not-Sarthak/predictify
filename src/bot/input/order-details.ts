@@ -31,6 +31,9 @@ export async function handleOrderDetailsTextMessage(
         return ctx.reply("⚠️ Error fetching your account details! Please try again later.");
     }
 
+    awaitingOrderDetailsInputSet.delete(userId.toString());
+    await redisClient.del(`user:order_context:${userId}`);
+
     const { private_key, api_credentials } = userDetails;
     const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
 
@@ -193,8 +196,5 @@ export async function handleOrderDetailsTextMessage(
             undefined,
             "❌ There was an error placing your order! Please contact support."
         );
-    } finally {
-        awaitingOrderDetailsInputSet.delete(userId.toString());
-        await redisClient.del(`user:order_context:${userId}`);
     }
 }

@@ -37,7 +37,9 @@ import {
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
 import { handleAutoTradeCommand } from "@/bot/commands";
-import { getUserIdFromCtx } from "@/bot/utils";
+import { getUserByIdFromDb, getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
+import { generateWelcomeMessage } from "@/bot/ui/messages";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -278,7 +280,30 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "back_to_main_menu") {
-        return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup);
+        const userId = getUserIdFromCtx(ctx);
+
+        const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
+        if (dbError || !existingUser) {
+            return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
+        }
+
+        const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
+        const solBalance = existingUser.solana_address
+            ? await getSOLBalance(existingUser.solana_address)
+            : 0;
+
+        const message = generateWelcomeMessage(
+            existingUser.wallet_address,
+            existingUser.solana_address || "N/A",
+            balance.toString(),
+            solBalance,
+            JSON.parse(existingUser.api_credentials)
+        );
+
+        return ctx.editMessageText(message, {
+            parse_mode: "HTML",
+            reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
+        });
     }
 
     if (data === "close_message") {

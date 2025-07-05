@@ -2,7 +2,7 @@ import { env } from "./config/env";
 import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
-import { walletSocketServer } from "./utils/polymarket-socket/socket";
+import { channel } from "@/watcher";
 import { tryCatch } from "./shared/utils";
 // import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
@@ -22,6 +22,9 @@ export async function main() {
     //     pollNewMarkets().catch(console.error);
     // }, 5_000);
 
+    // Listens to copy wallets db updates
+    channel.subscribe();
+
     // Initialize Telegram Bot Webhook
     bot.launch(
         {
@@ -37,8 +40,6 @@ export async function main() {
             console.log("Bot is Running");
         }
     );
-
-    walletSocketServer.start();
 }
 
 main();

@@ -1,6 +1,11 @@
 Final Todo:
 
 - [ ] FIX Remaining Issues & Polish
+    - [ ] AutoTrading
+    - [ ] Update Imports
+    - [ ] Remove Duplicate Code
+    - [ ] Further Refactor
+    - [ ] Apply Caching wherever Possible or needed
 
 1. PnL Card
 2. Notifications
