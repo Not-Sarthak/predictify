@@ -105,6 +105,8 @@ export const deleteWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
 };
 
 export const resumeAllWalletMonitors = async () => {
+    console.log("Checking and updating existing Wallet Monitors...");
+
     const keys = await redisClient.keys("wallet:MONITOR:*");
 
     for (const redisSetKey of keys) {
@@ -133,5 +135,5 @@ export const resumeAllWalletMonitors = async () => {
         }
     }
 
-    console.log("✅ Wallet monitoring resumed based on Redis state.");
+    console.log("Wallet monitoring resumed based on Redis state");
 };

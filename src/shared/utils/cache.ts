@@ -14,13 +14,18 @@ class Cache {
         return (await redisClient.exists(key)) === 1;
     }
 
+    // ---- Method Overloads ----
+    async get<T = any>(key: string, type: "json"): Promise<T | null>;
+    async get(key: string, type?: "str"): Promise<string | null>;
+
+    // --- Implementation ---
     async get<T = any>(key: string, type: CacheType = "str"): Promise<T | string | null> {
         const value = await redisClient.get(key);
         if (value === null) return null;
 
         if (type === "json") {
             try {
-                return JSON.parse(value);
+                return JSON.parse(value) as T;
             } catch {
                 return null;
             }

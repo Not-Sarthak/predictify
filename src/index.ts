@@ -2,32 +2,25 @@ import { env } from "./config/env";
 import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
-import { channel } from "@/watcher";
+import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./shared/utils";
-import { resumeAllWalletMonitors } from "@/watcher/monitor-handlers";
 // import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
 export async function main() {
     // Starts the API Server
     const { error } = await tryCatch(apiServer.listen({ port: API_SERVER_PORT, host: "0.0.0.0" }));
-
     if (error) {
         apiServer.log.error(error, "Failed to Start API Server");
         process.exit(1);
     }
-
-    apiServer.log.info(`API Server Started on PORT ${API_SERVER_PORT}`);
 
     // Interval to Fetch new Markets
     // setInterval(() => {
     //     pollNewMarkets().catch(console.error);
     // }, 5_000);
 
-    // Resumes Intervals and listens to copy wallets db updates
-    await resumeAllWalletMonitors();
-    channel.subscribe((status) => {
-        console.log("[SUBSCRIPTION STATUS]:", status);
-    });
+    // Listens to copy wallets db updates
+    await connectToSupabaseRealtime();
 
     // Initialize Telegram Bot Webhook
     bot.launch(
@@ -41,7 +34,7 @@ export async function main() {
             },
         },
         () => {
-            console.log("Bot is Running");
+            console.log("Bot Server listening...");
         }
     );
 }

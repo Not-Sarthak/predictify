@@ -2,13 +2,13 @@ import Fastify from "fastify";
 import helmet from "@fastify/helmet";
 import { userRoutes } from "./routes/user-routes";
 import { APIError } from "../shared/errors/api-error";
+import { env } from "@/config";
 
 const server = Fastify({
     logger: {
         level: "info",
         transport:
-            // TODO:FIX - Replace w/ NEW ENV CONFIG
-            process.env.NODE_ENV !== "production"
+            env.NODE_ENV !== "production"
                 ? {
                       target: "pino-pretty",
                       options: {

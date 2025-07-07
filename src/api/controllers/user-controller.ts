@@ -2,7 +2,7 @@ import type { FastifyReply } from "fastify";
 import type { RequestWithIdParam } from "../../shared/types/api";
 
 import { z } from "zod";
-import { supabase } from "../../lib/supabase";
+import { db } from "../../lib/supabase";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
@@ -12,14 +12,14 @@ export const getUserDetails = async (request: RequestWithIdParam, reply: Fastify
 
     if (!id) throw new BadRequestError("User ID is required");
 
-    const { data, error } = await supabase.from("Users").select("*").eq("id", Number(id)).single();
-
-    if (!data) {
-        throw new NotFoundError("User not found");
-    }
+    const { data, error } = await db("Users").select("*").eq("id", Number(id)).single();
 
     if (error) {
         throw new InternalServerError("Failed to fetch user", error);
+    }
+
+    if (!data) {
+        throw new NotFoundError("User not found");
     }
 
     return reply.send({ user: data });
@@ -47,7 +47,7 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
             chainId: CHAIN_ID,
         });
 
-    const { error } = await supabase.from("Users").insert([
+    const { error } = await db("Users").insert([
         {
             id: data.telegramId,
             telegram_username: data.telegramUsername,

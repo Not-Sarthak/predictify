@@ -35,3 +35,5 @@ if (!success) {
 
 await Bun.write(outputPath, stdout);
 console.log(`✅ Supabase types generated at: ${outputPath}`);
+
+export {};

@@ -37,7 +37,7 @@ import {
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
 import { handleAutoTradeCommand } from "@/bot/commands";
-import { getUserByIdFromDb, getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
+import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 

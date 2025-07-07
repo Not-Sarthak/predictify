@@ -23,9 +23,14 @@ const awaitingConfigInputSet = new Map<string, string>();
 const awaitingBridgeAmountInputSet = new Set<string>();
 
 if (env.NODE_ENV === "production") {
-    await bot.telegram.setWebhook(`${env.WEBHOOK_DOMAIN}/telegram/webhook`, {
+    const isWebhookSet = await bot.telegram.setWebhook(`${env.WEBHOOK_DOMAIN}/telegram/webhook`, {
         secret_token: env.SECRET_TOKEN,
     });
+
+    if (!isWebhookSet) {
+        console.error("Failed to set Webhook URL");
+        process.exit(1);
+    }
 }
 
 bot.telegram.setMyCommands(botCommands);
