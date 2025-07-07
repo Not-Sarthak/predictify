@@ -6,6 +6,7 @@ import { db } from "../../lib/supabase";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
+import { encryptPrivateKey } from "@/utils/crypto";
 
 export const getUserDetails = async (request: RequestWithIdParam, reply: FastifyReply) => {
     const { id } = request.params;
@@ -52,10 +53,10 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
             id: data.telegramId,
             telegram_username: data.telegramUsername,
             wallet_address: address,
-            private_key: privateKey,
+            private_key: encryptPrivateKey(privateKey),
             api_credentials: JSON.stringify(apiCreds),
             solana_address: solanaAddress,
-            solana_private_key: solanaPrivateKey,
+            solana_private_key: encryptPrivateKey(solanaPrivateKey),
         },
     ]);
 

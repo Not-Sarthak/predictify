@@ -1,4 +1,5 @@
 import { db } from "@/lib/supabase";
+import { encryptPrivateKey } from "@/utils/crypto";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 export async function insertUserInDb(
@@ -15,10 +16,10 @@ export async function insertUserInDb(
             id: userId,
             telegram_username: username,
             wallet_address: walletAddress,
-            private_key: privateKey,
+            private_key: encryptPrivateKey(privateKey),
             api_credentials,
             solana_address: solanaAddress,
-            solana_private_key: solanaPrivateKey,
+            solana_private_key: encryptPrivateKey(solanaPrivateKey),
         },
     ]);
 

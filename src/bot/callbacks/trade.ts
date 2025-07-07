@@ -28,6 +28,7 @@ import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
+import { decryptPrivateKey } from "@/utils/crypto";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -686,7 +687,7 @@ export async function handleCloseOpenPosition(ctx: Context, conditionId: string)
     }
 
     const { error: sellError } = await marketSellOrder({
-        privateKey: data.private_key,
+        privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
         tokenId: marketDetails.asset,
         amount: marketDetails.size,

@@ -1,6 +1,7 @@
 import { getMarketOrderBook } from "@/utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
 import { getUserDetails } from "@/helpers/get-user-details";
+import { decryptPrivateKey } from "@/utils/crypto";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -111,7 +112,7 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
 
         const { yesResponse, noResponse } = await getMarketOrderBook({
             tokenId: tokenIds,
-            privateKey: private_key,
+            privateKey: decryptPrivateKey(private_key),
             creds: apiCreds,
         });
 

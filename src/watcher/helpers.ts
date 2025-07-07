@@ -1,6 +1,7 @@
 import { env } from "@/config";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
+import { decryptPrivateKey } from "@/utils/crypto";
 import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
@@ -129,7 +130,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
         const amount = trade.size * trade.price * Number(user.config_value);
 
         await marketBuyOrder({
-            privateKey: user.private_key,
+            privateKey: decryptPrivateKey(user.private_key),
             creds: JSON.parse(user.api_credentials),
             tokenId: trade.asset,
             amount,

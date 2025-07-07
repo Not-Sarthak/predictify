@@ -5,7 +5,11 @@ export const envSchema = z.object({
 
     TG_BOT_TOKEN: z.string().min(1, "TG_BOT_TOKEN is required"),
 
-    SECRET_TOKEN: z.string().min(1, "SECRET_TOKEN is required"),
+    SECRET_TOKEN: z.string().min(16, "SECRET_TOKEN is required"),
+
+    PRIVATE_KEY_ENCRYPTION_KEY: z
+        .string()
+        .min(32, "PRIVATE_KEY_ENCRYPTION_KEY must be a 32-char string"),
 
     WEBHOOK_DOMAIN: z.string().url("WEBHOOK_DOMAIN must be a valid URL"),
 

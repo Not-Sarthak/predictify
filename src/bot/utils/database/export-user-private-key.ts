@@ -1,6 +1,7 @@
 import type { Context } from "telegraf";
 import { supabase } from "../../../lib/supabase";
 import { getUserIdFromCtx } from "@/bot/utils/get-user-id-ctx";
+import { decryptPrivateKey } from "@/utils/crypto";
 
 export async function handleExportPrivateKey(ctx: Context, network: "evm" | "solana") {
     const userId = getUserIdFromCtx(ctx);
@@ -24,8 +25,10 @@ export async function handleExportPrivateKey(ctx: Context, network: "evm" | "sol
         privateKey = (data as { solana_private_key: string }).solana_private_key;
     }
 
+    const decryptedPrivateKey = decryptPrivateKey(privateKey);
+
     return ctx.reply(
-        `Your ${network === "evm" ? "EVM" : "Solana"} Private Key: <tg-spoiler>${privateKey}</tg-spoiler>`,
+        `Your ${network === "evm" ? "EVM" : "Solana"} Private Key: <tg-spoiler>${decryptedPrivateKey}</tg-spoiler>`,
         {
             parse_mode: "HTML",
         }

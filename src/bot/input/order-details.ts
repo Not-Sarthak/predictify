@@ -12,6 +12,7 @@ import { ensureTokenApproval, marketBuyOrder } from "@/utils/polymarket-order/ma
 import { sellOrder } from "@/utils/polymarket-order/sell-order";
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
+import { decryptPrivateKey } from "@/utils/crypto";
 
 export async function handleOrderDetailsTextMessage(
     ctx: Context,
@@ -35,6 +36,7 @@ export async function handleOrderDetailsTextMessage(
     await redisClient.del(`user:order_context:${userId}`);
 
     const { private_key, api_credentials } = userDetails;
+    const decryptedPrivateKey = decryptPrivateKey(private_key);
     const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
 
     const sentMessage = await ctx.reply("⏳ Placing your order...");
@@ -65,7 +67,7 @@ export async function handleOrderDetailsTextMessage(
                 side: Side.BUY,
                 feeRateBps: 0,
                 apiCreds,
-                privateKey: private_key,
+                privateKey: decryptedPrivateKey,
             });
         } else if (orderType === "fok") {
             // Market Order: expects "<amount>"
@@ -86,7 +88,7 @@ export async function handleOrderDetailsTextMessage(
             const { finalAmount } = feeTransaction(amount);
 
             orderResponse = await marketBuyOrder({
-                privateKey: private_key,
+                privateKey: decryptedPrivateKey,
                 creds: apiCreds,
                 tokenId,
                 amount: finalAmount,
@@ -181,13 +183,13 @@ export async function handleOrderDetailsTextMessage(
                     : Number(textMessage.trim());
 
             await transferFeeToTreasury({
-                userWallet: new ethers.Wallet(private_key),
+                userWallet: new ethers.Wallet(decryptedPrivateKey),
                 positionAmount: amount,
                 transactionType: "OPEN",
             });
         }
 
-        await ensureTokenApproval(private_key);
+        await ensureTokenApproval(decryptedPrivateKey);
     } catch (error) {
         console.error("Error placing the order: ", error);
         await ctx.telegram.editMessageText(
