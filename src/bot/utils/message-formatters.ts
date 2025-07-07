@@ -1,4 +1,6 @@
+import { getMarketOrderBook } from "@/utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
+import { getUserDetails } from "@/helpers/get-user-details";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -94,6 +96,52 @@ export function formatDollarVolume(n: number): string {
     if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
     if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
     return `$${n.toFixed(2)}`;
+}
+
+export async function formatOrderBook(tokenIds: string[], userId: string) {
+    try {
+        const [userDetails] = await Promise.all([getUserDetails(Number(userId))]);
+
+        if (!userDetails) {
+            return "⚠️ Unable to Fetch Orderbook Data.";
+        }
+
+        const { private_key, api_credentials } = userDetails;
+        const apiCreds = JSON.parse(api_credentials);
+
+        const { yesResponse, noResponse } = await getMarketOrderBook({
+            tokenId: tokenIds,
+            privateKey: private_key,
+            creds: apiCreds,
+        });
+
+        const formatOrderBookLine = ({ price, size }: { price: string; size: string }) => {
+            const usdcValue = parseFloat(price) * parseFloat(size);
+            return `$${usdcValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        };
+
+        const yesBids = yesResponse.bids.slice(0, 5).map(formatOrderBookLine);
+        const noBids = noResponse.bids.slice(0, 5).map(formatOrderBookLine);
+
+        let orderBookDisplay = `📈 **Order Book**\n`;
+
+        if (yesBids.length > 0) {
+            orderBookDisplay += `**🟢 YES** (${yesBids.length} orders):\n${yesBids.join(" • ")}\n\n`;
+        } else {
+            orderBookDisplay += `**🟢 YES**: No Liquidity Available\n\n`;
+        }
+
+        if (noBids.length > 0) {
+            orderBookDisplay += `**🔴 NO** (${noBids.length} orders):\n${noBids.join(" • ")}\n\n`;
+        } else {
+            orderBookDisplay += `**🔴 NO**: No Liquidity Available\n\n`;
+        }
+
+        return orderBookDisplay;
+    } catch (error) {
+        console.error("Error Fetching Orderbook:", error);
+        return "⚠️ Unable to Fetch Orderbook Data.\n\n";
+    }
 }
 
 export function escapeMarkdown(text: string): string {

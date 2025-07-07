@@ -2,10 +2,7 @@ Final Todo:
 
 - [ ] FIX Remaining Issues & Polish
     - [ ] AutoTrading (Fix remaining issues)
-    - [ ] add `answerCbQuery()`
     - [ ] Update Imports
-    - [ ] Remove Duplicate Code
-    - [ ] Further Refactor
     - [ ] Apply Caching wherever Possible or needed
 
 1. PnL Card

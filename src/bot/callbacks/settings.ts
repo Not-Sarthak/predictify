@@ -16,7 +16,10 @@ export async function handleSettingsMenu(ctx: Context) {
 export async function handleWalletSettingsMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
 
-    const { data: user, error } = await db("Users").select("*").eq("id", userId).single();
+    const { data: user, error } = await db("Users")
+        .select("wallet_address, solana_address")
+        .eq("id", userId)
+        .single();
     if (error || !user) {
         console.error("Failed to fetch user wallet:", error);
         return ctx.reply("❌ Unable to retrieve wallet info.");

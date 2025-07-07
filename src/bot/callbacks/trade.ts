@@ -1,8 +1,7 @@
 import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
 import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
-    disableUserCopyTrade,
-    enableUserCopyTrade,
+    manageUserCopyTrade,
     escapeMarkdown,
     formatCurrentTradePositionsMessage,
     formatCurrentTradePositionsMessageForViewing,
@@ -12,13 +11,14 @@ import {
     getUserIdFromCtx,
     layoutButtons,
     padButtonText,
+    formatOrderBook,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
-import { fetchMarkets, getMarketById, getMarketOrderBook } from "@/utils/polymarket/get-markets";
+import { fetchMarkets, getMarketById } from "@/utils/polymarket/get-markets";
 import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
@@ -28,52 +28,6 @@ import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
-
-async function formatOrderBook(tokenIds: string[], userId: string) {
-    try {
-        const [userDetails] = await Promise.all([getUserDetails(Number(userId))]);
-
-        if (!userDetails) {
-            return "⚠️ Unable to Fetch Orderbook Data.";
-        }
-
-        const { private_key, api_credentials } = userDetails;
-        const apiCreds = JSON.parse(api_credentials);
-
-        const { yesResponse, noResponse } = await getMarketOrderBook({
-            tokenId: tokenIds,
-            privateKey: private_key,
-            creds: apiCreds,
-        });
-
-        const formatOrderBookLine = ({ price, size }: { price: string; size: string }) => {
-            const usdcValue = parseFloat(price) * parseFloat(size);
-            return `$${usdcValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        };
-
-        const yesBids = yesResponse.bids.slice(0, 5).map(formatOrderBookLine);
-        const noBids = noResponse.bids.slice(0, 5).map(formatOrderBookLine);
-
-        let orderBookDisplay = `📈 **Order Book**\n`;
-
-        if (yesBids.length > 0) {
-            orderBookDisplay += `**🟢 YES** (${yesBids.length} orders):\n${yesBids.join(" • ")}\n\n`;
-        } else {
-            orderBookDisplay += `**🟢 YES**: No Liquidity Available\n\n`;
-        }
-
-        if (noBids.length > 0) {
-            orderBookDisplay += `**🔴 NO** (${noBids.length} orders):\n${noBids.join(" • ")}\n\n`;
-        } else {
-            orderBookDisplay += `**🔴 NO**: No Liquidity Available\n\n`;
-        }
-
-        return orderBookDisplay;
-    } catch (error) {
-        console.error("Error Fetching Orderbook:", error);
-        return "⚠️ Unable to Fetch Orderbook Data.\n\n";
-    }
-}
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -650,7 +604,7 @@ export async function handleEnableCopyTrade(ctx: Context) {
             );
         }
 
-        const isSuccess = await enableUserCopyTrade(userId);
+        const isSuccess = await manageUserCopyTrade(userId, true);
 
         if (!isSuccess) {
             await ctx.answerCbQuery();
@@ -681,7 +635,7 @@ export async function handleStopCopyTrade(ctx: Context) {
     if (!userId) return;
 
     try {
-        const isSuccess = await disableUserCopyTrade(userId);
+        const isSuccess = await manageUserCopyTrade(userId, false);
 
         if (!isSuccess) {
             await ctx.answerCbQuery();
