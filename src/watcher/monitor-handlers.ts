@@ -1,5 +1,5 @@
 import { redisClient } from "@/lib/redis";
-import type { TableRow } from "@/shared/types/supabase";
+import type { TableRow } from "@/types/supabase";
 import { pollForNewTrades } from "@/watcher/helpers";
 
 const activeWalletIntervals = new Map<string, NodeJS.Timeout>();

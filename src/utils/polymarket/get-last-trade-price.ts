@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { env } from "../../config/env";
 import { CHAIN_ID } from "../../shared/constants";
 import { ClobClient, type ApiKeyCreds, type BookParams } from "@polymarket/clob-client";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 
 interface GetLastTradePriceRequest {
     tokenId: BookParams[];

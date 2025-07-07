@@ -2,7 +2,7 @@ import axios from "axios";
 import type {
     UserPositionRequest,
     UserPositionResponse,
-} from "../../shared/types/polymarket/user-position";
+} from "../../types/polymarket/user-position";
 
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
 import { Wallet } from "ethers";

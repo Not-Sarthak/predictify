@@ -1,7 +1,7 @@
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
 import { getWallet } from "../../helpers/get-wallet-address";
 import { env } from "../../config/env";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 
 interface CancelAllProps {
     mainnet: boolean;

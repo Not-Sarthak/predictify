@@ -2,7 +2,7 @@ import { type ApiKeyCreds, ClobClient, OrderType, Side } from "@polymarket/clob-
 import { ethers, Contract, Wallet, getAddress, JsonRpcProvider } from "ethers";
 import { CHAIN_ID } from "../../shared/constants/polymarket";
 import { env } from "../../config/env";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 

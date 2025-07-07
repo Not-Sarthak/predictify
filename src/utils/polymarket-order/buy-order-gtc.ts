@@ -1,9 +1,9 @@
 import { type ApiKeyCreds, ClobClient, Side, OrderType } from "@polymarket/clob-client";
 import { ethers } from "ethers";
-import { checkNetworkConnection } from "../../shared/utils/check-network-connection";
+import { checkNetworkConnection } from "../../utils/check-network-connection";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 
 interface BuyOrderGTCRequest {
     size: number;

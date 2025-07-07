@@ -1,9 +1,9 @@
 // TODO:FIX - REFACTOR SETS TO REDIS
 import { Telegraf } from "telegraf";
 import { env } from "../config/env";
-import { botCommands } from "./constants";
+import { botCommands } from "./commands";
 import { message } from "telegraf/filters";
-import { rejectBotSenders } from "./middlewares";
+import { rejectBotSenders, requireId } from "./middlewares";
 import {
     handleAutoTradeCommand,
     handleSettingsCommand,
@@ -36,6 +36,7 @@ if (env.NODE_ENV === "production") {
 bot.telegram.setMyCommands(botCommands);
 
 // Register Middlewares
+bot.use(requireId);
 bot.use(rejectBotSenders);
 
 // Command Handlers

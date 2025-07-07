@@ -8,7 +8,7 @@ import {
 } from "@polymarket/clob-client";
 import { CHAIN_ID } from "../../shared/constants";
 import { env } from "../../config/env";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 

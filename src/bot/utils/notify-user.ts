@@ -1,6 +1,6 @@
 import { bot } from "@/bot";
 import { generateNotificationMessage } from "@/bot/ui/messages";
-import type { MarketData } from "@/shared/types/polymarket/market-data";
+import type { MarketData } from "@/types/polymarket/market-data";
 
 export async function sendNotificationToUser(userId: string, market: MarketData, category: string) {
     const { message, keyboard } = generateNotificationMessage(market, category);

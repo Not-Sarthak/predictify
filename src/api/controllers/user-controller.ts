@@ -1,5 +1,5 @@
 import type { FastifyReply } from "fastify";
-import type { RequestWithIdParam } from "../../shared/types/api";
+import type { RequestWithIdParam } from "@/types/api";
 
 import { z } from "zod";
 import { db } from "../../lib/supabase";

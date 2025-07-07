@@ -1,4 +1,4 @@
-import type { Database } from "@/shared/types/supabase/db";
+import type { Database } from "@/types/supabase/db";
 
 type DBTables = keyof Database["public"]["Tables"];
 

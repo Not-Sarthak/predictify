@@ -5,7 +5,7 @@ if (!projectId) {
     throw new Error("NO PROJECT ID FOUND!");
 }
 
-const outputPath = "src/shared/types/supabase/db.ts";
+const outputPath = "src/types/supabase/db.ts";
 
 const { stdout, stderr, success } = Bun.spawnSync(
     [

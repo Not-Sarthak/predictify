@@ -1,4 +1,4 @@
-import type { UserPositionResponse } from "../../shared/types/polymarket/user-position";
+import type { UserPositionResponse } from "../../types/polymarket/user-position";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);

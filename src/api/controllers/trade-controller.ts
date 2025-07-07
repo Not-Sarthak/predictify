@@ -1,10 +1,10 @@
 import type { FastifyReply } from "fastify";
-import type { RequestWithIdParam } from "../../shared/types/api";
+import type { RequestWithIdParam } from "@/types/api";
 
 import { db } from "../../lib/supabase";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
-import { cache } from "@/shared/utils";
-import type { TableRow } from "@/shared/types/supabase";
+import { cache } from "@/utils";
+import type { TableRow } from "@/types/supabase";
 
 export const getUserTrades = async (request: RequestWithIdParam, reply: FastifyReply) => {
     const { id } = request.params;

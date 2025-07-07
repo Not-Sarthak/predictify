@@ -1,6 +1,6 @@
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 import axios from "axios";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 import { CHAIN_ID } from "../../shared/constants";
 import { env } from "../../config/env";
 import { ethers } from "ethers";

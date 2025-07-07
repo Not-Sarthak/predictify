@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
 import { env } from "../../config/env";
 import { CHAIN_ID } from "../../shared/constants";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 
 export async function getClosedOnlyMode(creds: ApiKeyCreds) {
     const wallet = new ethers.Wallet(env.PRIVATE_KEY);

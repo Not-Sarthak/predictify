@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { env } from "../../config/env";
 import { ClobClient, OrderType, Side, type ApiKeyCreds } from "@polymarket/clob-client";
 import { CHAIN_ID } from "@/shared/constants";
-import { createLegacyWallet } from "@/shared/utils";
+import { createLegacyWallet } from "@/utils";
 import { fetchClobPriceHistory } from "../polymarket/get-token-marketprice";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 

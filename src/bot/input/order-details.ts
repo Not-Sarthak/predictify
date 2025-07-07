@@ -5,7 +5,7 @@ import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { getTokenId } from "@/helpers/get-token-id";
 import { getUserDetails } from "@/helpers/get-user-details";
-import type { ApiKeyCreds } from "@/shared/types/polymarket/api-key";
+import type { ApiKeyCreds } from "@/types/polymarket/api-key";
 import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { ensureTokenApproval, marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";

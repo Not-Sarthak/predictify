@@ -1,6 +1,6 @@
 import { generateTradeButtons } from "@/bot/ui/buttons/trade";
-import { truncate } from "@/shared/utils/truncate";
-import type { MarketData } from "@/shared/types/polymarket/market-data";
+import { truncate } from "@/utils/truncate";
+import type { MarketData } from "@/types/polymarket/market-data";
 import { Markup } from "telegraf";
 
 export const generateWelcomeMessage = (

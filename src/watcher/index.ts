@@ -1,4 +1,4 @@
-import type { TableRow } from "@/shared/types/supabase";
+import type { TableRow } from "@/types/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";

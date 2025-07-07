@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { env } from "../config/env";
-import type { Database } from "../shared/types/supabase/db";
+import type { Database } from "@/types/supabase/db";
 
 // TODO:FIX - REMOVE THIS AND REPLACE EVERYTHING WITH `db`
 export const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);

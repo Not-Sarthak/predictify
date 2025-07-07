@@ -17,7 +17,7 @@ import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
-import { capitalize } from "@/shared/utils/capitalize";
+import { capitalize } from "@/utils/capitalize";
 import { fetchMarkets, getMarketById, getMarketOrderBook } from "@/utils/polymarket/get-markets";
 import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
@@ -27,7 +27,7 @@ import { db } from "@/lib/supabase";
 import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
-import { decodeMarketId, encodeMarketId } from "@/shared/utils/encoding";
+import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 
 async function formatOrderBook(tokenIds: string[], userId: string) {
     try {

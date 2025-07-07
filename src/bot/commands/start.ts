@@ -2,7 +2,7 @@ import { Markup, type Context } from "telegraf";
 
 import { getUserIdFromCtx, insertUserInDb } from "@/bot/utils";
 import { getUsernameFromCtx } from "@/bot/utils";
-import { getUserByIdFromDb } from "@/bot/utils/get-user-db";
+import { getUserByIdFromDb } from "@/bot/utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";

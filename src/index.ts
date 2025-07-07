@@ -3,7 +3,7 @@ import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
 import { connectToSupabaseRealtime } from "@/watcher";
-import { tryCatch } from "./shared/utils";
+import { tryCatch } from "./utils";
 // import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
 export async function main() {

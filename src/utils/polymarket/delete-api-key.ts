@@ -1,5 +1,5 @@
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
-import { createLegacyWallet } from "../../shared/utils";
+import { createLegacyWallet } from "../../utils";
 import { getWallet } from "../../helpers/get-wallet-address";
 import { env } from "../../config/env";
 
