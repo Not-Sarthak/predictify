@@ -26,6 +26,10 @@ export const botCommands: BotCommand[] = [
         description: "Enable or configure copy trading from wallets",
     },
     {
+        command: "fund",
+        description: "Manage your wallet",
+    },
+    {
         command: "settings",
         description: "Update preferences like wallet or notification settings",
     },

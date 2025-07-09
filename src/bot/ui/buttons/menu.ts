@@ -1,4 +1,4 @@
-import { BACK_TO_MAIN_MENU_BUTTON, CLOSE_BUTTON } from "@/bot/ui/buttons/common";
+import { BACK_TO_MAIN_MENU_BUTTON, BRIDGE_BUTTON, CLOSE_BUTTON } from "@/bot/ui/buttons/common";
 import { Markup } from "telegraf";
 
 export const MAIN_MENU_BUTTONS = [
@@ -46,11 +46,6 @@ export const AUTO_TRADE_MENU_BUTTONS = [
 export const WALLET_SETTINGS_MENU = [
     [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
     [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
-    [
-        Markup.button.callback(
-            "🚀 Bridge Solana to Bridged USDC (Polygon PoS Bridge)",
-            "bridge_funds"
-        ),
-    ],
+    [BRIDGE_BUTTON],
     [CLOSE_BUTTON],
 ];

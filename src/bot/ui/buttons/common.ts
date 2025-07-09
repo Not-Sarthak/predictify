@@ -6,3 +6,8 @@ export const BACK_TO_MAIN_MENU_BUTTON = Markup.button.callback(
 );
 
 export const CLOSE_BUTTON = Markup.button.callback("❌ Close", "close_message");
+
+export const BRIDGE_BUTTON = Markup.button.callback(
+    "🚀 Bridge Solana to Bridged USDC (Polygon PoS Bridge)",
+    "bridge_funds"
+);

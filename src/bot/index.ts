@@ -13,6 +13,7 @@ import {
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
+import { handleFundCommand } from "@/bot/commands/fund";
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
 const awaitingWalletDetailsInputSet = new Set<string>();
@@ -33,6 +34,7 @@ bot.command("start", handleStartCommand);
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeCommand);
+bot.command("fund", handleFundCommand);
 bot.command("settings", handleSettingsCommand);
 
 // Text Input Handlers
