@@ -1,4 +1,4 @@
-import { SETTINGS_MENU_BUTTONS, WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
+import { WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
 import { generateWalletDetailsMessage } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
 import {
@@ -10,7 +10,7 @@ import { db } from "@/lib/supabase";
 import { Markup, type Context } from "telegraf";
 
 export async function handleSettingsMenu(ctx: Context) {
-    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(SETTINGS_MENU_BUTTONS).reply_markup);
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(WALLET_SETTINGS_MENU).reply_markup);
 }
 
 export async function handleWalletSettingsMenu(ctx: Context) {

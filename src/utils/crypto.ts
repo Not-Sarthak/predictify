@@ -26,5 +26,5 @@ export const decryptPrivateKey = (encryptedBase64: string): string => {
 
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
-    return decrypted.toString("utf8");
+    return decrypted.toString("utf-8");
 };

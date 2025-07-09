@@ -296,8 +296,7 @@ export async function handleCallbackQuery(ctx: Context) {
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
-            solBalance,
-            JSON.parse(existingUser.api_credentials)
+            solBalance
         );
 
         return ctx.editMessageText(message, {

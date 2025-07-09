@@ -1,8 +1,8 @@
-import { SETTINGS_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
 
 export async function handleSettingsCommand(ctx: Context) {
-    const keyboard = Markup.inlineKeyboard(SETTINGS_MENU_BUTTONS);
+    const keyboard = Markup.inlineKeyboard(WALLET_SETTINGS_MENU);
 
     return ctx.reply("📋 Wallet Settings:", keyboard);
 }

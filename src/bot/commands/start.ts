@@ -27,8 +27,7 @@ export async function handleStartCommand(ctx: Context) {
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
-            solBalance,
-            JSON.parse(existingUser.api_credentials)
+            solBalance
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
@@ -65,8 +64,7 @@ export async function handleStartCommand(ctx: Context) {
         address,
         walletData.solanaAddress,
         balance.toString(),
-        newUserSolBalance,
-        walletData.apiCreds
+        newUserSolBalance
     );
 
     return ctx.reply(message, {

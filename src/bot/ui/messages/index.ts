@@ -14,28 +14,30 @@ export const generateWelcomeMessage = (
     evm_address: string,
     solana_address: string,
     usdcBalance: string,
-    solBalance: number,
-    apiCreds: { key: string; secret: string; passphrase: string }
+    solBalance: number
 ): string => {
     return `
-Welcome back to Polymarket Bot!
+Welcome to Predictify
+We trade headlines for breakfast. 📰⚔
+Your wallet’s live. Let’s degen.
 
-🔐 Your New Wallet:
-EVM Address: <code>${evm_address || "N/A"}</code>
-Solana Address: <code>${solana_address || "N/A"}</code>
+🔐 Your Wallets
+• Solana Address: <code>${solana_address}</code>
+• Polygon Address: <code>${evm_address}</code>
 
-💵 USDC Balance: ${usdcBalance} USDC
-🌟 SOL Balance: ${solBalance.toFixed(4)} SOL
+💰 Your Balances
+• USDC: $${usdcBalance}
+• SOL: ${solBalance} SOL
 
-🔑 Credentials:
-Key: <code>${apiCreds.key || "N/A"}</code>
-Secret: <code>${apiCreds.secret || "N/A"}</code>
-Passphrase: <code>${apiCreds.passphrase || "N/A"}</code>
+🔥 What you can do:
+• Blast YES/NO bets with market or limit orders
+• Copy top wallets instantly
+• Get alerts by category — “Elections”, “Crypto”, “AI”
+• Track PnL and open positions
+• Fund your wallet with SOL or Polygon USDC — your choice
 
-How to use:
-1. 📢 Set Alerts for Market Categories
-2. ⚡ Open a Position in Just 2 Clicks
-3. 🤖 AutoTrade (Copytrading)
+👉 Use /fund to load up and start trading
+No logins. No browser tabs. Just pure prediction market flow. 🫡
 `.trim();
 };
 
