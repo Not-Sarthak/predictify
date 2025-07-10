@@ -7,6 +7,7 @@ import {
     awaitingWalletDetailsInputSet,
     awaitingWalletMonitorInputSet,
     awaitingBridgeAmountInputSet,
+    awaitingReferralCodeInputSet,
 } from "@/bot";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { handleWalletDetailsTextMessage } from "@/bot/input/wallet-details";
@@ -15,12 +16,18 @@ import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
 import { handleConfigTextMessage } from "@/bot/input/config-details";
 import { handleCustomBridgeAmount } from "../../utils/debridge/functions/bridge-handler";
+import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
     if (!textMessage) return;
 
     const userId = getUserIdFromCtx(ctx);
+
+    // Handle referral code input first
+    if (awaitingReferralCodeInputSet.has(userId.toString())) {
+        return handleReferralCodeTextMessage(ctx, textMessage);
+    }
 
     // TODO:FIX - REFACTOR TEXT HANDLERS
 

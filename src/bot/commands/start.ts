@@ -8,6 +8,7 @@ import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "@/shared/constants";
+import { awaitingReferralCodeInputSet } from "@/bot";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -37,38 +38,29 @@ export async function handleStartCommand(ctx: Context) {
         });
     }
 
-    const walletData = await generateAPIKeyAndWallet({
-        host: HOST,
-        chainId: CHAIN_ID,
-    });
-    const address = walletData.address;
-    const balance = await getUserWrappedUSDCBalance(address);
-    const newUserSolBalance = await getSOLBalance(walletData.solanaAddress);
-
+    // For new users, first create a basic record
     const { success, error: insertError } = await insertUserInDb(
         userId,
         userName,
-        address,
-        walletData.privateKey,
-        JSON.stringify(walletData.apiCreds),
-        walletData.solanaAddress,
-        walletData.solanaPrivateKey
+        "", // Empty wallet address for now
+        "", // Empty private key for now
+        "", // Empty API creds for now
+        "", // Empty solana address for now
+        "" // Empty solana private key for now
     );
-    if (!success) {
+
+    if (!insertError) {
         console.error(insertError);
         return ctx.reply("❌ There Was an Error Creating Your Account.");
     }
 
-    const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
-    const message = generateWelcomeMessage(
-        address,
-        walletData.solanaAddress,
-        balance.toString(),
-        newUserSolBalance
-    );
+    // Add user to awaiting referral code set
+    awaitingReferralCodeInputSet.add(userId.toString());
 
-    return ctx.reply(message, {
-        parse_mode: "HTML",
-        reply_markup: keyboard.reply_markup,
-    });
+    return ctx.reply(
+        "👋 Welcome to PolyMarket Trading Bot!\n\n" +
+            "To get started, please enter a valid referral code. " +
+            "If you don't have one, please contact the bot administrator.",
+        { parse_mode: "HTML" }
+    );
 }

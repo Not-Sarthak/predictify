@@ -7,6 +7,8 @@ import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { BadRequestError, InternalServerError, NotFoundError } from "../../shared/errors";
 import { encryptPrivateKey } from "@/utils/crypto";
+import { generateRandomString } from "@/utils/encoding";
+import type { FastifyRequest } from "fastify";
 
 export const getUserDetails = async (request: RequestWithIdParam, reply: FastifyReply) => {
     const { id } = request.params;
@@ -64,3 +66,46 @@ export const createNewUser = async (request: RequestWithIdParam, reply: FastifyR
 
     return reply.code(201).send();
 };
+
+export async function generateReferralCodes(
+    request: FastifyRequest<{
+        Querystring: {
+            count?: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const secretKey = request.headers["x-secret-key"];
+    if (!secretKey || secretKey !== process.env.ADMIN_SECRET_KEY) {
+        return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const count = parseInt(request.query.count || "5");
+    if (count < 1 || count > 10) {
+        return reply.code(400).send({ error: "Count Must Be Between 1 and 10" });
+    }
+
+    try {
+        const codes = [];
+        for (let i = 0; i < count; i++) {
+            const code = generateRandomString(8);
+            codes.push(code);
+
+            await db("Users").insert({
+                referred_code: code,
+                id: -1 * (Date.now() + i),
+                telegram_username: "ADMIN",
+                wallet_address: "",
+                private_key: "",
+                api_credentials: "",
+                solana_address: "",
+                solana_private_key: "",
+            });
+        }
+
+        return reply.send({ success: true, codes });
+    } catch (error) {
+        console.error("Error generating referral codes:", error);
+        return reply.code(500).send({ error: "Internal server error" });
+    }
+}

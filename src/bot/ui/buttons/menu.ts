@@ -10,7 +10,7 @@ export const MAIN_MENU_BUTTONS = [
         Markup.button.callback("🤖 AutoTrade", `start:autotrade`),
         Markup.button.callback("📈 Portfolio", "trade_position_view"),
     ],
-    [Markup.button.callback("💼 Wallet Settings", "settings:wallet")],
+    [Markup.button.callback("💼 Wallet/Funds", "settings:wallet")],
 ];
 
 export const SUBSCRIPTIONS_MENU_BUTTONS = [

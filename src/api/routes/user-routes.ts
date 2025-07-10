@@ -1,12 +1,7 @@
 import type { FastifyInstance } from "fastify";
+import { getUserDetails, generateReferralCodes } from "../controllers/user-controller";
 
-import { createNewUser, getUserDetails } from "../controllers/user-controller";
-import { getUserTrades } from "../controllers/trade-controller";
-
-export async function userRoutes(server: FastifyInstance) {
-    server.get("/:id", getUserDetails);
-
-    server.get("/:id/trades", getUserTrades);
-
-    server.post("/", createNewUser);
+export async function userRoutes(fastify: FastifyInstance) {
+    fastify.get("/user/:id", getUserDetails);
+    fastify.get("/referral/generate", generateReferralCodes);
 }

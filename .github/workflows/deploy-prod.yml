@@ -3,6 +3,8 @@ name: Build and Deploy to EC2 (Production)
 on:
     push:
         branches: [main]
+        paths:
+            - 'src/**'
 
 jobs:
     build-and-deploy:

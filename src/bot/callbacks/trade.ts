@@ -306,12 +306,12 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 
         const keyboard = Markup.inlineKeyboard([
             [
-                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
-            ],
-            [
                 Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
                 Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            ],
+            [
+                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
             ],
             [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
             [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
@@ -375,12 +375,12 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
-        ],
-        [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
@@ -428,12 +428,12 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
-        ],
-        [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("❌ Close", "close_message")],
