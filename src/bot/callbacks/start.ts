@@ -36,17 +36,20 @@ export async function handleViewProfileCallback(ctx: Context) {
         return ctx.reply("❌ User does not exist");
     }
 
-    const { wallet_address, total_pnl, total_volume } = userData;
+    const { wallet_address, total_pnl, total_volume, referral_code, number_of_referrals } =
+        userData;
     const emoji = total_pnl > 0 ? "📈" : "📉";
 
     const positions = await getUserPositionsFromPolymarket(wallet_address);
 
     let positionsWon = 0;
-    for (const position of positions) {
-        if (position.cashPnl > 0) positionsWon += 1;
+    if (positions && Array.isArray(positions)) {
+        for (const position of positions) {
+            if (position.cashPnl > 0) positionsWon += 1;
+        }
     }
 
-    const winRate = (positionsWon / positions.length) * 100;
+    const winRate = positions && positions.length > 0 ? (positionsWon / positions.length) * 100 : 0;
 
     const message = `
 <b>👤 Your Polymarket Profile</b>
@@ -54,6 +57,9 @@ export async function handleViewProfileCallback(ctx: Context) {
 ${emoji} <b>Lifetime PnL:</b> ${total_pnl.toFixed(3)} USDC
 💵 <b>Total Volume:</b> ${total_volume} USDC
 🔥 <b>Win Rate:</b> ${winRate.toFixed(1)}%
+
+🎟️ <b>Your Referral Code:</b> <code>${referral_code || "Not assigned"}</code>
+👥 <b>Referrals:</b> ${number_of_referrals || 0} users
 
 <a href="https://polymarket.com/profile/${wallet_address.toString()}">🔗 View on Polymarket</a>
 `;

@@ -217,6 +217,7 @@ Amount: ${orderPlaceAmountToShow} | Side: ${side}
                 userWallet: new ethers.Wallet(decryptedPrivateKey),
                 positionAmount: amount,
                 transactionType: "OPEN",
+                userId: userId,
             });
         }
 

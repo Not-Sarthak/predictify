@@ -306,7 +306,6 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         }
 
         message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
-
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),

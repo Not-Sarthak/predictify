@@ -12,16 +12,6 @@ Final Todo:
 
 ---
 
-Sarthak:
-
-- Referral System
-- Orderbook Format
-- Swap USDC to USDCe
-- Show History [API Call]
-
-Manav:
-
-
 Pending:
 
 1. PnL Card

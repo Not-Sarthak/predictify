@@ -133,27 +133,45 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             creds: apiCreds,
         });
 
-        const formatOrderBookLine = ({ price, size }: { price: string; size: string }) => {
-            const usdcValue = parseFloat(price) * parseFloat(size);
-            return `$${usdcValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        };
+        // Format order book in the requested style
+        let orderBookDisplay = `📈 **Order Book**\n\n`;
+        orderBookDisplay += `\`\`\`\n`;
+        orderBookDisplay += `Price     Size     Total\n`;
+        orderBookDisplay += `---------------------------\n`;
 
-        const yesBids = yesResponse.bids.slice(0, 5).map(formatOrderBookLine);
-        const noBids = noResponse.bids.slice(0, 5).map(formatOrderBookLine);
-
-        let orderBookDisplay = `📈 **Order Book**\n`;
-
-        if (yesBids.length > 0) {
-            orderBookDisplay += `**🟢 YES** (${yesBids.length} orders):\n${yesBids.join(" • ")}\n\n`;
-        } else {
-            orderBookDisplay += `**🟢 YES**: No Liquidity Available\n\n`;
+        // YES asks (top 4)
+        const yesAsks = yesResponse.asks.slice(0, 4).reverse();
+        for (const ask of yesAsks) {
+            const price = (parseFloat(ask.price) * 100).toFixed(1);
+            const size = parseInt(ask.size);
+            const total = parseFloat(ask.price) * size;
+            orderBookDisplay += `${price.padEnd(4)} ¢    ${size.toString().padEnd(8)} $${total.toFixed(0)}\n`;
         }
 
-        if (noBids.length > 0) {
-            orderBookDisplay += `**🔴 NO** (${noBids.length} orders):\n${noBids.join(" • ")}\n\n`;
-        } else {
-            orderBookDisplay += `**🔴 NO**: No Liquidity Available\n\n`;
+        // Calculate totals
+        const yesTotalSize = yesResponse.asks.reduce(
+            (sum: number, ask: any) => sum + parseInt(ask.size),
+            0
+        );
+        const noTotalSize = noResponse.asks.reduce(
+            (sum: number, ask: any) => sum + parseInt(ask.size),
+            0
+        );
+
+        const separator = `🔴 ${(yesTotalSize / 1000).toFixed(1)}K • ${(noTotalSize / 1000).toFixed(0)}K 🟢`;
+        const dashCount = Math.max(0, (27 - separator.length) / 2);
+        orderBookDisplay += `${"-".repeat(Math.floor(dashCount))} ${separator} ${"-".repeat(Math.ceil(dashCount))}\n`;
+
+        // NO bids (top 4)
+        const noBids = noResponse.bids.slice(0, 4);
+        for (const bid of noBids) {
+            const price = (parseFloat(bid.price) * 100).toFixed(1);
+            const size = parseInt(bid.size);
+            const total = parseFloat(bid.price) * size;
+            orderBookDisplay += `${price.padEnd(4)} ¢    ${size.toString().padEnd(8)} $${total.toFixed(0)}\n`;
         }
+
+        orderBookDisplay += `\`\`\`\n`;
 
         return orderBookDisplay;
     } catch (error) {
