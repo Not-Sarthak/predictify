@@ -1,12 +1,9 @@
 Final Todo:
 
 - [ ] ADD UNIT TESTS
-
-- [ ] DEV WORKFLOW
-    - [ ] Create another `dev` branch for building and testing WIP features
-    - [ ] Create another workflow file which deploys to development instance
-    - [ ] Create another TG Bot (for prod) connected to prod instance
-    - [ ] Create another EC2 Instance for production bot deployments
+- [ ] Setup Monorepo
+- [ ] Use Docker Compose
+- [ ] Add Status Service (for monitoring services & logs)
 
 1. PnL Card
 2. Notifications
@@ -28,8 +25,6 @@ Sarthak:
 - Show History [API Call]
 
 Manav:
-
-- Production Deployment
 
 Pending:
 
