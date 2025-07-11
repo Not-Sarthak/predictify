@@ -25,7 +25,12 @@ import {
     handleCopyTradeConfigureMenu,
     handleCopyTradeConfigCallbacks,
 } from "./autotrade";
-import { handleResetWallet, handleWalletSettingsMenu } from "./settings";
+import {
+    handleResetWallet,
+    handleSwapFundsCallback,
+    handleSwapFundsQuoteCallback,
+    handleWalletSettingsMenu,
+} from "./settings";
 import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
 import { handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
@@ -119,7 +124,11 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "swap_funds") {
-        // Add Handle Funds Swap Function here
+        return handleSwapFundsQuoteCallback(ctx);
+    }
+
+    if (data === "execute_swap") {
+        return handleSwapFundsCallback(ctx);
     }
 
     if (data === "reset_wallet") {

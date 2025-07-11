@@ -20,6 +20,9 @@ const QUOTER_V2_ADDRESS = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
 const SWAP_ROUTER_ADDRESS = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
 const POOL_FEE = 100; // 0.01% fee tier for USDC/USDCE
 
+const USDC_CONTRACT_ADDRESS = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+const USDCE_CONTRACT_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+
 const QUOTER_V2_ABI = [
     "function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)",
 ];
@@ -39,16 +42,12 @@ async function getProvider(): Promise<ethers.Provider> {
     return new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
 }
 
-export async function getQuote(
-    inputToken: string,
-    outputToken: string,
-    amount: number
-): Promise<SwapQuote> {
+export async function getQuote(amount: number): Promise<SwapQuote> {
     const provider = await getProvider();
     const quoterContract = new ethers.Contract(QUOTER_V2_ADDRESS, QUOTER_V2_ABI, provider);
 
-    const tokenInContract = new ethers.Contract(inputToken, ERC20_ABI, provider);
-    const tokenOutContract = new ethers.Contract(outputToken, ERC20_ABI, provider);
+    const tokenInContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
+    const tokenOutContract = new ethers.Contract(USDCE_CONTRACT_ADDRESS, ERC20_ABI, provider);
 
     const decimalsIn = await tokenInContract.decimals();
     const decimalsOut = await tokenOutContract.decimals();
@@ -57,8 +56,8 @@ export async function getQuote(
 
     try {
         const quoteParams = {
-            tokenIn: inputToken,
-            tokenOut: outputToken,
+            tokenIn: USDC_CONTRACT_ADDRESS,
+            tokenOut: USDCE_CONTRACT_ADDRESS,
             amountIn: amountIn,
             fee: POOL_FEE,
             sqrtPriceLimitX96: 0,
@@ -85,8 +84,6 @@ export async function getQuote(
 }
 
 export async function executeSwap(
-    inputToken: string,
-    outputToken: string,
     amount: number,
     slippageTolerance: number = 0.5,
     signer: ethers.Wallet
@@ -94,13 +91,13 @@ export async function executeSwap(
     const provider = await getProvider();
     const connectedSigner = signer.connect(provider);
 
-    const tokenInContract = new ethers.Contract(inputToken, ERC20_ABI, connectedSigner);
+    const tokenInContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, connectedSigner);
     const swapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, SWAP_ROUTER_ABI, connectedSigner);
 
     const decimalsIn = await tokenInContract.decimals();
     const amountIn = ethers.parseUnits(amount.toString(), decimalsIn);
 
-    const quote = await getQuote(inputToken, outputToken, amount);
+    const quote = await getQuote(amount);
     const minAmountOut =
         (BigInt(quote.amountOut) * BigInt(1000 - slippageTolerance * 10)) / BigInt(1000);
 
@@ -120,8 +117,8 @@ export async function executeSwap(
     }
 
     const swapParams = {
-        tokenIn: inputToken,
-        tokenOut: outputToken,
+        tokenIn: USDC_CONTRACT_ADDRESS,
+        tokenOut: USDCE_CONTRACT_ADDRESS,
         fee: POOL_FEE,
         recipient: signer.address,
         amountIn: amountIn,
