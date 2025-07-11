@@ -10,7 +10,7 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
 
     // Check if referral code exists
     const { data: referralData, error: referralError } = await db("Users")
-        .select("id")
+        .select("*")
         .eq("referred_code", referralCode)
         .single();
 
@@ -21,7 +21,7 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
     // Update referrer's count
     await db("Users")
         .update({
-            number_of_referrals: db.raw("number_of_referrals + 1"),
+            number_of_referrals: referralData.number_of_referrals || 0 + 1,
         })
         .eq("id", referralData.id);
 

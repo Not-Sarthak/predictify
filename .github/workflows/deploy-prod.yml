@@ -2,9 +2,11 @@ name: Build and Deploy to EC2 (Production)
 
 on:
     push:
-        branches: [main]
+        branches:
+            - main
         paths:
-            - 'src/**'
+            - "src/**"
+            - ".github/workflows/deploy-prod.yml"
 
 jobs:
     build-and-deploy:

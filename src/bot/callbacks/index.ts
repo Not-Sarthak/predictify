@@ -16,7 +16,7 @@ import {
     handleCloseTradePositions,
     handleViewTradePositions,
 } from "./trade";
-import { handleStartMenuCallbacks } from "./start";
+import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
 import {
     handleAddNewWalletCallback,
@@ -40,6 +40,7 @@ import { handleAutoTradeCommand } from "@/bot/commands";
 import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
+import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -48,6 +49,8 @@ export async function handleCallbackQuery(ctx: Context) {
     if (!data) {
         return ctx.answerCbQuery();
     }
+
+    console.log(data);
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
@@ -68,6 +71,10 @@ export async function handleCallbackQuery(ctx: Context) {
         const partialConditionId = data.split(":")[1];
         await ctx.answerCbQuery();
         return handleCloseOpenPosition(ctx, partialConditionId);
+    }
+
+    if (data === "view_profile") {
+        return handleViewProfileCallback(ctx).then(() => ctx.answerCbQuery());
     }
 
     // Handle autotrade callbacks
@@ -109,6 +116,10 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "bridge_funds") {
         return handleBridgeFunds(ctx);
+    }
+
+    if (data === "swap_funds") {
+        // Add Handle Funds Swap Function here
     }
 
     if (data.startsWith("selected_market:")) {
@@ -170,6 +181,19 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("market_details:")) {
         const marketId = data.split(":")[1];
         return handleMarketDetails(ctx, marketId);
+    }
+
+    if (data.startsWith("confirm_order:")) {
+        await ctx.answerCbQuery();
+
+        const textMessage = data.split(":")[1];
+        return handleOrderDetailsTextMessage(ctx, textMessage);
+    }
+
+    // TODO:FIX - Clear User Data from Redis
+    if (data === "cancel_order") {
+        await ctx.answerCbQuery();
+        return ctx.reply("✅ Order Cancelled!");
     }
 
     if (data.startsWith("limit_order:")) {

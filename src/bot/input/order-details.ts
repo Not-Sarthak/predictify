@@ -13,12 +13,11 @@ import { sellOrder } from "@/utils/polymarket-order/sell-order";
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
 import { decryptPrivateKey } from "@/utils/crypto";
+import { getMarketQuestion } from "@/bot/utils/get-market-question";
+import { getUserIdFromCtx } from "@/bot/utils";
 
-export async function handleOrderDetailsTextMessage(
-    ctx: Context,
-    textMessage: string,
-    userId: number
-) {
+export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
+    const userId = getUserIdFromCtx(ctx);
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 
     if (!orderContext.marketId || !orderContext.orderType) {
@@ -26,7 +25,10 @@ export async function handleOrderDetailsTextMessage(
     }
 
     const { marketId, orderType, side } = orderContext;
-    const userDetails = await getUserDetails(Number(userId));
+    const [userDetails, marketQuestion] = await Promise.all([
+        getUserDetails(Number(userId)),
+        getMarketQuestion(marketId),
+    ]);
 
     if (!userDetails) {
         return ctx.reply("⚠️ Error fetching your account details! Please try again later.");
@@ -139,17 +141,17 @@ export async function handleOrderDetailsTextMessage(
             );
         }
 
+        const amount =
+            orderType === "gtc"
+                ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
+                : Number(textMessage.trim());
+
+        const { fee, finalAmount } = feeTransaction(amount);
+        const { data } = await db("Users").select("*").eq("id", userId).single();
+
         // Update user stats for successful orders
         if (orderType !== "fok_sell") {
             try {
-                const amount =
-                    orderType === "gtc"
-                        ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                        : Number(textMessage.trim());
-
-                const { fee, finalAmount } = feeTransaction(amount);
-                const { data } = await db("Users").select("*").eq("id", userId).single();
-
                 await db("Users")
                     .update({
                         amount_deposited: data?.amount_deposited || 0 + finalAmount,
@@ -157,23 +159,52 @@ export async function handleOrderDetailsTextMessage(
                     })
                     .eq("id", userId);
             } catch (error) {
-                console.error("Error updating volume & fees: ", error);
+                console.error("Error updating Amount Deposited & Fees: ", error);
             }
         }
 
+        try {
+            await db("Users")
+                .update({
+                    total_volume: data?.total_volume || 0 + finalAmount,
+                })
+                .eq("id", userId);
+        } catch (error) {
+            console.error("Error updating Volume: ", error);
+        }
+
+        const orderPlaceAmountToShow =
+            orderType === "gtc"
+                ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
+                : Number(textMessage.trim());
+
+        const polygonScanMsg =
+            orderType !== "fok_sell"
+                ? `
+<a href="https://polygonscan.com/tx/${orderResponse?.tx}">View on Polygonscan</a>
+
+`
+                : `
+
+`;
+
+        const orderPlacedMessage =
+            `✅ Your Order is Placed!` +
+            `${polygonScanMsg}` +
+            `Market: ${marketQuestion}
+Amount: ${orderPlaceAmountToShow} | Side: ${side}
+`;
+
         // Success response
-        await Promise.all([
-            ctx.telegram.editMessageText(
-                ctx.chat!.id,
-                sentMessage.message_id,
-                undefined,
-                "✅ Your Order is Placed!"
-            ),
-            ctx.reply(
-                `🧾 **Order Confirmation**\n\nOrder ID: \`${orderResponse?.response.orderID}\`\nType: ${orderType.toUpperCase()}\nSide: ${side}`,
-                { parse_mode: "Markdown" }
-            ),
-        ]);
+        await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            sentMessage.message_id,
+            undefined,
+            orderPlacedMessage,
+            {
+                parse_mode: "HTML",
+            }
+        );
 
         // Transfer fees for buy orders
         if (orderType !== "fok_sell") {

@@ -45,11 +45,10 @@ bot.on(message("text"), handleUserTextMessage);
 bot.on("callback_query", handleCallbackQuery);
 
 // Error Handling
-bot.catch((err, ctx) => {
+bot.catch((err, _ctx) => {
     try {
-        if (ctx.reply) {
+        if (err) {
             console.error(err);
-            ctx.reply("❌ An Error Occurred. Please Try Again Later.");
         }
     } catch (replyError) {
         console.error("Failed To Send Error Message To User:", replyError);
