@@ -14,6 +14,7 @@ import {
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
 import { handleFundCommand } from "@/bot/commands/fund";
+
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
 const awaitingWalletDetailsInputSet = new Set<string>();

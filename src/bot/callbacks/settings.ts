@@ -7,6 +7,9 @@ import {
     getUserWrappedUSDCBalance,
 } from "@/helpers/get-user-balance";
 import { db } from "@/lib/supabase";
+import { CHAIN_ID, HOST } from "@/shared/constants";
+import { encryptPrivateKey } from "@/utils/crypto";
+import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
 import { Markup, type Context } from "telegraf";
 
 export async function handleSettingsMenu(ctx: Context) {
@@ -48,4 +51,31 @@ export async function handleWalletSettingsMenu(ctx: Context) {
         parse_mode: "HTML",
         reply_markup: walletSettingsMenu.reply_markup,
     });
+}
+
+export async function handleResetWallet(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const { address, privateKey, solanaAddress, solanaPrivateKey, apiCreds } =
+        await generateAPIKeyAndWallet({ host: HOST, chainId: CHAIN_ID });
+
+    try {
+        const { error } = await db("Users")
+            .update({
+                wallet_address: address,
+                private_key: encryptPrivateKey(privateKey),
+                solana_address: solanaAddress,
+                solana_private_key: encryptPrivateKey(solanaPrivateKey),
+                api_credentials: JSON.stringify(apiCreds),
+            })
+            .eq("id", userId);
+
+        if (error) {
+            throw new Error(error.message, { cause: error.cause });
+        }
+    } catch (error) {
+        console.error("Failed to update user wallet details in db: ", error);
+        return ctx.reply("❌ Internal Server Error");
+    }
+
+    return ctx.reply("✅ Wallet Reset Successfully");
 }

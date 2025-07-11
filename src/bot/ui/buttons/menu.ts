@@ -50,6 +50,7 @@ export const WALLET_SETTINGS_MENU = [
     [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
     [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
     [Markup.button.callback("🔁 Swap USDCe to USDC", "swap_funds")],
+    [Markup.button.callback("🔄️ Reset Wallet", "reset_wallet")],
     [BRIDGE_BUTTON],
     [CLOSE_BUTTON],
 ];
