@@ -32,11 +32,8 @@ import {
     handleWalletSettingsMenu,
 } from "./settings";
 import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
-import {
-    handleBridgeAmount,
-    handleBridgeConfirm,
-    handleBridgeFunds,
-} from "@/utils/debridge/functions/bridge-handler";
+import { handleWithdrawSOL, handleWithdrawUSDC } from "@/utils/withdrawal/index";
+import { handleBridgeConfirm, handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
 import { awaitingOrderDetailsInputSet } from "@/bot";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
@@ -127,11 +124,12 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleBridgeFunds(ctx);
     }
 
-    if (data.startsWith("bridge_amount:")) {
-        const amount = data.split(":")[1];
+    if (data === "withdraw_sol") {
+        return handleWithdrawSOL(ctx);
+    }
 
-        await ctx.answerCbQuery();
-        return handleBridgeAmount(ctx, amount);
+    if (data === "withdraw_usdc") {
+        return handleWithdrawUSDC(ctx);
     }
 
     if (data.startsWith("bridge_confirm:")) {
