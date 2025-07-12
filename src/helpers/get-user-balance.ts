@@ -78,17 +78,3 @@ export const getSOLBalance = async (address: string): Promise<number> => {
         return 0;
     }
 };
-
-export const getUserTotalBalance = async (
-    evmAddress: string,
-    solanaAddress?: string | null
-): Promise<number> => {
-    try {
-        const usdcBalance = await getUserUSDCBalance(evmAddress);
-        const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
-        return usdcBalance + solBalance;
-    } catch (error) {
-        console.error("Error calculating total balance:", error);
-        return 0;
-    }
-};

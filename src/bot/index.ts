@@ -13,8 +13,8 @@ import {
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
-import { handleFundCommand } from "@/bot/commands/fund";
 import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
+import { handleViewTradePositions } from "@/bot/callbacks/trade";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -37,9 +37,9 @@ bot.command("start", handleStartCommand);
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeCommand);
-bot.command("fund", handleFundCommand);
-bot.command("settings", handleSettingsCommand);
+bot.command("fund", handleSettingsCommand);
 bot.command("history", handleUserTradeHistoryCommand);
+bot.command("portfolio", handleViewTradePositions);
 
 // Text Input Handlers
 bot.on(message("text"), handleUserTextMessage);

@@ -4,7 +4,6 @@ import {
     manageUserCopyTrade,
     escapeMarkdown,
     formatCurrentTradePositionsMessage,
-    formatCurrentTradePositionsMessageForViewing,
     formatDate,
     formatDollarVolume,
     getUserByIdFromDb,
@@ -12,6 +11,7 @@ import {
     layoutButtons,
     padButtonText,
     formatOrderBook,
+    formatSinglePositionMessage,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
@@ -103,16 +103,35 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
     }
 
-    const formattedMessages = formatCurrentTradePositionsMessageForViewing(userPositions);
+    const { text, markup } = formatSinglePositionMessage(userPositions[0], 0, userPositions.length);
 
-    for (const { text, markup } of formattedMessages) {
-        await ctx.reply(text, {
-            parse_mode: "Markdown",
-            reply_markup: markup,
-        });
+    await ctx.reply(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
+}
+
+export async function handleTradePagination(ctx: Context, page: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const userAddress = await getUserAddressFromId(userId);
+
+    if (!userAddress) {
+        return ctx.answerCbQuery("No Wallet Linked");
     }
 
-    return ctx.answerCbQuery();
+    const userPositions = await getUserPosition({ user: userAddress });
+
+    const pageIndex = parseInt(page);
+    const position = userPositions[pageIndex];
+
+    if (!position) return ctx.answerCbQuery("Page not found");
+
+    const { text, markup } = formatSinglePositionMessage(position, pageIndex, userPositions.length);
+
+    return ctx.editMessageText(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {

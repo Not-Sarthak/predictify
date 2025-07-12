@@ -3,7 +3,6 @@ import { generateWalletDetailsMessage } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
 import {
     getSOLBalance,
-    getUserTotalBalance,
     getUserUSDCBalance,
     getUserWrappedUSDCBalance,
 } from "@/helpers/get-user-balance";
@@ -35,18 +34,16 @@ export async function handleWalletSettingsMenu(ctx: Context) {
     const evmWalletAddress = user.wallet_address;
     const solanaWalletAddress = user.solana_address;
 
-    const [usdcBalance, solBalance, totalBalance] = await Promise.all([
+    const [usdcBalance, solBalance] = await Promise.all([
         getUserWrappedUSDCBalance(evmWalletAddress),
         solanaWalletAddress ? getSOLBalance(solanaWalletAddress) : Promise.resolve(0),
-        getUserTotalBalance(evmWalletAddress, solanaWalletAddress),
     ]);
 
     const message = generateWalletDetailsMessage(
         evmWalletAddress,
         solanaWalletAddress,
         usdcBalance,
-        solBalance,
-        totalBalance
+        solBalance
     );
 
     const walletSettingsMenu = Markup.inlineKeyboard(WALLET_SETTINGS_MENU);
