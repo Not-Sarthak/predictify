@@ -223,7 +223,7 @@ export async function handleCallbackQuery(ctx: Context) {
 
     // TODO:FIX - Clear User Data from Redis
     if (data === "cancel_order") {
-        await ctx.answerCbQuery();
+        await ctx.answerCbQuery().then(() => ctx.deleteMessage());
         return ctx.reply("✅ Order Cancelled!");
     }
 
