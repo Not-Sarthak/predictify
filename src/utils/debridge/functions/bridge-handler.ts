@@ -6,6 +6,7 @@ import type { deBridgeOrderInput } from "../types";
 import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { awaitingBridgeAmountInputSet } from "../../../bot";
+import { CLOSE_BUTTON } from "@/bot/ui/buttons";
 
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
@@ -58,7 +59,7 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
                 Markup.button.callback("5 SOL", `bridge_amount:5`),
                 Markup.button.callback("Custom", `bridge_amount:custom`),
             ],
-            [Markup.button.callback("🔙 Back", "back_to_main_menu")],
+            [CLOSE_BUTTON],
         ];
 
         const message = `🌉 **Bridge SOL to USDC (Polygon)**
@@ -94,7 +95,7 @@ export async function handleBridgeAmount(ctx: Context, amount: string): Promise<
                 "✍️ Please enter the amount of SOL you want to bridge:\n\nExample: 1.5",
                 {
                     parse_mode: "Markdown",
-                    ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Back", "bridge_funds")]]),
+                    ...Markup.inlineKeyboard([CLOSE_BUTTON]),
                 }
             );
             return;
@@ -198,7 +199,7 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
         const confirmButtons = [
             [Markup.button.callback("✅ Confirm Bridge", `bridge_confirm:${userId}`)],
-            [Markup.button.callback("🔙 Back", "bridge_funds")],
+            [CLOSE_BUTTON],
         ];
 
         await ctx.telegram.editMessageText(

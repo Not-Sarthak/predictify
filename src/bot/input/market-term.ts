@@ -1,12 +1,8 @@
-import { awaitingMarketTermInputSet } from "@/bot";
+import { CLOSE_BUTTON } from "@/bot/ui/buttons";
 import { padButtonText } from "@/bot/utils";
 import { Markup, type Context } from "telegraf";
 
-export async function handleMarketTermTextMessage(
-    ctx: Context,
-    textMessage: string,
-    userId: string
-) {
+export async function handleMarketTermTextMessage(ctx: Context, textMessage: string) {
     const queryText = textMessage.split(/\s+/)[0].toLowerCase();
 
     const response = await fetch(
@@ -29,15 +25,13 @@ export async function handleMarketTermTextMessage(
         ]);
     }
 
-    if (marketData.length > 5) {
+    if (marketData.length === 5) {
         marketTitleButtons.push([
             Markup.button.callback("Next Markets ⏭️", `fetch_markets:${queryText}:next:5`),
         ]);
     }
 
-    awaitingMarketTermInputSet.delete(userId);
-
     return ctx.reply("Markets: ", {
-        reply_markup: Markup.inlineKeyboard(marketTitleButtons).reply_markup,
+        reply_markup: Markup.inlineKeyboard([...marketTitleButtons, [CLOSE_BUTTON]]).reply_markup,
     });
 }

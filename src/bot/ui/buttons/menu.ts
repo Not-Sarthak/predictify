@@ -49,8 +49,8 @@ export const AUTO_TRADE_MENU_BUTTONS = [
 export const WALLET_SETTINGS_MENU = [
     [Markup.button.callback("🔑 Export EVM Private Key", "export_private_key:evm")],
     [Markup.button.callback("🔑 Export Solana Private Key", "export_private_key:solana")],
-    [BRIDGE_BUTTON],
     [Markup.button.callback("🔁 Swap USDC to USDCe", "swap_funds")],
+    [BRIDGE_BUTTON],
     [Markup.button.callback("🔄️ Reset Wallet", "reset_wallet")],
     [CLOSE_BUTTON],
 ];

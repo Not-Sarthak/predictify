@@ -87,7 +87,6 @@ export const generateWalletDetailsMessage = (
 <b>💰 Balances</b>
 <b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
 <b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL
-<b>📊 Total:</b> $${totalBalance.toLocaleString()}
 `.trim();
 };
 

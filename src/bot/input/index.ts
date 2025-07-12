@@ -35,12 +35,12 @@ export async function handleUserTextMessage(ctx: Context) {
         return handleWalletDetailsTextMessage(ctx, textMessage, userId);
     }
 
-    if (awaitingMarketTermInputSet.has(userId.toString())) {
-        return handleMarketTermTextMessage(ctx, textMessage, userId.toString());
-    }
-
     if (awaitingOrderDetailsInputSet.has(userId.toString())) {
         return handleConfirmOrder(ctx, textMessage);
+    }
+
+    if (awaitingMarketTermInputSet.has(userId.toString())) {
+        return handleMarketTermTextMessage(ctx, textMessage);
     }
 
     if (awaitingWalletMonitorInputSet.has(userId.toString())) {

@@ -20,23 +20,19 @@ Pending:
 4. Twitter Bot
 
 
-Track My Trade
-
-
-Reset wallet above close
-direct quote no buttons
-withdraw to sol -> enter destination address -> transfer
-withdraw to usdc
-minimum order $20
-fix max profit
-remove total balance
-sell order not working
-add pagination to portfolio
+sell order not working [buttons]
 limit orders with button to cancel
-search in sequence
+
 
 Manav:
 Portfolio button in Menu
 Rename settings to fund and remove fund
+minimum order $20
+add pagination to portfolio
+Track My Trade
+
 
 Sarthak
+direct quote no buttons
+withdraw to sol -> enter destination address -> transfer
+withdraw to usdc
