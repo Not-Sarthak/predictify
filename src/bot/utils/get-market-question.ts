@@ -1,9 +1,15 @@
 export async function getMarketQuestion(marketId: string): Promise<string | null> {
-    try {
-        const res = await fetch(`https://gamma-api.polymarket.com/markets?id=${marketId}`);
-        const market = await res.json();
+    let url;
 
-        console.log(market);
+    if (marketId.startsWith("0x")) {
+        url = `https://gamma-api.polymarket.com/markets?conditionId=${marketId}`;
+    } else {
+        url = `https://gamma-api.polymarket.com/markets?id=${marketId}`;
+    }
+
+    try {
+        const res = await fetch(url);
+        const market = await res.json();
 
         if (!market) return null;
 

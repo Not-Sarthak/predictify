@@ -1,6 +1,14 @@
 export async function getTokenId(decision: string, marketId: string) {
+    let url;
+
+    if (marketId.startsWith("0x")) {
+        url = `https://gamma-api.polymarket.com/markets?conditionId=${marketId}`;
+    } else {
+        url = `https://gamma-api.polymarket.com/markets?id=${marketId}`;
+    }
+
     try {
-        const response = await fetch(`https://gamma-api.polymarket.com/markets?id=${marketId}`);
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!data || !Array.isArray(data) || data.length === 0) {
