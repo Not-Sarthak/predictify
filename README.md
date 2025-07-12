@@ -18,10 +18,3 @@ Pending:
 2. Notifications
 3. Tag Bot and Give Info
 4. Twitter Bot
-
-
-sell order not working [buttons]
-limit orders with button to cancel
-
-
-Sarthak

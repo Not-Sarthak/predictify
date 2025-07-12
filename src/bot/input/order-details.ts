@@ -1,5 +1,4 @@
 import type { Context } from "telegraf";
-
 import { awaitingMarketTermInputSet, awaitingOrderDetailsInputSet } from "@/bot";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
@@ -8,13 +7,18 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import type { ApiKeyCreds } from "@/types/polymarket/api-key";
 import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
-import { ensureTokenApproval, marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
-import { sellOrder } from "@/utils/polymarket-order/sell-order";
+import {
+    ensureTokenApproval,
+    marketBuyOrder,
+    marketSellOrder,
+} from "@/utils/polymarket-order/market-buy-order";
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { getMarketQuestion } from "@/bot/utils/get-market-question";
 import { getUserIdFromCtx } from "@/bot/utils";
+import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -44,10 +48,10 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
     const sentMessage = await ctx.reply("⏳ Placing your order...");
     let orderResponse;
+    let position: any;
 
     try {
         if (orderType === "gtc") {
-            // Limit Order: expects "<price> <size>"
             const [price, size] = textMessage.split(/\s+/).slice(0, 2);
 
             if (!price || !size || isNaN(Number(price)) || isNaN(Number(size))) {
@@ -73,7 +77,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 privateKey: decryptedPrivateKey,
             });
         } else if (orderType === "fok") {
-            // Market Order: expects "<amount>"
             const amount = Number(textMessage.trim());
 
             if (isNaN(amount) || amount <= 0) {
@@ -99,35 +102,48 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 orderType: OrderType.FOK,
             });
         } else if (orderType === "fok_sell") {
-            // Sell Position: expects "<size>"
-            const size = Number(textMessage.trim());
+            const isAutoExecute = orderContext.autoExecute === "true";
+            const amount = isAutoExecute ? Number(orderContext.amount) : Number(textMessage.trim());
 
-            if (isNaN(size) || size <= 0) {
+            if (isNaN(amount) || amount <= 0) {
                 return ctx.reply(
-                    "❌ Invalid size! Please enter a valid number of shares.\nExample: `25`",
+                    "❌ Invalid amount! Please enter a valid number of shares.\nExample: `25`",
                     { parse_mode: "Markdown" }
                 );
             }
 
-            // For sell orders, we need to determine which token (YES/NO) the user wants to sell
-            // This could be enhanced to show user's positions and let them choose
-            // For now, we'll use a simple approach - ask user to specify
-            const tokenIdYes = await getTokenId("yes", marketId);
-            const tokenIdNo = await getTokenId("no", marketId);
+            if (orderContext.maxSize) {
+                const maxSize = Number(orderContext.maxSize);
+                if (amount > maxSize) {
+                    return ctx.reply(
+                        `❌ You only have ${maxSize} shares. Please enter a valid amount.`,
+                        { parse_mode: "Markdown" }
+                    );
+                }
+            }
 
-            if (!tokenIdYes || !tokenIdNo) {
+            const userAddress = await getUserAddressFromId(userId);
+            if (!userAddress) {
+                return ctx.reply("⚠️ Error fetching your wallet address!");
+            }
+
+            position = await getUserPositionByMarket(userAddress, marketId);
+            if (!position || position.size <= 0) {
+                return ctx.reply("❌ You don't have any shares in this market to sell.");
+            }
+
+            const tokenId = await getTokenId(position.outcome.toLowerCase(), marketId);
+
+            if (!tokenId) {
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
 
-            // Use a default sell price for FOK - this should ideally be market price
-            const sellPrice = 0.5; // This should be fetched from current market price
-
-            orderResponse = await sellOrder({
-                tokenId: tokenIdYes, // Default to YES token - this should be user-selectable
-                size: size,
-                price: sellPrice,
-                orderType: OrderType.FOK,
+            orderResponse = await marketSellOrder({
+                privateKey: decryptedPrivateKey,
                 creds: apiCreds,
+                tokenId: tokenId,
+                amount: amount, // number of shares to sell
+                orderType: OrderType.FOK,
             });
         } else {
             return ctx.reply("❌ Invalid Order Type!");
@@ -145,12 +161,15 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const amount =
             orderType === "gtc"
                 ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                : Number(textMessage.trim());
+                : orderType === "fok_sell"
+                  ? orderContext.autoExecute === "true"
+                      ? Number(orderContext.amount)
+                      : Number(textMessage.trim())
+                  : Number(textMessage.trim());
 
         const { fee, finalAmount } = feeTransaction(amount);
         const { data } = await db("Users").select("*").eq("id", userId).single();
 
-        // Update user stats for successful orders
         if (orderType !== "fok_sell") {
             try {
                 await db("Users")
@@ -177,12 +196,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const orderPlaceAmountToShow =
             orderType === "gtc"
                 ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                : Number(textMessage.trim());
+                : orderType === "fok_sell"
+                  ? orderContext.autoExecute === "true"
+                      ? Number(orderContext.amount)
+                      : Number(textMessage.trim())
+                  : Number(textMessage.trim());
 
         const polygonScanMsg =
             orderType !== "fok_sell"
                 ? `
-<a href="https://polygonscan.com/tx/${orderResponse?.tx}">View on Polygonscan</a>
+<a href="https://polygonscan.com/tx/${orderResponse?.response?.tx}">View on Polygonscan</a>
 
 `
                 : `
@@ -190,13 +213,17 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 `;
 
         const orderPlacedMessage =
-            `✅ Your Order is Placed!` +
-            `${polygonScanMsg}` +
-            `Market: ${marketQuestion}
+            orderType === "fok_sell"
+                ? `✅ Your Sell Order is Placed!\n\n` +
+                  `Market: ${marketQuestion}\n` +
+                  `Shares Sold: ${orderPlaceAmountToShow}\n` +
+                  `Outcome: ${position?.outcome || "Unknown"}`
+                : `✅ Your Order is Placed!` +
+                  `${polygonScanMsg}` +
+                  `Market: ${marketQuestion}
 Amount: ${orderPlaceAmountToShow} | Side: ${side}
 `;
 
-        // Success response
         await ctx.telegram.editMessageText(
             ctx.chat!.id,
             sentMessage.message_id,
@@ -207,7 +234,6 @@ Amount: ${orderPlaceAmountToShow} | Side: ${side}
             }
         );
 
-        // Transfer fees for buy orders
         if (orderType !== "fok_sell") {
             const amount =
                 orderType === "gtc"
@@ -229,7 +255,7 @@ Amount: ${orderPlaceAmountToShow} | Side: ${side}
             ctx.chat!.id,
             sentMessage.message_id,
             undefined,
-            "❌ There was an error placing your order! Please contact support."
+            "❌ Error Placing Order"
         );
     }
 }

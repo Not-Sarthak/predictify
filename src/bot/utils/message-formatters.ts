@@ -47,7 +47,6 @@ export function formatCurrentTradePositionsMessageForViewing(
 
         const text = `*${index + 1})* ${title}\n${pnlEmoji} ${pnlLabel}: ${pnlColor} *${cashPnl.toFixed(2)}* USDC`;
 
-        // TODO - Add Functionality
         const markup = Markup.inlineKeyboard([
             [
                 Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
