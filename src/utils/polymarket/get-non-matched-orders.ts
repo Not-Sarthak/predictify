@@ -13,6 +13,5 @@ export async function getUnmatchedOpenOrders(clobClient: ClobClient, walletAddre
         return unmatchedOrders;
     } catch (error) {
         console.error("Error Fetching Unmatched Open Orders:", error);
-        throw error;
     }
 }

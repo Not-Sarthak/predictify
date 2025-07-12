@@ -16,6 +16,7 @@ import {
     handleCloseTradePositions,
     handleViewTradePositions,
     handleTradePagination,
+    handleCancelOrderCallback,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -441,6 +442,13 @@ export async function handleCallbackQuery(ctx: Context) {
             parse_mode: "HTML",
             reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
         });
+    }
+
+    if (data.startsWith("cancel_order:")) {
+        const orderId = decodeMarketId(data.split(":")[1]);
+
+        await ctx.answerCbQuery();
+        return handleCancelOrderCallback(ctx, orderId);
     }
 
     if (data === "close_message") {

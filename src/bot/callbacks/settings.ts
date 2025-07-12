@@ -165,9 +165,6 @@ export async function handleSwapFundsCallback(ctx: Context) {
             messageToSend,
             {
                 parse_mode: "Markdown",
-                reply_markup: Markup.inlineKeyboard([
-                    Markup.button.callback("✅ Execute Swap", "execute_swap"),
-                ]).reply_markup,
             }
         );
     } catch (err) {
