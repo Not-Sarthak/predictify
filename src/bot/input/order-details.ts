@@ -1,4 +1,4 @@
-import type { Context } from "telegraf";
+import { Markup, type Context } from "telegraf";
 
 import { awaitingMarketTermInputSet, awaitingOrderDetailsInputSet } from "@/bot";
 import { redisClient } from "@/lib/redis";
@@ -15,6 +15,7 @@ import { ethers } from "ethers";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { getMarketQuestion } from "@/bot/utils/get-market-question";
 import { getUserIdFromCtx } from "@/bot/utils";
+import { ADMIN_USERS_ID } from "@/shared/constants/misc";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -44,6 +45,24 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
     const sentMessage = await ctx.reply("⏳ Placing your order...");
     let orderResponse;
+    let isOrderSizeGreaterThanOrEqualTo20 = true;
+
+    if (orderType === "gtc") {
+        const [price, size] = textMessage.split(/\s+/).slice(0, 2);
+        isOrderSizeGreaterThanOrEqualTo20 = Number(price) * Number(size) >= 20;
+    } else if (orderType === "fok") {
+        const amount = Number(textMessage.trim());
+        isOrderSizeGreaterThanOrEqualTo20 = amount >= 20;
+    }
+
+    if (!isOrderSizeGreaterThanOrEqualTo20 && !ADMIN_USERS_ID.includes(userId)) {
+        return await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            sentMessage.message_id,
+            undefined,
+            "❌ Order Size must be at least 20."
+        );
+    }
 
     try {
         if (orderType === "gtc") {
@@ -204,6 +223,12 @@ Amount: ${orderPlaceAmountToShow} | Side: ${side}
             orderPlacedMessage,
             {
                 parse_mode: "HTML",
+                reply_markup: Markup.inlineKeyboard([
+                    Markup.button.url(
+                        "📊 Track My Order",
+                        `https://polymarket.com/profile/${userDetails.wallet_address}`
+                    ),
+                ]).reply_markup,
             }
         );
 

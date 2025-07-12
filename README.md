@@ -19,18 +19,11 @@ Pending:
 3. Tag Bot and Give Info
 4. Twitter Bot
 
-
 sell order not working [buttons]
 limit orders with button to cancel
 
-
 Manav:
-Portfolio button in Menu
-Rename settings to fund and remove fund
-minimum order $20
 add pagination to portfolio
-Track My Trade
-
 
 Sarthak
 direct quote no buttons
