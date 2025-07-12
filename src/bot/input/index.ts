@@ -12,11 +12,11 @@ import {
 import { getUserIdFromCtx } from "@/bot/utils";
 import { handleWalletDetailsTextMessage } from "@/bot/input/wallet-details";
 import { handleMarketTermTextMessage } from "@/bot/input/market-term";
-import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
 import { handleConfigTextMessage } from "@/bot/input/config-details";
 import { handleCustomBridgeAmount } from "../../utils/debridge/functions/bridge-handler";
 import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
+import { handleConfirmOrder } from "@/bot/callbacks/trade";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -40,7 +40,7 @@ export async function handleUserTextMessage(ctx: Context) {
     }
 
     if (awaitingOrderDetailsInputSet.has(userId.toString())) {
-        return handleOrderDetailsTextMessage(ctx, textMessage, userId);
+        return handleConfirmOrder(ctx, textMessage);
     }
 
     if (awaitingWalletMonitorInputSet.has(userId.toString())) {

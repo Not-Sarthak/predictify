@@ -88,7 +88,7 @@ export async function generateReferralCodes(
     try {
         const codes = [];
         for (let i = 0; i < count; i++) {
-            const code = generateRandomString(8);
+            const code = generateRandomString(6);
             codes.push(code);
 
             await db("Users").insert({
@@ -107,5 +107,28 @@ export async function generateReferralCodes(
     } catch (error) {
         console.error("Error generating referral codes:", error);
         return reply.code(500).send({ error: "Internal server error" });
+    }
+}
+
+export async function checkReferralCode(
+    request: FastifyRequest<{
+        Querystring: {
+            code: string;
+        };
+    }>,
+    reply: FastifyReply
+) {
+    const { code } = request.query;
+
+    if (!code) {
+        return reply.code(400).send({ valid: false });
+    }
+
+    try {
+        const { data } = await db("Users").select("id").eq("referral_code", code).single();
+
+        return reply.send({ valid: !!data });
+    } catch (error) {
+        return reply.send({ valid: false });
     }
 }

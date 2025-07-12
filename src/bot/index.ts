@@ -14,6 +14,8 @@ import {
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
 import { handleFundCommand } from "@/bot/commands/fund";
+import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
+
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
 const awaitingWalletDetailsInputSet = new Set<string>();
@@ -37,6 +39,7 @@ bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeCommand);
 bot.command("fund", handleFundCommand);
 bot.command("settings", handleSettingsCommand);
+bot.command("history", handleUserTradeHistoryCommand);
 
 // Text Input Handlers
 bot.on(message("text"), handleUserTextMessage);
@@ -45,11 +48,10 @@ bot.on(message("text"), handleUserTextMessage);
 bot.on("callback_query", handleCallbackQuery);
 
 // Error Handling
-bot.catch((err, ctx) => {
+bot.catch((err, _ctx) => {
     try {
-        if (ctx.reply) {
+        if (err) {
             console.error(err);
-            ctx.reply("❌ An Error Occurred. Please Try Again Later.");
         }
     } catch (replyError) {
         console.error("Failed To Send Error Message To User:", replyError);

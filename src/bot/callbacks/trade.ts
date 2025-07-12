@@ -1,5 +1,5 @@
 import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
-import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -105,11 +105,14 @@ export async function handleViewTradePositions(ctx: Context) {
 
     const formattedMessages = formatCurrentTradePositionsMessageForViewing(userPositions);
 
-    const replyText = formattedMessages.join("\n\n");
-    return ctx.reply(replyText, {
-        parse_mode: "Markdown",
-        reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
-    });
+    for (const { text, markup } of formattedMessages) {
+        await ctx.reply(text, {
+            parse_mode: "Markdown",
+            reply_markup: markup,
+        });
+    }
+
+    return ctx.answerCbQuery();
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
@@ -303,7 +306,6 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         }
 
         message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
-
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -714,4 +716,48 @@ export async function handleCloseOpenPosition(ctx: Context, conditionId: string)
 
     await ctx.deleteMessage(message_id);
     ctx.reply("✅ Your position was closed successfully!");
+}
+
+// TODO:FIX - Calculate Potential Profit
+export async function handleConfirmOrder(ctx: Context, textMsg: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const textMsgArray = textMsg.split(" ");
+
+    const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
+    const { marketId, side } = orderContext;
+
+    const market = await getMarketById(marketId);
+
+    let price = null;
+    let size = null;
+
+    price = Number(textMsgArray[0]);
+    if (textMsgArray.length === 2) {
+        size = textMsgArray[1];
+    }
+
+    const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const shares = side === "YES" ? price / outcomes[0] : price / outcomes[1];
+
+    const message = `
+📌 *${escapeMarkdown(market.question)}*
+📅 Ends: ${formatDate(market.endDate)}
+🔷 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
+
+🔷 Buying *${side}* with *${price}*
+
+• Shares: ${size || Math.floor(shares)}
+• Price: ${side === "YES" ? outcomes[0] : outcomes[1]}
+• Potential Profit: $100.00
+
+Tap *Confirm* to place the order.
+`;
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("✅ Confirm", `confirm_order:${textMsg}`)],
+            [Markup.button.callback("❌ Cancel", "cancel_order")],
+        ]).reply_markup,
+    });
 }
