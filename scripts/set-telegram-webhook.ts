@@ -1,11 +1,11 @@
 /**
- * IMP: Use -p flag for setting production webhook
+ * IMP: Use -s flag for setting staging webhook
  */
 
 import { configDotenv, DotenvParseOutput } from "dotenv";
 
-const isProd = process.argv.includes("-p");
-const envFile = isProd ? ".env.production" : ".env";
+const isProd = process.argv.includes("-s");
+const envFile = isProd ? ".env.staging" : ".env";
 
 const { parsed: env, error } = configDotenv({ path: envFile });
 

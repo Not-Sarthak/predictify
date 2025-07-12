@@ -6,7 +6,7 @@ import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./utils";
 // import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
 
-export async function main() {
+async function main() {
     // Starts the API Server
     const { error } = await tryCatch(apiServer.listen({ port: API_SERVER_PORT, host: "0.0.0.0" }));
     if (error) {
