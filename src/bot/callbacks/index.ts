@@ -116,6 +116,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("export_private_key:")) {
         const network = data.split(":")[1] as "evm" | "solana";
+
+        await ctx.answerCbQuery();
         return handleExportPrivateKey(ctx, network);
     }
 

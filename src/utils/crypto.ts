@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { env } from "@/config";
+import bs58 from "bs58";
+import { Keypair } from "@solana/web3.js";
 
 const PK_ENCRYPTION_KEY = Buffer.from(env.PRIVATE_KEY_ENCRYPTION_KEY, "hex"); // Private Key Encryption key
 const IV_LENGTH = 12; // GCM nonce length
@@ -27,4 +29,9 @@ export const decryptPrivateKey = (encryptedBase64: string): string => {
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
     return decrypted.toString("utf-8");
+};
+
+export const decodePrivateKey = (decryptedKey: string) => {
+    const secretKey = bs58.decode(decryptedKey);
+    return Keypair.fromSecretKey(secretKey);
 };

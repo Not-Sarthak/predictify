@@ -7,7 +7,6 @@ import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "@/shared/constants";
 import { encryptPrivateKey } from "@/utils/crypto";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { generateRandomString } from "@/utils/encoding";
 
@@ -70,13 +69,6 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
     // Send welcome message
     const balance = await getUserWrappedUSDCBalance(address);
     const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
-
-    const message = generateWelcomeMessage(
-        address,
-        solanaAddress || "N/A",
-        balance.toString(),
-        solBalance
-    );
 
     const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
