@@ -28,9 +28,12 @@ export async function handleMarketTermTextMessage(
             ),
         ]);
     }
-    marketTitleButtons.push([
-        Markup.button.callback("Next Markets ⏭️", `fetch_markets:${queryText}:next:5`),
-    ]);
+
+    if (marketData.length > 5) {
+        marketTitleButtons.push([
+            Markup.button.callback("Next Markets ⏭️", `fetch_markets:${queryText}:next:5`),
+        ]);
+    }
 
     awaitingMarketTermInputSet.delete(userId);
 

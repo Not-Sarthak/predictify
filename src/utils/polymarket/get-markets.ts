@@ -247,13 +247,3 @@ export async function getMarketById(marketId: string) {
         return null;
     }
 }
-
-// getMarketOrderBook({
-//     tokenId: ["25009308950201377351599447846248861147611469669632550804193755818060327719237"],
-//     privateKey: "0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3",
-//     creds: {
-//         key: "f3e137a7-3a85-d6fa-292a-3db867dcd441",
-//         secret: "8qfO6fgz14qvKZPKO-74PRuepSbaexlJLVtscoPnsLY=",
-//         passphrase: "d1294f22392578c29e9caaeac0ae40bcc2c37a75578bdf78dafd38178bc25a9e",
-//     },
-// });

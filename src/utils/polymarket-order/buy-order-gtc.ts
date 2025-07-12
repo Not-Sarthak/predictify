@@ -21,6 +21,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     try {
         const wallet = new ethers.Wallet(orderRequest.privateKey);
         const walletAddress = await wallet.getAddress();
+        let txHash;
 
         const networkOk = await checkNetworkConnection();
         if (!networkOk) {
@@ -39,7 +40,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
         }
 
         try {
-            await setUSDCAllowance(wallet, totalCost.toString());
+            txHash = await setUSDCAllowance(wallet, totalCost.toString());
         } catch (error) {
             console.error("Error setting USDC Allowance: ", error);
             return {
@@ -73,7 +74,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
                 throw new Error(response.error);
             }
 
-            return { response, error: null };
+            return { response, tx: txHash, error: null };
         } catch (error) {
             console.error("Error Creating GTC Order: ", error);
             return {

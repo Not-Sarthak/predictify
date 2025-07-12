@@ -63,6 +63,8 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
     const balance = await getUserWrappedUSDCBalance(wallet.address);
     const totalCost = marketBuyOrderRequest.amount;
 
+    let txHash;
+
     if (balance < totalCost) {
         return {
             response: null,
@@ -71,7 +73,7 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
     }
 
     try {
-        await setUSDCAllowance(wallet, totalCost.toString());
+        txHash = await setUSDCAllowance(wallet, totalCost.toString());
     } catch (error) {
         console.error("Error setting USDC Allowance: ", error);
         return {
@@ -94,7 +96,7 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
             throw new Error(response.error);
         }
 
-        return { response, error: null };
+        return { response, tx: txHash, error: null };
     } catch (error) {
         console.error("Error placing Order: ", error);
         return { response: null, error };
