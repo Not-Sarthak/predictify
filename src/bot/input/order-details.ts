@@ -1,6 +1,6 @@
 import type { Context } from "telegraf";
 
-import { awaitingOrderDetailsInputSet } from "@/bot";
+import { awaitingMarketTermInputSet, awaitingOrderDetailsInputSet } from "@/bot";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { getTokenId } from "@/helpers/get-token-id";
@@ -35,6 +35,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     }
 
     awaitingOrderDetailsInputSet.delete(userId.toString());
+    awaitingMarketTermInputSet.delete(userId.toString());
     await redisClient.del(`user:order_context:${userId}`);
 
     const { private_key, api_credentials } = userDetails;

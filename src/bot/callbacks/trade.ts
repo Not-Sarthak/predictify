@@ -718,7 +718,6 @@ export async function handleCloseOpenPosition(ctx: Context, conditionId: string)
     ctx.reply("✅ Your position was closed successfully!");
 }
 
-// TODO:FIX - Calculate Potential Profit
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
     const textMsgArray = textMsg.split(" ");
@@ -737,7 +736,18 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     }
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
-    const shares = side === "YES" ? price / outcomes[0] : price / outcomes[1];
+    const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+
+    let shares: number;
+    let potentialProfit: number;
+
+    if (size) {
+        shares = Number(size);
+        potentialProfit = shares * (1 - price);
+    } else {
+        shares = price / pricePerShare;
+        potentialProfit = shares * (1 - pricePerShare);
+    }
 
     const message = `
 📌 *${escapeMarkdown(market.question)}*
@@ -748,7 +758,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
 • Shares: ${size || Math.floor(shares)}
 • Price: ${side === "YES" ? outcomes[0] : outcomes[1]}
-• Potential Profit: $100.00
+• Potential Profit: $${potentialProfit.toFixed(2)}
 
 Tap *Confirm* to place the order.
 `;
