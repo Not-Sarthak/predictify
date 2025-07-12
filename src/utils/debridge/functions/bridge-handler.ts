@@ -5,7 +5,6 @@ import { ChainId } from "../types";
 import type { deBridgeOrderInput } from "../types";
 import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
-import { awaitingBridgeAmountInputSet } from "../../../bot";
 import { CLOSE_BUTTON } from "@/bot/ui/buttons";
 
 const SOLANA_CHAIN_ID = ChainId.Solana;
@@ -46,65 +45,9 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
             return;
         }
 
-        const amountButtons = [
-            [
-                Markup.button.callback("0.1 SOL", `bridge_amount:0.1`),
-                Markup.button.callback("0.5 SOL", `bridge_amount:0.5`),
-            ],
-            [
-                Markup.button.callback("1 SOL", `bridge_amount:1`),
-                Markup.button.callback("2 SOL", `bridge_amount:2`),
-            ],
-            [
-                Markup.button.callback("5 SOL", `bridge_amount:5`),
-                Markup.button.callback("Custom", `bridge_amount:custom`),
-            ],
-            [CLOSE_BUTTON],
-        ];
-
-        const message = `🌉 **Bridge SOL to USDC (Polygon)**
-
-Current SOL Balance: **${solBalance.toFixed(4)} SOL**
-
-Select the Amount You Want to Bridge:`;
-
-        await ctx.reply(message, {
-            parse_mode: "Markdown",
-            ...Markup.inlineKeyboard(amountButtons),
-        });
+        await fetchAndShowQuote(ctx, solBalance.toString());
     } catch (error) {
-        console.error("Error in handleBridgeFunds:", error);
-        await ctx.reply("❌ An error occurred while preparing the bridge. Please try again.");
-    }
-}
-
-export async function handleBridgeAmount(ctx: Context, amount: string): Promise<void> {
-    const userId = ctx.from?.id.toString();
-    if (!userId) {
-        await ctx.answerCbQuery();
-        await ctx.reply("❌ Unable to identify user.");
-        return;
-    }
-
-    try {
-        await ctx.answerCbQuery();
-
-        if (amount === "custom") {
-            awaitingBridgeAmountInputSet.add(userId);
-            await ctx.reply(
-                "✍️ Please enter the amount of SOL you want to bridge:\n\nExample: 1.5",
-                {
-                    parse_mode: "Markdown",
-                    ...Markup.inlineKeyboard([CLOSE_BUTTON]),
-                }
-            );
-            return;
-        }
-
-        await fetchAndShowQuote(ctx, amount);
-    } catch (error) {
-        console.error("Error in handleBridgeAmount:", error);
-        await ctx.reply("❌ An error occurred. Please try again.");
+        await ctx.reply("❌ An Error Occurred While Preparing the Bridge. Please Try Again.");
     }
 }
 
@@ -294,22 +237,6 @@ You can track your transaction status using DeBridge explorer.`;
             `❌ Bridge execution failed: ${error instanceof Error ? error.message : "Unknown error"}`
         );
     }
-}
-
-export async function handleCustomBridgeAmount(ctx: Context, inputAmount: string): Promise<void> {
-    const amount = parseFloat(inputAmount.trim());
-
-    if (isNaN(amount) || amount <= 0) {
-        await ctx.reply("❌ Invalid Amount. Please Enter a Valid Number.");
-        return;
-    }
-
-    if (amount < 0.01) {
-        await ctx.reply("❌ Minimum Bridge Amount is 0.01 SOL.");
-        return;
-    }
-
-    await fetchAndShowQuote(ctx, amount.toString());
 }
 
 export async function handleBridgeStatus(ctx: Context, userId: string): Promise<void> {

@@ -6,6 +6,7 @@ import type {
 
 import { type ApiKeyCreds, ClobClient } from "@polymarket/clob-client";
 import { Wallet } from "ethers";
+import { env } from "@/config";
 
 export const getUserPosition = async (request: UserPositionRequest) => {
     const response = await axios.get<UserPositionResponse[]>(
@@ -59,7 +60,7 @@ export async function getOpenOrders({ mainnet, apiKey, secret, passphrase }: Get
         passphrase,
     };
 
-    const wallet = new Wallet("0x68afd4e25df9f64382038e4aae0ec7ba4a9833c1079dc1521538656a9d2ef1c3");
+    const wallet = new Wallet(env.PRIVATE_KEY);
 
     const clobClient = new ClobClient("http://clob.polymarket.com/", chainId, wallet as any, creds);
 

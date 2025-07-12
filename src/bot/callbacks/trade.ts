@@ -4,7 +4,6 @@ import {
     manageUserCopyTrade,
     escapeMarkdown,
     formatCurrentTradePositionsMessage,
-    formatCurrentTradePositionsMessageForViewing,
     formatDate,
     formatDollarVolume,
     getUserByIdFromDb,
@@ -12,6 +11,7 @@ import {
     layoutButtons,
     padButtonText,
     formatOrderBook,
+    formatSinglePositionMessage,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
@@ -29,6 +29,8 @@ import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
+import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
+import type { ApiKeyCreds } from "@/types/polymarket";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -103,16 +105,35 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
     }
 
-    const formattedMessages = formatCurrentTradePositionsMessageForViewing(userPositions);
+    const { text, markup } = formatSinglePositionMessage(userPositions[0], 0, userPositions.length);
 
-    for (const { text, markup } of formattedMessages) {
-        await ctx.reply(text, {
-            parse_mode: "Markdown",
-            reply_markup: markup,
-        });
+    await ctx.reply(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
+}
+
+export async function handleTradePagination(ctx: Context, page: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const userAddress = await getUserAddressFromId(userId);
+
+    if (!userAddress) {
+        return ctx.answerCbQuery("No Wallet Linked");
     }
 
-    return ctx.answerCbQuery();
+    const userPositions = await getUserPosition({ user: userAddress });
+
+    const pageIndex = parseInt(page);
+    const position = userPositions[pageIndex];
+
+    if (!position) return ctx.answerCbQuery("Page not found");
+
+    const { text, markup } = formatSinglePositionMessage(position, pageIndex, userPositions.length);
+
+    return ctx.editMessageText(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
 }
 
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
@@ -770,4 +791,28 @@ Tap *Confirm* to place the order.
             [Markup.button.callback("❌ Cancel", "cancel_order")],
         ]).reply_markup,
     });
+}
+
+export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const user = await getUserDetails(userId);
+
+    if (!user) {
+        return ctx.reply("❌ User does not exist");
+    }
+
+    const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
+
+    try {
+        await cancelOrder({
+            privateKey: user.private_key,
+            creds: api_creds,
+            orderIds: [orderId],
+        });
+
+        return ctx.reply("✅ Order Successfully Cancelled!");
+    } catch (error) {
+        console.error("Error cancelling the Order: ", error);
+        return ctx.reply("❌ Order could not be Cancelled. Please try again later.");
+    }
 }

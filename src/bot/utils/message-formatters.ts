@@ -2,8 +2,7 @@ import { getMarketOrderBook } from "@/utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { decryptPrivateKey } from "@/utils/crypto";
-import { Markup } from "telegraf";
-import { encodeMarketId } from "@/utils/encoding";
+import { createPaginationKeyboard } from "@/bot/ui/messages";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -32,44 +31,6 @@ export function formatDate(dateString: string): string {
 
 export function formatActiveSubscriptionsMessage(categories: string[]): string {
     return `You're Subscribed To:\n• ${categories.join("\n• ")}`;
-}
-
-export function formatCurrentTradePositionsMessageForViewing(
-    userPositions: UserPositionResponse[]
-) {
-    const messages = userPositions.map((position, index) => {
-        const { title, cashPnl, conditionId } = position;
-
-        const isProfit = cashPnl > 0;
-        const pnlEmoji = isProfit ? "📈" : "📉";
-        const pnlLabel = isProfit ? "Profit" : "Loss";
-        const pnlColor = isProfit ? "🟢" : "🔴";
-
-        const text = `*${index + 1})* ${title}\n${pnlEmoji} ${pnlLabel}: ${pnlColor} *${cashPnl.toFixed(2)}* USDC`;
-
-        // TODO - Add Functionality
-        const markup = Markup.inlineKeyboard([
-            [
-                Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
-                Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
-                Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
-            ],
-            [
-                Markup.button.callback(
-                    "Buy More Market",
-                    `buy_market_${encodeMarketId(conditionId)}`
-                ),
-                Markup.button.callback(
-                    "Buy More Limit",
-                    `buy_limit_${encodeMarketId(conditionId)}`
-                ),
-            ],
-        ]).reply_markup;
-
-        return { text, markup };
-    });
-
-    return [...messages];
 }
 
 export function formatCurrentTradePositionsMessage(userPositions: UserPositionResponse[]) {
@@ -192,4 +153,57 @@ export function padButtonText(text: string, maxLength = 40): string {
 
     const pad = "\u00A0".repeat(extraSpaces); // Non-breaking space padding
     return text + pad;
+}
+
+export function formatSinglePositionMessage(
+    position: UserPositionResponse,
+    index: number,
+    total: number
+) {
+    const {
+        title,
+        cashPnl,
+        percentPnl,
+        conditionId,
+        outcome,
+        size,
+        avgPrice,
+        curPrice,
+        initialValue,
+        currentValue,
+        endDate,
+    } = position;
+
+    const isProfit = cashPnl >= 0;
+    const pnlEmoji = isProfit ? "📈" : "📉";
+    const pnlColor = isProfit ? "🟢" : "🔴";
+    const pnlSign = isProfit ? "+" : "";
+
+    const percentPnlFormatted = `${pnlSign}${percentPnl.toFixed(1)}%`;
+    const cashPnlFormatted = `${pnlSign}${cashPnl.toFixed(2)}`;
+    const avgPriceFormatted = `$${avgPrice.toFixed(4)}`;
+    const curPriceFormatted = `$${curPrice.toFixed(4)}`;
+    const initialValueFormatted = `$${initialValue.toFixed(2)}`;
+    const currentValueFormatted = `$${currentValue.toFixed(2)}`;
+    const expiryDateFormatted = new Date(endDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+
+    const text = `
+*📊 Your Polymarket Dashboard*
+
+*${index + 1}/${total} - ${title}*
+
+${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} shares @ ${avgPriceFormatted}
+🎯 *Current Price:* ${curPriceFormatted}
+${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})
+💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}
+📆 *Expires:* ${expiryDateFormatted}
+    `.trim();
+
+    const markup = createPaginationKeyboard(conditionId, index, total);
+
+    return { text, markup };
 }

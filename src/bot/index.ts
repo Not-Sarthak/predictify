@@ -13,8 +13,9 @@ import {
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
-import { handleFundCommand } from "@/bot/commands/fund";
 import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
+import { handleViewTradePositions } from "@/bot/callbacks/trade";
+import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -23,8 +24,8 @@ const awaitingMarketTermInputSet = new Set<string>();
 const awaitingOrderDetailsInputSet = new Set<string>();
 const awaitingWalletMonitorInputSet = new Set<string>();
 const awaitingConfigInputSet = new Map<string, string>();
-const awaitingBridgeAmountInputSet = new Set<string>();
 const awaitingReferralCodeInputSet = new Set<string>();
+const awaitingWithdrawalInputSet = new Set<string>();
 
 bot.telegram.setMyCommands(botCommands);
 
@@ -37,9 +38,10 @@ bot.command("start", handleStartCommand);
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeCommand);
-bot.command("fund", handleFundCommand);
-bot.command("settings", handleSettingsCommand);
+bot.command("fund", handleSettingsCommand);
 bot.command("history", handleUserTradeHistoryCommand);
+bot.command("portfolio", handleViewTradePositions);
+bot.command("cancel", handleCancelOpenOrdersCommand);
 
 // Text Input Handlers
 bot.on(message("text"), handleUserTextMessage);
@@ -65,6 +67,6 @@ export {
     awaitingOrderDetailsInputSet,
     awaitingWalletMonitorInputSet,
     awaitingConfigInputSet,
-    awaitingBridgeAmountInputSet,
     awaitingReferralCodeInputSet,
+    awaitingWithdrawalInputSet,
 };

@@ -9,6 +9,7 @@ import {
     getUserIdFromCtx,
 } from "@/bot/utils";
 import type { InlineKeyboardMarkup } from "telegraf/types";
+import { encodeMarketId } from "@/utils/encoding";
 
 export const generateWelcomeMessage = (
     evm_address: string,
@@ -74,8 +75,7 @@ export const generateWalletDetailsMessage = (
     evmWalletAddress: string,
     solanaWalletAddress: string | null,
     usdcBalance: number,
-    solBalance: number,
-    totalBalance: number
+    solBalance: number
 ) => {
     return `
 <b>💼 Wallet Overview</b>
@@ -87,7 +87,6 @@ export const generateWalletDetailsMessage = (
 <b>💰 Balances</b>
 <b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
 <b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL
-<b>📊 Total:</b> $${totalBalance.toLocaleString()}
 `.trim();
 };
 
@@ -140,3 +139,26 @@ export const generateAutoTradeMenu = async (
 
     return { message: statusMessage, replyMarkup: markup };
 };
+
+export function createPaginationKeyboard(conditionId: string, index: number, total: number) {
+    const baseButtons = [
+        Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
+        Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
+        Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
+    ];
+    const buyButtons = [
+        Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
+        Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
+    ];
+
+    const paginationButtons = [];
+
+    if (index > 0) {
+        paginationButtons.push(Markup.button.callback("⬅️ Prev", `portfolio_page:${index - 1}`));
+    }
+    if (index < total - 1) {
+        paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
+    }
+
+    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons]).reply_markup;
+}

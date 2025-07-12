@@ -128,7 +128,7 @@ export async function marketSellOrder(request: MarketSellOrderRequest) {
 
         return { response, error: null };
     } catch (error) {
-        console.error("Error placing sell order:", error);
+        console.error("Error Placing Sell Order:", error);
         return { response: null, error };
     }
 }

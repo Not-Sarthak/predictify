@@ -6,17 +6,17 @@ import {
     awaitingOrderDetailsInputSet,
     awaitingWalletDetailsInputSet,
     awaitingWalletMonitorInputSet,
-    awaitingBridgeAmountInputSet,
     awaitingReferralCodeInputSet,
+    awaitingWithdrawalInputSet,
 } from "@/bot";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { handleWalletDetailsTextMessage } from "@/bot/input/wallet-details";
 import { handleMarketTermTextMessage } from "@/bot/input/market-term";
 import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
 import { handleConfigTextMessage } from "@/bot/input/config-details";
-import { handleCustomBridgeAmount } from "../../utils/debridge/functions/bridge-handler";
 import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
 import { handleConfirmOrder } from "@/bot/callbacks/trade";
+import { handleWithdrawalInput } from "@/utils/withdrawal/index";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -56,9 +56,8 @@ export async function handleUserTextMessage(ctx: Context) {
         );
     }
 
-    if (awaitingBridgeAmountInputSet.has(userId.toString())) {
-        awaitingBridgeAmountInputSet.delete(userId.toString());
-        return handleCustomBridgeAmount(ctx, textMessage);
+    if (awaitingWithdrawalInputSet.has(userId.toString())) {
+        return handleWithdrawalInput(ctx, textMessage);
     }
 
     return ctx.reply("❌ I didn't understand that. Try using the menu.");

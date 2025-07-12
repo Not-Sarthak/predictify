@@ -15,6 +15,8 @@ import {
     handleCloseOpenPosition,
     handleCloseTradePositions,
     handleViewTradePositions,
+    handleTradePagination,
+    handleCancelOrderCallback,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -32,11 +34,8 @@ import {
     handleWalletSettingsMenu,
 } from "./settings";
 import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
-import {
-    handleBridgeAmount,
-    handleBridgeConfirm,
-    handleBridgeFunds,
-} from "@/utils/debridge/functions/bridge-handler";
+import { handleWithdrawSOL, handleWithdrawUSDC } from "@/utils/withdrawal/index";
+import { handleBridgeConfirm, handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
 import { awaitingOrderDetailsInputSet } from "@/bot";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
@@ -50,6 +49,9 @@ import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
+import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
+import { decodeMarketId } from "@/utils/encoding";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -127,11 +129,12 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleBridgeFunds(ctx);
     }
 
-    if (data.startsWith("bridge_amount:")) {
-        const amount = data.split(":")[1];
+    if (data === "withdraw_sol") {
+        return handleWithdrawSOL(ctx);
+    }
 
-        await ctx.answerCbQuery();
-        return handleBridgeAmount(ctx, amount);
+    if (data === "withdraw_usdc") {
+        return handleWithdrawUSDC(ctx);
     }
 
     if (data.startsWith("bridge_confirm:")) {
@@ -160,6 +163,11 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "trade_position_view") {
         return handleViewTradePositions(ctx).then(() => ctx.answerCbQuery());
+    }
+
+    if (data.startsWith("portfolio_page")) {
+        const page = data.split(":")[1];
+        return handleTradePagination(ctx, page);
     }
 
     if (data === "trade_position_open") {
@@ -292,6 +300,82 @@ export async function handleCallbackQuery(ctx: Context) {
         );
     }
 
+    // Handle sell percentage callbacks
+    if (
+        data.startsWith("sell_50_") ||
+        data.startsWith("sell_100_") ||
+        data.startsWith("sell_custom_")
+    ) {
+        const parts = data.split("_");
+        const sellType = parts[1]; // "50", "100", or "custom"
+        const conditionId = parts.slice(2).join("_"); // Handle encoded market IDs
+        const decodedConditionId = decodeMarketId(conditionId);
+
+        const userId = getUserIdFromCtx(ctx);
+        const userAddress = await getUserAddressFromId(userId);
+
+        if (!userAddress) {
+            await ctx.answerCbQuery("❌ User wallet not found");
+            return ctx.reply("❌ Unable to find your wallet. Please contact support.");
+        }
+
+        // Get user's position for this market
+        const position = await getUserPositionByMarket(userAddress, decodedConditionId);
+
+        if (!position || position.size <= 0) {
+            await ctx.answerCbQuery("❌ No position found");
+            return ctx.reply("❌ You don't have any shares in this market to sell.");
+        }
+
+        // Calculate amount based on sell type
+        let amountToSell: number;
+
+        if (sellType === "50") {
+            amountToSell = Math.floor(position.size * 0.5);
+        } else if (sellType === "100") {
+            amountToSell = position.size;
+        } else if (sellType === "custom") {
+            // For custom, we need to ask the user for the amount
+            await redisClient.hSet(`user:order_context:${userId}`, {
+                marketId: decodedConditionId,
+                orderType: "fok_sell",
+                side: "SELL",
+                maxSize: position.size.toString(),
+            });
+
+            awaitingOrderDetailsInputSet.add(userId.toString());
+            await ctx.answerCbQuery();
+            return ctx.reply(
+                `💵 **Sell Custom Amount**\n\n` +
+                    `You currently have **${position.size}** shares.\n\n` +
+                    `Enter the number of shares you want to sell:\n\n` +
+                    `**Format:** \`<shares>\`\n` +
+                    `**Example:** \`${Math.floor(position.size * 0.25)}\`\n\n`,
+                { parse_mode: "Markdown" }
+            );
+        } else {
+            await ctx.answerCbQuery("❌ Invalid sell type");
+            return ctx.reply("❌ Invalid sell type selected. Please try again.");
+        }
+
+        if (amountToSell <= 0) {
+            await ctx.answerCbQuery("❌ Invalid amount");
+            return ctx.reply("❌ Unable to calculate sell amount. Please try again.");
+        }
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId: decodedConditionId,
+            orderType: "fok_sell",
+            side: "SELL",
+            amount: amountToSell.toString(),
+            autoExecute: "true",
+        });
+
+        await ctx.answerCbQuery(`Processing ${sellType}% sell order...`);
+
+        return handleOrderDetailsTextMessage(ctx, amountToSell.toString());
+    }
+
     if (data.startsWith("delete_copy_wallet:")) {
         const walletAddress = data.split(":")[1];
         await handleDeleteUserWallet(ctx, walletAddress);
@@ -358,6 +442,13 @@ export async function handleCallbackQuery(ctx: Context) {
             parse_mode: "HTML",
             reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
         });
+    }
+
+    if (data.startsWith("cancel_order:")) {
+        const orderId = decodeMarketId(data.split(":")[1]);
+
+        await ctx.answerCbQuery();
+        return handleCancelOrderCallback(ctx, orderId);
     }
 
     if (data === "close_message") {

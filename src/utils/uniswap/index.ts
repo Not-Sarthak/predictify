@@ -42,12 +42,16 @@ async function getProvider(): Promise<ethers.Provider> {
     return new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
 }
 
-export async function getQuote(amount: number): Promise<SwapQuote> {
+export async function getQuote(
+    amount: number,
+    tokenIn: string = USDC_CONTRACT_ADDRESS,
+    tokenOut: string = USDCE_CONTRACT_ADDRESS
+): Promise<SwapQuote> {
     const provider = await getProvider();
     const quoterContract = new ethers.Contract(QUOTER_V2_ADDRESS, QUOTER_V2_ABI, provider);
 
-    const tokenInContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, provider);
-    const tokenOutContract = new ethers.Contract(USDCE_CONTRACT_ADDRESS, ERC20_ABI, provider);
+    const tokenInContract = new ethers.Contract(tokenIn, ERC20_ABI, provider);
+    const tokenOutContract = new ethers.Contract(tokenOut, ERC20_ABI, provider);
 
     const decimalsIn = await tokenInContract.decimals();
     const decimalsOut = await tokenOutContract.decimals();
@@ -56,8 +60,8 @@ export async function getQuote(amount: number): Promise<SwapQuote> {
 
     try {
         const quoteParams = {
-            tokenIn: USDC_CONTRACT_ADDRESS,
-            tokenOut: USDCE_CONTRACT_ADDRESS,
+            tokenIn,
+            tokenOut,
             amountIn: amountIn,
             fee: POOL_FEE,
             sqrtPriceLimitX96: 0,
@@ -86,18 +90,20 @@ export async function getQuote(amount: number): Promise<SwapQuote> {
 export async function executeSwap(
     amount: number,
     slippageTolerance: number = 0.5,
-    signer: ethers.Wallet
+    signer: ethers.Wallet,
+    tokenIn: string = USDC_CONTRACT_ADDRESS,
+    tokenOut: string = USDCE_CONTRACT_ADDRESS
 ): Promise<SwapResult> {
     const provider = await getProvider();
     const connectedSigner = signer.connect(provider);
 
-    const tokenInContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, ERC20_ABI, connectedSigner);
+    const tokenInContract = new ethers.Contract(tokenIn, ERC20_ABI, connectedSigner);
     const swapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, SWAP_ROUTER_ABI, connectedSigner);
 
     const decimalsIn = await tokenInContract.decimals();
     const amountIn = ethers.parseUnits(amount.toString(), decimalsIn);
 
-    const quote = await getQuote(amount);
+    const quote = await getQuote(amount, tokenIn, tokenOut);
     const minAmountOut =
         (BigInt(quote.amountOut) * BigInt(1000 - slippageTolerance * 10)) / BigInt(1000);
 
@@ -117,8 +123,8 @@ export async function executeSwap(
     }
 
     const swapParams = {
-        tokenIn: USDC_CONTRACT_ADDRESS,
-        tokenOut: USDCE_CONTRACT_ADDRESS,
+        tokenIn,
+        tokenOut,
         fee: POOL_FEE,
         recipient: signer.address,
         amountIn: amountIn,
@@ -142,26 +148,31 @@ export async function executeSwap(
     };
 }
 
-// Example usage:
-//
-// import { ethers } from 'ethers';
-// import { getQuote, executeSwap } from './index';
-//
-// // Get quote for swapping 2 USDC to USDC.e
-// const quote = await getQuote(
-//   '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // USDC address
-//   '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC.e address
-//   2
-// );
-// console.log('Quote:', quote);
-//
-// // Execute swap
-// const signer = new ethers.Wallet(process.env.PRIVATE_KEY!);
-// const result = await executeSwap(
-//   '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // USDC address
-//   '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC.e address
-//   2,
-//   0.5, // 0.5% slippage tolerance
-//   signer
-// );
-// console.log('Swap result:', result);
+// Convenience functions for common swaps
+export async function executeSwapUSDCtoUSDCe(
+    amount: number,
+    slippageTolerance: number = 0.5,
+    signer: ethers.Wallet
+): Promise<SwapResult> {
+    return executeSwap(
+        amount,
+        slippageTolerance,
+        signer,
+        USDC_CONTRACT_ADDRESS,
+        USDCE_CONTRACT_ADDRESS
+    );
+}
+
+export async function executeSwapUSDCeToUSDC(
+    amount: number,
+    slippageTolerance: number = 0.5,
+    signer: ethers.Wallet
+): Promise<SwapResult> {
+    return executeSwap(
+        amount,
+        slippageTolerance,
+        signer,
+        USDCE_CONTRACT_ADDRESS,
+        USDC_CONTRACT_ADDRESS
+    );
+}
