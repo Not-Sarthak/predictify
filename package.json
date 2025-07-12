@@ -41,7 +41,10 @@
     "fastify": "^5.4.0",
     "redis": "^5.5.6",
     "telegraf": "^4.16.3",
-    "zod": "^3.25.67"
+    "zod": "^3.25.67",
+    "@uniswap/sdk-core": "^3.0.1",
+    "@uniswap/smart-order-router": "^2.5.30",
+    "@uniswap/v3-sdk": "^3.8.3"
   },
   "lint-staged": {
     "**/*.ts": [
