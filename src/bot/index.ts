@@ -14,6 +14,7 @@ import {
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
 import { handleFundCommand } from "@/bot/commands/fund";
+import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -38,6 +39,7 @@ bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeCommand);
 bot.command("fund", handleFundCommand);
 bot.command("settings", handleSettingsCommand);
+bot.command("history", handleUserTradeHistoryCommand);
 
 // Text Input Handlers
 bot.on(message("text"), handleUserTextMessage);

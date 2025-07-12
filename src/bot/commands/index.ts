@@ -33,4 +33,8 @@ export const botCommands: BotCommand[] = [
         command: "settings",
         description: "Update preferences like wallet or notification settings",
     },
+    {
+        command: "history",
+        description: "View your Trade History",
+    },
 ];
