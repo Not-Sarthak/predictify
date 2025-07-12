@@ -352,6 +352,9 @@ export async function handleCallbackQuery(ctx: Context) {
                     `**Example:** \`${Math.floor(position.size * 0.25)}\`\n\n`,
                 { parse_mode: "Markdown" }
             );
+        } else {
+            await ctx.answerCbQuery("❌ Invalid sell type");
+            return ctx.reply("❌ Invalid sell type selected. Please try again.");
         }
 
         if (amountToSell <= 0) {
@@ -359,18 +362,16 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Unable to calculate sell amount. Please try again.");
         }
 
-        // Store order context and process the sell
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId: decodedConditionId,
             orderType: "fok_sell",
             side: "SELL",
             amount: amountToSell.toString(),
-            autoExecute: "true", // Flag to auto-execute without user input
+            autoExecute: "true",
         });
 
         await ctx.answerCbQuery(`Processing ${sellType}% sell order...`);
 
-        // Trigger the order processing
         return handleOrderDetailsTextMessage(ctx, amountToSell.toString());
     }
 
