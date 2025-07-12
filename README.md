@@ -25,5 +25,3 @@ limit orders with button to cancel
 
 
 Sarthak
-withdraw to sol -> enter destination address -> transfer
-withdraw to usdc
