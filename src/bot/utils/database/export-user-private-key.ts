@@ -26,7 +26,6 @@ export async function handleExportPrivateKey(ctx: Context, network: "evm" | "sol
     }
 
     const decryptedPrivateKey = decryptPrivateKey(privateKey);
-
     return ctx.reply(
         `Your ${network === "evm" ? "EVM" : "Solana"} Private Key: <tg-spoiler>${decryptedPrivateKey}</tg-spoiler>`,
         {
