@@ -54,7 +54,7 @@ jobs:
                       echo "Running new container..."
                       docker run -d \
                         --name tg-bot \
-                        --env-file /home/ubuntu/tg-bot/.env.production \
+                        --env-file /home/ubuntu/tg-bot-prod/.env.production \
                         --restart unless-stopped \
                         -p 3000:3000 \
                         -p 4000:4000 \
