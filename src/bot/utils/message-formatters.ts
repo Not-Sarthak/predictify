@@ -4,6 +4,7 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { Markup } from "telegraf";
 import { encodeMarketId } from "@/utils/encoding";
+import { createPaginationKeyboard } from "@/bot/ui/messages";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -192,4 +193,57 @@ export function padButtonText(text: string, maxLength = 40): string {
 
     const pad = "\u00A0".repeat(extraSpaces); // Non-breaking space padding
     return text + pad;
+}
+
+export function formatSinglePositionMessage(
+    position: UserPositionResponse,
+    index: number,
+    total: number
+) {
+    const {
+        title,
+        cashPnl,
+        percentPnl,
+        conditionId,
+        outcome,
+        size,
+        avgPrice,
+        curPrice,
+        initialValue,
+        currentValue,
+        endDate,
+    } = position;
+
+    const isProfit = cashPnl >= 0;
+    const pnlEmoji = isProfit ? "📈" : "📉";
+    const pnlColor = isProfit ? "🟢" : "🔴";
+    const pnlSign = isProfit ? "+" : "";
+
+    const percentPnlFormatted = `${pnlSign}${percentPnl.toFixed(1)}%`;
+    const cashPnlFormatted = `${pnlSign}${cashPnl.toFixed(2)}`;
+    const avgPriceFormatted = `$${avgPrice.toFixed(4)}`;
+    const curPriceFormatted = `$${curPrice.toFixed(4)}`;
+    const initialValueFormatted = `$${initialValue.toFixed(2)}`;
+    const currentValueFormatted = `$${currentValue.toFixed(2)}`;
+    const expiryDateFormatted = new Date(endDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+
+    const text = `
+*📊 Your Polymarket Dashboard*
+
+*${index + 1}/${total} - ${title}*
+
+${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} shares @ ${avgPriceFormatted}
+🎯 *Current Price:* ${curPriceFormatted}
+${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})
+💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}
+📆 *Expires:* ${expiryDateFormatted}
+    `.trim();
+
+    const markup = createPaginationKeyboard(conditionId, index, total);
+
+    return { text, markup };
 }

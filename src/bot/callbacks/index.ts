@@ -15,6 +15,7 @@ import {
     handleCloseOpenPosition,
     handleCloseTradePositions,
     handleViewTradePositions,
+    handleTradePagination,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -160,6 +161,11 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "trade_position_view") {
         return handleViewTradePositions(ctx).then(() => ctx.answerCbQuery());
+    }
+
+    if (data.startsWith("portfolio_page")) {
+        const page = data.split(":")[1];
+        return handleTradePagination(ctx, page);
     }
 
     if (data === "trade_position_open") {

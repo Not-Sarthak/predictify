@@ -22,9 +22,6 @@ Pending:
 sell order not working [buttons]
 limit orders with button to cancel
 
-Manav:
-add pagination to portfolio
-
 Sarthak
 direct quote no buttons
 withdraw to sol -> enter destination address -> transfer
