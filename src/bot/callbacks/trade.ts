@@ -29,6 +29,8 @@ import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
+import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
+import type { ApiKeyCreds } from "@/types/polymarket";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -789,4 +791,28 @@ Tap *Confirm* to place the order.
             [Markup.button.callback("❌ Cancel", "cancel_order")],
         ]).reply_markup,
     });
+}
+
+export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const user = await getUserDetails(userId);
+
+    if (!user) {
+        return ctx.reply("❌ User does not exist");
+    }
+
+    const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
+
+    try {
+        await cancelOrder({
+            privateKey: user.private_key,
+            creds: api_creds,
+            orderIds: [orderId],
+        });
+
+        return ctx.reply("✅ Order Successfully Cancelled!");
+    } catch (error) {
+        console.error("Error cancelling the Order: ", error);
+        return ctx.reply("❌ Order could not be Cancelled. Please try again later.");
+    }
 }
