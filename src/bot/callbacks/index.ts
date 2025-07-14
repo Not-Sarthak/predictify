@@ -61,6 +61,8 @@ export async function handleCallbackQuery(ctx: Context) {
         return ctx.answerCbQuery();
     }
 
+    console.log(data);
+
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
         return handleStartMenuCallbacks(ctx, target);
@@ -77,9 +79,9 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("close_position:")) {
-        const partialConditionId = data.split(":")[1];
+        const encodedConditioId = data.split(":")[1];
         await ctx.answerCbQuery();
-        return handleCloseOpenPosition(ctx, partialConditionId);
+        return handleCloseOpenPosition(ctx, encodedConditioId);
     }
 
     if (data === "view_profile") {
@@ -319,7 +321,6 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Unable to find your wallet. Please contact support.");
         }
 
-        // Get user's position for this market
         const position = await getUserPositionByMarket(userAddress, decodedConditionId);
 
         if (!position || position.size <= 0) {
@@ -335,15 +336,11 @@ export async function handleCallbackQuery(ctx: Context) {
         } else if (sellType === "100") {
             amountToSell = position.size;
         } else if (sellType === "custom") {
-            // For custom, we need to ask the user for the amount
             await redisClient.hSet(`user:order_context:${userId}`, {
-                marketId: decodedConditionId,
-                orderType: "fok_sell",
-                side: "SELL",
-                maxSize: position.size.toString(),
+                marketId: conditionId,
             });
 
-            await setUserInputState(userId.toString(), "orderDetails");
+            await setUserInputState(userId.toString(), "close_position");
             await ctx.answerCbQuery();
             return ctx.reply(
                 `💵 **Sell Custom Amount**\n\n` +
@@ -363,17 +360,8 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Unable to calculate sell amount. Please try again.");
         }
 
-        await redisClient.hSet(`user:order_context:${userId}`, {
-            marketId: decodedConditionId,
-            orderType: "fok_sell",
-            side: "SELL",
-            amount: amountToSell.toString(),
-            autoExecute: "true",
-        });
-
         await ctx.answerCbQuery(`Processing ${sellType}% sell order...`);
-
-        return handleOrderDetailsTextMessage(ctx, amountToSell.toString());
+        return handleCloseOpenPosition(ctx, conditionId, amountToSell);
     }
 
     if (data.startsWith("delete_copy_wallet:")) {

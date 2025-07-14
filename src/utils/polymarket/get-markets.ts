@@ -39,7 +39,7 @@ interface Market {
     negRisk?: boolean;
     negRiskMarketID?: string;
     commentCount: number;
-    markets: any[];
+    events: any[];
     series?: any[];
     tags: any[];
     cyom: boolean;
@@ -53,6 +53,7 @@ interface Market {
     pendingDeployment: boolean;
     deploying: boolean;
     deployingTimestamp?: string;
+    acceptingOrders: boolean;
 }
 
 // Get All Markets
@@ -139,11 +140,6 @@ export async function getMarketBySlug(slug: string) {
         console.error("Error fetching market:", error);
     }
 }
-
-// getMarketBySlug("us-iran-nuclear-deal-before-july").then((result) => {
-//   console.log("Condition ID:", result?.conditionId);
-//   return getTokenIdsForMarket(result?.conditionId);
-// });
 
 export async function getTokenIdsForMarket(conditionId: string): Promise<any> {
     try {
@@ -244,6 +240,19 @@ export async function getMarketById(marketId: string) {
         return market;
     } catch (error) {
         console.error("Error fetching Market: ", error);
+        return null;
+    }
+}
+
+export async function getMarketByConditionId(conditionId: string): Promise<Market | null> {
+    try {
+        const response = await fetch(
+            `https://gamma-api.polymarket.com/markets?condition_ids=${conditionId}`
+        );
+        const json = await response.json();
+        return json[0] ?? null;
+    } catch (error) {
+        console.error("Error fetching Market Details: ", error);
         return null;
     }
 }
