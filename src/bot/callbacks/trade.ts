@@ -779,6 +779,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+    const endDate = market.endDate || market.events?.[0]?.endDate;
 
     let shares: number;
     let potentialProfit: number;
@@ -793,7 +794,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
     const message = `
 📌 *${escapeMarkdown(market.question)}*
-📅 Ends: ${formatDate(market.endDate)}
+📅 Ends: ${formatDate(endDate)}
 🔷 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 
 🔷 Buying *${side}* with *$${price}*
