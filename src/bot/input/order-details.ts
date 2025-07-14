@@ -1,5 +1,4 @@
 import { Markup, type Context } from "telegraf";
-import { awaitingMarketTermInputSet, awaitingOrderDetailsInputSet } from "@/bot";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { getTokenId } from "@/helpers/get-token-id";
@@ -20,6 +19,7 @@ import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
+import { clearUserInputState } from "@/bot/input/state";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -39,8 +39,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         return ctx.reply("⚠️ Error fetching your account details! Please try again later.");
     }
 
-    awaitingOrderDetailsInputSet.delete(userId.toString());
-    awaitingMarketTermInputSet.delete(userId.toString());
+    await clearUserInputState(userId.toString());
     await redisClient.del(`user:order_context:${userId}`);
 
     const { private_key, api_credentials } = userDetails;

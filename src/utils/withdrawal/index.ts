@@ -4,11 +4,11 @@ import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { CLOSE_BUTTON } from "@/bot/ui/buttons";
 import { ethers } from "ethers";
 import { env } from "@/config";
-import { awaitingWithdrawalInputSet } from "@/bot";
 import { getBridgeQuote } from "../debridge/functions/get-bridge-quote";
 import { ChainId } from "../debridge/types";
 import { executeSwapUSDCeToUSDC } from "../uniswap";
 import { decryptPrivateKey } from "@/utils/crypto";
+import { clearUserInputState, setUserInputState } from "@/bot/input/state";
 
 interface WithdrawalData {
     type: "sol" | "usdc";
@@ -70,7 +70,7 @@ async function validateAndSetupWithdrawal(
     }
 
     withdrawalDataMap.set(userId, { type, userId });
-    awaitingWithdrawalInputSet.add(userId);
+    await setUserInputState(userId.toString(), "withdrawal");
 
     return { user, userId, balance };
 }
@@ -209,7 +209,7 @@ export async function handleWithdrawalInput(ctx: Context, input: string): Promis
         }
 
         withdrawalDataMap.delete(userId);
-        awaitingWithdrawalInputSet.delete(userId);
+        await clearUserInputState(userId.toString());
     } catch (error) {
         console.error("Error processing withdrawal:", error);
         await ctx.reply(

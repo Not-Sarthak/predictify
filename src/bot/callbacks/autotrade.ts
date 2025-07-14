@@ -1,7 +1,8 @@
-import { awaitingConfigInputSet, awaitingWalletDetailsInputSet } from "@/bot";
+import { setUserInputState } from "@/bot/input/state";
 import { generateAutoTradeMenu } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
+import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
 
@@ -126,7 +127,8 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
                 configType = "Position Percentage";
                 configValue = "Custom";
 
-                awaitingConfigInputSet.set(userId.toString(), "Custom");
+                await setUserInputState(userId, "config");
+                await redisClient.hSet(`user:config_input:${userId}`, "key", "Custom");
                 return ctx.reply("🔥 Enter a Percentage: ");
             case "same_proportion":
                 configType = "Copy Method";
@@ -140,7 +142,8 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
                 configType = "Position Limit";
                 configValue = "Max Amount";
 
-                awaitingConfigInputSet.set(userId.toString(), "Max");
+                await setUserInputState(userId, "config");
+                await redisClient.hSet(`user:config_input:${userId}`, "key", "Max");
                 return ctx.reply("🔥 Enter an Amount: ");
             default:
                 await ctx.answerCbQuery("Unknown configuration");
@@ -185,7 +188,7 @@ export async function handleAddNewWalletCallback(ctx: Context) {
         });
     }
 
-    awaitingWalletDetailsInputSet.add(userId.toString());
+    await setUserInputState(userId.toString(), "walletDetails");
 
     const message = `🧾 *Add Wallet Instructions*
 

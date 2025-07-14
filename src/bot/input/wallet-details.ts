@@ -1,4 +1,4 @@
-import { awaitingWalletDetailsInputSet } from "@/bot";
+import { clearUserInputState } from "@/bot/input/state";
 import { db } from "@/lib/supabase";
 import type { Context } from "telegraf";
 
@@ -24,7 +24,7 @@ export async function handleWalletDetailsTextMessage(
 
         if (error) throw new Error(error.message, { cause: error.cause });
 
-        awaitingWalletDetailsInputSet.delete(userId.toString());
+        await clearUserInputState(userId.toString());
         return ctx.reply(`✅ Wallet *${walletName}* saved successfully!`, {
             parse_mode: "Markdown",
         });
