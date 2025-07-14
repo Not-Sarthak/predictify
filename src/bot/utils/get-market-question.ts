@@ -2,7 +2,7 @@ export async function getMarketQuestion(marketId: string): Promise<string | null
     let url;
 
     if (marketId.startsWith("0x")) {
-        url = `https://gamma-api.polymarket.com/markets?conditionId=${marketId}`;
+        url = `https://gamma-api.polymarket.com/markets?condition_ids=${marketId}`;
     } else {
         url = `https://gamma-api.polymarket.com/markets?id=${marketId}`;
     }
