@@ -61,8 +61,6 @@ export async function handleCallbackQuery(ctx: Context) {
         return ctx.answerCbQuery();
     }
 
-    console.log(data);
-
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
         return handleStartMenuCallbacks(ctx, target);

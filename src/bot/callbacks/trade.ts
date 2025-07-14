@@ -796,7 +796,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 📅 Ends: ${formatDate(market.endDate)}
 🔷 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 
-🔷 Buying *${side}* with *${price}*
+🔷 Buying *${side}* with *$${price}*
 
 • Shares: ${size || Math.floor(shares)}
 • Price: ${side === "YES" ? outcomes[0] : outcomes[1]}
