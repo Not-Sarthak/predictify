@@ -20,7 +20,7 @@ export async function handleUserTradeHistoryCommand(ctx: Context) {
 
         const formatted = history
             .map((trade) => {
-                const side = trade.side === "BUY" ? "🟢 BUY" : "🔴 SELL";
+                const side = trade.side === "BUY" ? "🟢 BOUGHT" : "🔴 SOLD";
                 const title =
                     trade.title.length > 50 ? trade.title.slice(0, 47) + "…" : trade.title;
                 const amount = Number(trade.size).toFixed(2);
