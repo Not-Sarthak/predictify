@@ -1,15 +1,14 @@
 import { Markup, type Context } from "telegraf";
 
-import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
+import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserByIdFromDb } from "@/bot/utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
-import { awaitingReferralCodeInputSet } from "@/bot";
+import { setUserInputState } from "@/bot/input/state";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    const userName = getUsernameFromCtx(ctx);
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {
@@ -36,7 +35,7 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     // For new users, ask for referral code
-    awaitingReferralCodeInputSet.add(userId.toString());
+    await setUserInputState(userId.toString(), "referral");
 
     return ctx.reply(
         "👋 Welcome to PolyMarket Trading Bot!\n\n" +

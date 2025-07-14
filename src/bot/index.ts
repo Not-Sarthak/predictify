@@ -1,4 +1,3 @@
-// TODO:FIX - REFACTOR SETS TO REDIS
 import { Telegraf } from "telegraf";
 import { env } from "../config/env";
 import { botCommands } from "./commands";
@@ -19,14 +18,6 @@ import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
-const awaitingWalletDetailsInputSet = new Set<string>();
-const awaitingMarketTermInputSet = new Set<string>();
-const awaitingOrderDetailsInputSet = new Set<string>();
-const awaitingWalletMonitorInputSet = new Set<string>();
-const awaitingConfigInputSet = new Map<string, string>();
-const awaitingReferralCodeInputSet = new Set<string>();
-const awaitingWithdrawalInputSet = new Set<string>();
-
 bot.telegram.setMyCommands(botCommands);
 
 // Register Middlewares
@@ -43,10 +34,10 @@ bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
 bot.command("cancel", handleCancelOpenOrdersCommand);
 
-// Text Input Handlers
+// Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
 
-// Button Callback Handlers
+// Button Callback Handler
 bot.on("callback_query", handleCallbackQuery);
 
 // Error Handling
@@ -60,13 +51,4 @@ bot.catch((err, _ctx) => {
     }
 });
 
-export {
-    bot,
-    awaitingWalletDetailsInputSet,
-    awaitingMarketTermInputSet,
-    awaitingOrderDetailsInputSet,
-    awaitingWalletMonitorInputSet,
-    awaitingConfigInputSet,
-    awaitingReferralCodeInputSet,
-    awaitingWithdrawalInputSet,
-};
+export { bot };

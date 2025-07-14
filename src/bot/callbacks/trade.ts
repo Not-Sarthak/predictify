@@ -1,4 +1,3 @@
-import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
 import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     manageUserCopyTrade,
@@ -31,6 +30,7 @@ import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
+import { setUserInputState } from "@/bot/input/state";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -139,7 +139,7 @@ export async function handleTradePagination(ctx: Context, page: string) {
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
     const userId = getUserIdFromCtx(ctx);
 
-    awaitingMarketTermInputSet.add(userId.toString());
+    await setUserInputState(userId.toString(), "marketTerm");
     await redisClient.hSet(`user:order_action:${userId}`, {
         action: action === "open" ? "OPEN" : "CLOSE",
     });
@@ -548,8 +548,7 @@ async function handleStartWalletMonitoring(ctx: Context) {
         `\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`\n\n` +
         `⚠️ **Note:** You Can Monitor Up to 3 Wallets Simultaneously.`;
 
-    awaitingWalletMonitorInputSet.add(userId);
-
+    await setUserInputState(userId.toString(), "walletMonitor");
     return ctx.reply(message, { parse_mode: "Markdown" });
 }
 
