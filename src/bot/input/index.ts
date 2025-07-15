@@ -1,64 +1,55 @@
 import type { Context } from "telegraf";
 
-import {
-    awaitingConfigInputSet,
-    awaitingMarketTermInputSet,
-    awaitingOrderDetailsInputSet,
-    awaitingWalletDetailsInputSet,
-    awaitingWalletMonitorInputSet,
-    awaitingReferralCodeInputSet,
-    awaitingWithdrawalInputSet,
-} from "@/bot";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { handleWalletDetailsTextMessage } from "@/bot/input/wallet-details";
 import { handleMarketTermTextMessage } from "@/bot/input/market-term";
 import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
 import { handleConfigTextMessage } from "@/bot/input/config-details";
 import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
-import { handleConfirmOrder } from "@/bot/callbacks/trade";
+import { handleCloseOpenPosition, handleConfirmOrder } from "@/bot/callbacks/trade";
 import { handleWithdrawalInput } from "@/utils/withdrawal/index";
+import { getUserInputState } from "@/bot/input/state";
+import { redisClient } from "@/lib/redis";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
     if (!textMessage) return;
 
     const userId = getUserIdFromCtx(ctx);
-
-    // Handle referral code input first
-    if (awaitingReferralCodeInputSet.has(userId.toString())) {
-        return handleReferralCodeTextMessage(ctx, textMessage);
+    const flow = await getUserInputState(userId.toString());
+    if (!flow) {
+        return ctx.reply("❌ I didn't understand that. Use the menu.");
     }
 
-    // TODO:FIX - REFACTOR TEXT HANDLERS
-
-    if (awaitingWalletDetailsInputSet.has(userId.toString())) {
-        return handleWalletDetailsTextMessage(ctx, textMessage, userId);
+    switch (flow) {
+        case "referral":
+            await handleReferralCodeTextMessage(ctx, textMessage);
+            break;
+        case "walletDetails":
+            await handleWalletDetailsTextMessage(ctx, textMessage, userId);
+            break;
+        case "orderDetails":
+            await handleConfirmOrder(ctx, textMessage);
+            break;
+        case "close_position":
+            const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
+            const { marketId } = orderContext;
+            await handleCloseOpenPosition(ctx, marketId, Number(textMessage));
+            break;
+        case "marketTerm":
+            await handleMarketTermTextMessage(ctx, textMessage);
+            break;
+        case "walletMonitor":
+            await handleWalletMontiorTextMessage(ctx, textMessage, userId);
+            break;
+        case "config":
+            const configKey = await redisClient.hGet(`user:config_input:${userId}`, "key");
+            await handleConfigTextMessage(ctx, textMessage, userId, configKey as string);
+            break;
+        case "withdrawal":
+            await handleWithdrawalInput(ctx, textMessage);
+            break;
+        default:
+            return ctx.reply("❌ Unknown input context. Please try again.");
     }
-
-    if (awaitingOrderDetailsInputSet.has(userId.toString())) {
-        return handleConfirmOrder(ctx, textMessage);
-    }
-
-    if (awaitingMarketTermInputSet.has(userId.toString())) {
-        return handleMarketTermTextMessage(ctx, textMessage);
-    }
-
-    if (awaitingWalletMonitorInputSet.has(userId.toString())) {
-        return handleWalletMontiorTextMessage(ctx, textMessage, userId);
-    }
-
-    if (awaitingConfigInputSet.has(userId.toString())) {
-        return handleConfigTextMessage(
-            ctx,
-            textMessage,
-            userId,
-            awaitingConfigInputSet.get(userId.toString())!
-        );
-    }
-
-    if (awaitingWithdrawalInputSet.has(userId.toString())) {
-        return handleWithdrawalInput(ctx, textMessage);
-    }
-
-    return ctx.reply("❌ I didn't understand that. Try using the menu.");
 }

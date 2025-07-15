@@ -1,4 +1,3 @@
-import { awaitingMarketTermInputSet, awaitingWalletMonitorInputSet } from "@/bot";
 import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
 import {
     manageUserCopyTrade,
@@ -18,7 +17,11 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
-import { fetchMarkets, getMarketById } from "@/utils/polymarket/get-markets";
+import {
+    fetchMarkets,
+    getMarketByConditionId,
+    getMarketById,
+} from "@/utils/polymarket/get-markets";
 import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
@@ -31,6 +34,7 @@ import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
+import { setUserInputState } from "@/bot/input/state";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -77,8 +81,24 @@ export async function handleCloseTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
     }
 
-    const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(userPositions);
+    const conditionIds = userPositions.map((position) => position.conditionId);
+    const getMarketByConditionIdPromises = conditionIds.map((conditionId) =>
+        getMarketByConditionId(conditionId)
+    );
 
+    const markets = await Promise.all(getMarketByConditionIdPromises);
+    if (!markets) {
+        return ctx.reply("❌ Internal Server Error");
+    }
+
+    const openMarkets = markets.filter(
+        (market) => market && !market.closed && market.acceptingOrders !== false
+    );
+    if (openMarkets.length === 0) {
+        return ctx.reply("⚠️ No Open Markets Found in Your Positions.");
+    }
+
+    const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(userPositions);
     const replyPromises = formattedUserPositionsMessages.map((data) =>
         ctx.reply(data.message, {
             parse_mode: "Markdown",
@@ -139,7 +159,7 @@ export async function handleTradePagination(ctx: Context, page: string) {
 export async function handleManageTradePositionsCallback(ctx: Context, action: string) {
     const userId = getUserIdFromCtx(ctx);
 
-    awaitingMarketTermInputSet.add(userId.toString());
+    await setUserInputState(userId.toString(), "marketTerm");
     await redisClient.hSet(`user:order_action:${userId}`, {
         action: action === "open" ? "OPEN" : "CLOSE",
     });
@@ -548,8 +568,7 @@ async function handleStartWalletMonitoring(ctx: Context) {
         `\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`\n\n` +
         `⚠️ **Note:** You Can Monitor Up to 3 Wallets Simultaneously.`;
 
-    awaitingWalletMonitorInputSet.add(userId);
-
+    await setUserInputState(userId.toString(), "walletMonitor");
     return ctx.reply(message, { parse_mode: "Markdown" });
 }
 
@@ -679,16 +698,18 @@ export async function handleStopCopyTrade(ctx: Context) {
     }
 }
 
-export async function handleCloseOpenPosition(ctx: Context, conditionId: string) {
+export async function handleCloseOpenPosition(
+    ctx: Context,
+    conditionId: string,
+    amountToSell?: number
+) {
     const userId = getUserIdFromCtx(ctx);
     const user = await getUserDetails(userId);
-
-    const { message_id } = await ctx.reply("⌛ Closing your position...");
-
     if (!user) {
-        ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ Internal Server Error. Please try again later.");
     }
+
+    const { message_id } = await ctx.reply("⌛ Closing your position...");
 
     const decodedConditionId = decodeMarketId(conditionId);
 
@@ -713,7 +734,7 @@ export async function handleCloseOpenPosition(ctx: Context, conditionId: string)
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
         tokenId: marketDetails.asset,
-        amount: marketDetails.size,
+        amount: amountToSell || marketDetails.size,
         orderType: OrderType.FOK,
     });
 
@@ -758,6 +779,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+    const endDate = market.endDate || market.events?.[0]?.endDate;
 
     let shares: number;
     let potentialProfit: number;
@@ -772,10 +794,10 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
     const message = `
 📌 *${escapeMarkdown(market.question)}*
-📅 Ends: ${formatDate(market.endDate)}
+📅 Ends: ${formatDate(endDate)}
 🔷 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 
-🔷 Buying *${side}* with *${price}*
+🔷 Buying *${side}* with *$${price}*
 
 • Shares: ${size || Math.floor(shares)}
 • Price: ${side === "YES" ? outcomes[0] : outcomes[1]}

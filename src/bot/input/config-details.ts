@@ -13,7 +13,6 @@ export async function handleConfigTextMessage(
         return ctx.reply("⚠️ Error saving config. Please try again");
     }
 
-    await ctx.answerCbQuery(`${configType} set to ${textMessage}`);
     return ctx.reply(
         `✅ *Configuration Updated*\n\n` +
             `**${configType}:** ${textMessage}\n\n` +

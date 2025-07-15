@@ -37,7 +37,6 @@ import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private
 import { handleWithdrawSOL, handleWithdrawUSDC } from "@/utils/withdrawal/index";
 import { handleBridgeConfirm, handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
-import { awaitingOrderDetailsInputSet } from "@/bot";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
 import {
@@ -52,6 +51,7 @@ import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
+import { setUserInputState } from "@/bot/input/state";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -77,9 +77,9 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("close_position:")) {
-        const partialConditionId = data.split(":")[1];
+        const encodedConditioId = data.split(":")[1];
         await ctx.answerCbQuery();
-        return handleCloseOpenPosition(ctx, partialConditionId);
+        return handleCloseOpenPosition(ctx, encodedConditioId);
     }
 
     if (data === "view_profile") {
@@ -245,7 +245,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        awaitingOrderDetailsInputSet.add(userId.toString());
+        await setUserInputState(userId.toString(), "orderDetails");
         await ctx.answerCbQuery();
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
@@ -268,7 +268,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        awaitingOrderDetailsInputSet.add(userId.toString());
+        await setUserInputState(userId.toString(), "orderDetails");
         await ctx.answerCbQuery();
         return ctx.reply(
             `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
@@ -289,7 +289,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: "SELL",
         });
 
-        awaitingOrderDetailsInputSet.add(userId.toString());
+        await setUserInputState(userId.toString(), "orderDetails");
         await ctx.answerCbQuery();
         return ctx.reply(
             `💵 **Sell Position**\n\n` +
@@ -319,7 +319,6 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Unable to find your wallet. Please contact support.");
         }
 
-        // Get user's position for this market
         const position = await getUserPositionByMarket(userAddress, decodedConditionId);
 
         if (!position || position.size <= 0) {
@@ -335,15 +334,11 @@ export async function handleCallbackQuery(ctx: Context) {
         } else if (sellType === "100") {
             amountToSell = position.size;
         } else if (sellType === "custom") {
-            // For custom, we need to ask the user for the amount
             await redisClient.hSet(`user:order_context:${userId}`, {
-                marketId: decodedConditionId,
-                orderType: "fok_sell",
-                side: "SELL",
-                maxSize: position.size.toString(),
+                marketId: conditionId,
             });
 
-            awaitingOrderDetailsInputSet.add(userId.toString());
+            await setUserInputState(userId.toString(), "close_position");
             await ctx.answerCbQuery();
             return ctx.reply(
                 `💵 **Sell Custom Amount**\n\n` +
@@ -363,17 +358,8 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Unable to calculate sell amount. Please try again.");
         }
 
-        await redisClient.hSet(`user:order_context:${userId}`, {
-            marketId: decodedConditionId,
-            orderType: "fok_sell",
-            side: "SELL",
-            amount: amountToSell.toString(),
-            autoExecute: "true",
-        });
-
         await ctx.answerCbQuery(`Processing ${sellType}% sell order...`);
-
-        return handleOrderDetailsTextMessage(ctx, amountToSell.toString());
+        return handleCloseOpenPosition(ctx, conditionId, amountToSell);
     }
 
     if (data.startsWith("delete_copy_wallet:")) {

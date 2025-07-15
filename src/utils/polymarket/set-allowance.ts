@@ -19,8 +19,6 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             EXCHANGE_ADDRESS
         );
 
-        // const currentAllowanceFormatted = ethers.formatUnits(currentAllowance, 6);
-
         const amountInUnits = ethers.parseUnits(amount, 6);
 
         if (currentAllowance < amountInUnits) {
@@ -32,9 +30,9 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             console.log("Transaction Receipt for Wallet `", wallet.address, "`: ", receipt);
 
             return receipt.hash;
-        } else {
-            return "";
         }
+
+        return null;
     } catch (error) {
         console.error("Error Setting USDC Allowance for Wallet: ", wallet.address, error);
     }

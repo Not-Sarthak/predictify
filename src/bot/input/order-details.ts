@@ -1,5 +1,4 @@
 import { Markup, type Context } from "telegraf";
-import { awaitingMarketTermInputSet, awaitingOrderDetailsInputSet } from "@/bot";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { getTokenId } from "@/helpers/get-token-id";
@@ -20,6 +19,7 @@ import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
+import { clearUserInputState } from "@/bot/input/state";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -39,8 +39,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         return ctx.reply("⚠️ Error fetching your account details! Please try again later.");
     }
 
-    awaitingOrderDetailsInputSet.delete(userId.toString());
-    awaitingMarketTermInputSet.delete(userId.toString());
+    await clearUserInputState(userId.toString());
     await redisClient.del(`user:order_context:${userId}`);
 
     const { private_key, api_credentials } = userDetails;
@@ -50,22 +49,22 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     const sentMessage = await ctx.reply("⏳ Placing your order...");
     let orderResponse;
     let position: any;
-    let isOrderSizeGreaterThanOrEqualTo20 = true;
+    let isMinimumAmount = true;
 
     if (orderType === "gtc") {
         const [price, size] = textMessage.split(/\s+/).slice(0, 2);
-        isOrderSizeGreaterThanOrEqualTo20 = Number(price) * Number(size) >= 20;
+        isMinimumAmount = Number(price) * Number(size) >= 10;
     } else if (orderType === "fok") {
         const amount = Number(textMessage.trim());
-        isOrderSizeGreaterThanOrEqualTo20 = amount >= 20;
+        isMinimumAmount = amount >= 10;
     }
 
-    if (!isOrderSizeGreaterThanOrEqualTo20 && !ADMIN_USERS_ID.includes(userId)) {
+    if (!isMinimumAmount && !ADMIN_USERS_ID.includes(userId)) {
         return await ctx.telegram.editMessageText(
             ctx.chat!.id,
             sentMessage.message_id,
             undefined,
-            "❌ Order Size must be at least 20."
+            "❌ Order Size must be at least 10."
         );
     }
 
@@ -221,15 +220,14 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       : Number(textMessage.trim())
                   : Number(textMessage.trim());
 
+        const hasTx = !!orderResponse?.response?.tx;
+
         const polygonScanMsg =
             orderType !== "fok_sell"
-                ? `
-<a href="https://polygonscan.com/tx/${orderResponse?.response?.tx}">View on Polygonscan</a>
-
-`
-                : `
-
-`;
+                ? hasTx
+                    ? `\n<a href="https://polygonscan.com/tx/${orderResponse?.response.tx}">View on Polygonscan</a>\n\n`
+                    : `\n✅ USDC Already Approved\n\n`
+                : `\n`;
 
         const orderPlacedMessage =
             orderType === "fok_sell"
@@ -237,11 +235,9 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                   `Market: ${marketQuestion}\n` +
                   `Shares Sold: ${orderPlaceAmountToShow}\n` +
                   `Outcome: ${position?.outcome || "Unknown"}`
-                : `✅ Your Order is Placed!` +
-                  `${polygonScanMsg}` +
-                  `Market: ${marketQuestion}
-Amount: ${orderPlaceAmountToShow} | Side: ${side}
-`;
+                : `✅ Your Order is Placed!${polygonScanMsg}` +
+                  `Market: ${marketQuestion}\n` +
+                  `Amount: ${orderPlaceAmountToShow} | Side: ${side}`;
 
         await ctx.telegram.editMessageText(
             ctx.chat!.id,
