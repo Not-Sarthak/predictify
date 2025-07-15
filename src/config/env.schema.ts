@@ -37,7 +37,7 @@ export const envSchema = z.object({
 
     SUPABASE_ACCESS_TOKEN: z.string().optional(),
 
-    DEBRIDGE_API_URL: z.string().url().default("https://dln.debridge.finance/v1.0/"),
+    DEBRIDGE_API_URL: z.string().url().default("https://dln.debridge.finance/v1.0"),
 
     DEBRIDGE_API_KEY: z.string().default("-"),
 
@@ -46,4 +46,6 @@ export const envSchema = z.object({
         .regex(/^0x[a-fA-F0-9]{40}$/, "TREASURY_ADDRESS must be a valid address"),
 
     NODE_ENV: z.enum(["development", "production"]).default("development"),
+
+    SOLANA_RPC_URL: z.string().url("SOLANA_RPC_URL must be a valid URL").optional(),
 });

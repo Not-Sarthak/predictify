@@ -35,7 +35,11 @@ import {
 } from "./settings";
 import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
 import { handleWithdrawSOL, handleWithdrawUSDC } from "@/utils/withdrawal/index";
-import { handleBridgeConfirm, handleBridgeFunds } from "@/utils/debridge/functions/bridge-handler";
+import {
+    handleBridgeConfirm,
+    handleBridgeFunds,
+    handleBridgeStatus,
+} from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
@@ -131,6 +135,11 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleBridgeFunds(ctx);
     }
 
+    if (data.startsWith("bridge_confirm:")) {
+        const userId = data.split(":")[1];
+        return handleBridgeConfirm(ctx, userId);
+    }
+
     if (data === "withdraw_sol") {
         return handleWithdrawSOL(ctx);
     }
@@ -139,11 +148,9 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleWithdrawUSDC(ctx);
     }
 
-    if (data.startsWith("bridge_confirm:")) {
+    if (data.startsWith("bridge_status:")) {
         const userId = data.split(":")[1];
-
-        await ctx.answerCbQuery();
-        return handleBridgeConfirm(ctx, userId);
+        return handleBridgeStatus(ctx, userId);
     }
 
     if (data === "swap_funds") {
