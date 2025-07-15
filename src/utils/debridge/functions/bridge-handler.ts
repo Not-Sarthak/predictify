@@ -43,11 +43,13 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
 
         const solBalance = await getSOLBalance(user.solana_address);
         if (solBalance < 0.01) {
-            await ctx.reply("❌ Insufficient SOL Balance. You Need at least 0.01 SOL to Bridge.");
+            await ctx.reply("❌ Insufficient SOL Balance. You need at least 0.01 SOL to bridge.");
             return;
         }
 
-        await fetchAndShowQuote(ctx, solBalance.toString());
+        // Use available balance minus a small buffer for fees
+        const maxBridgeAmount = Math.max(0, solBalance - 0.005);
+        await fetchAndShowQuote(ctx, maxBridgeAmount.toString());
     } catch (error) {
         await ctx.reply("❌ An Error Occurred While Preparing the Bridge. Please Try Again.");
     }
@@ -74,23 +76,18 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             return;
         }
 
-        const bridgeAmount = parseFloat(amount);
-        if (isNaN(bridgeAmount) || bridgeAmount <= 0) {
-            await ctx.telegram.editMessageText(
-                loadingMsg.chat.id,
-                loadingMsg.message_id,
-                undefined,
-                "❌ Invalid Amount."
-            );
-            return;
-        }
         const solBalance = await getSOLBalance(user.solana_address);
-        if (solBalance < bridgeAmount) {
+
+        // Use 90% of available balance to account for fees and operating expenses
+        const maxBridgeAmount = Math.max(0, solBalance - 0.005); // Keep 0.005 SOL for account rent
+        const bridgeAmount = Math.min(parseFloat(amount), maxBridgeAmount);
+
+        if (bridgeAmount <= 0.001) {
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                `❌ Insufficient SOL Balance.`
+                "❌ Insufficient SOL Balance. You need at least 0.01 SOL to bridge."
             );
             return;
         }
@@ -137,6 +134,18 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             Math.pow(10, quote.estimation.srcChainTokenIn.decimals);
 
         const bridgeFee = totalAmountNeeded - inputAmount;
+
+        // Check if total amount needed exceeds balance
+        if (totalAmountNeeded > solBalance) {
+            await ctx.telegram.editMessageText(
+                loadingMsg.chat.id,
+                loadingMsg.message_id,
+                undefined,
+                `❌ Insufficient SOL Balance.\n\n**Required:** ${totalAmountNeeded.toFixed(4)} SOL\n**Available:** ${solBalance.toFixed(4)} SOL\n\nPlease add more SOL to your wallet.`,
+                { parse_mode: "Markdown" }
+            );
+            return;
+        }
 
         const quoteKey = `bridge_quote_${userId}`;
         bridgeQuotes.set(quoteKey, {
