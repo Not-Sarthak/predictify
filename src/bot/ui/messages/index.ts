@@ -1,8 +1,8 @@
 import { generateTradeButtons } from "@/bot/ui/buttons/trade";
 import { truncate } from "@/utils/truncate";
-import type { MarketData } from "@/types/polymarket/market-data";
+import type { EventData } from "@/types/polymarket/market-data";
 import { Context, Markup } from "telegraf";
-import { AUTO_TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "@/bot/ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
@@ -49,10 +49,10 @@ export const generateUnsubscribedMessage = (category: string) => `🔕 Unsubscri
 export const generateActiveSubscriptionsMessage = (categories: string[]) =>
     `You're Subscribed To:\n• ${categories.join("\n• ")}`;
 
-export const generateNotificationMessage = (market: MarketData, category: string) => {
+export const generateNotificationMessage = (market: EventData, category: string) => {
     const message = `
 
-<b>🆕 ${truncate(market.question, 200)}</b>
+<b>🆕 ${truncate(market.title, 200)}</b>
     
 <b>📝 Description</b>
 ${truncate(market.description, 500)}
@@ -66,7 +66,10 @@ ${truncate(market.description, 500)}
 <a href="https://polymarket.com/event/${encodeURIComponent(market.slug)}">🔗 View Full Market</a>
     `.trim();
 
-    const keyboard = Markup.inlineKeyboard(generateTradeButtons(market.id)).reply_markup;
+    const keyboard = Markup.inlineKeyboard([
+        ...generateTradeButtons(market.id),
+        [CLOSE_BUTTON],
+    ]).reply_markup;
 
     return { message, keyboard };
 };
