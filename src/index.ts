@@ -4,7 +4,7 @@ import { apiServer } from "@/api";
 import { bot } from "./bot";
 import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./utils";
-// import { pollNewMarkets } from "./utils/polymarket/poll-new-markets";
+import { notifier } from "@/notifier";
 
 async function main() {
     // Starts the API Server
@@ -14,10 +14,9 @@ async function main() {
         process.exit(1);
     }
 
-    // Interval to Fetch new Markets
-    // setInterval(() => {
-    //     pollNewMarkets().catch(console.error);
-    // }, 5_000);
+    // CRON JOB: Fetch New Markets every 12 Hours
+    console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
+    notifier.start();
 
     // Listens to copy wallets db updates
     await connectToSupabaseRealtime();

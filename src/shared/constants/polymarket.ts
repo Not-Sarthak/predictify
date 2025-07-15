@@ -12,7 +12,7 @@ export const CATEGORY_LIST = [
     "Science",
     "Sports",
     "Tech",
-];
+] as const;
 
 export const AMOY_CONTRACTS: ContractConfig = {
     exchange: "0xdFE02Eb6733538f8Ea35D585af8DE5958AD99E40",
@@ -41,3 +41,5 @@ export const MARKET_FILTERS = [
     "⏰ Ending Soon",
     "⚔️ Competitive",
 ];
+
+export const HALF_DAY_IN_MS = 12 * 60 * 60 * 1000;
