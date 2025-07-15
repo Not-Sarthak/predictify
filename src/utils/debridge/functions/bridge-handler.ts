@@ -42,12 +42,29 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         }
 
         const solBalance = await getSOLBalance(user.solana_address);
-        if (solBalance < 0.001) {
-            await ctx.reply("❌ Insufficient SOL Balance. You need at least 0.001 SOL to bridge.");
+
+        // Minimum balance needed for any transaction
+        const MIN_BALANCE = 0.01; // Need at least 0.01 SOL to cover any fees
+
+        if (solBalance <= MIN_BALANCE) {
+            await ctx.reply(
+                `❌ Insufficient SOL Balance. You have ${solBalance.toFixed(4)} SOL but need at least ${MIN_BALANCE.toFixed(4)} SOL to bridge.`
+            );
             return;
         }
 
-        await fetchAndShowQuote(ctx, solBalance.toString());
+        // Calculate max bridgeable amount (balance - 0.03 SOL)
+        const maxBridgeable = Math.max(0, solBalance - 0.03);
+
+        if (maxBridgeable <= 0.001) {
+            await ctx.reply(
+                `❌ Insufficient SOL balance. You have ${solBalance.toFixed(4)} SOL but need to keep 0.03 SOL for fees.`
+            );
+            return;
+        }
+
+        // Fetch quote with the safe bridgeable amount
+        await fetchAndShowQuote(ctx, maxBridgeable.toString());
     } catch (error) {
         await ctx.reply("❌ An Error Occurred While Preparing the Bridge. Please Try Again.");
     }
@@ -76,21 +93,25 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
         const solBalance = await getSOLBalance(user.solana_address);
 
-        // Use the amount user wants to bridge (or their full balance if less)
-        const requestedAmount = parseFloat(amount);
-        const bridgeAmount = Math.min(requestedAmount, solBalance);
+        // Deduct 0.03 SOL from balance to ensure transaction success
+        // This covers all fees and leaves a safe buffer
+        const RESERVE_AMOUNT = 0.03; // 0.03 SOL reserved for all fees and buffer
+        const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
+        const maxBridgeableLamports = Math.floor(maxBridgeableSOL * 1e9);
 
-        if (bridgeAmount <= 0.001) {
+        if (maxBridgeableLamports <= 1000000) {
+            // Less than 0.001 SOL available to bridge
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                "❌ Insufficient SOL Balance. You need at least 0.001 SOL to bridge."
+                `❌ Insufficient SOL balance. You have ${solBalance.toFixed(4)} SOL but need to keep ${RESERVE_AMOUNT} SOL for fees. Not enough left to bridge.`
             );
             return;
         }
 
-        const lamportsAmount = Math.floor(bridgeAmount * 1e9).toString();
+        const bridgeAmount = maxBridgeableSOL;
+        const lamportsAmount = maxBridgeableLamports.toString();
 
         const bridgeParams: deBridgeOrderInput = {
             srcChainId: SOLANA_CHAIN_ID,
@@ -136,8 +157,10 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 **You Receive:** ${outputAmount.toFixed(2)} USDC (Polygon)
 
 **Exchange Rate:** 1 SOL ≈ ${(outputAmount / inputAmount).toFixed(2)} USDC
+**Wallet Balance:** ${solBalance.toFixed(4)} SOL
+**Reserved for Fees:** ${RESERVE_AMOUNT} SOL
 
-⚠️ *Final amount may include small operating fees*
+⚠️ *This is the Maximum Amount you can Safely Bridge*
 `;
 
         const confirmButtons = [
@@ -164,10 +187,11 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 }
 
 export async function handleBridgeConfirm(ctx: Context, userId: string): Promise<void> {
+    const quoteKey = `bridge_quote_${userId}`;
+
     try {
         await ctx.answerCbQuery();
 
-        const quoteKey = `bridge_quote_${userId}`;
         const storedQuote = bridgeQuotes.get(quoteKey);
 
         if (!storedQuote) {
@@ -178,12 +202,13 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
         const processingMsg = await ctx.reply("⏳ Processing Bridge Transaction...");
 
         const user = await getUserDetails(Number(userId));
-        if (!user) {
+
+        if (!user || !user.solana_address) {
             await ctx.telegram.editMessageText(
                 processingMsg.chat.id,
                 processingMsg.message_id,
                 undefined,
-                "❌ User not found."
+                "❌ User not found or wallet not configured."
             );
             return;
         }
@@ -217,7 +242,6 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             const decryptedPrivateKey = decryptPrivateKey(user.solana_private_key);
             txSignature = await executeSolanaTransaction(decryptedPrivateKey, bridgeResult.tx.data);
         } catch (error) {
-            console.error("Transaction execution error:", error);
             await ctx.telegram.editMessageText(
                 processingMsg.chat.id,
                 processingMsg.message_id,
@@ -234,20 +258,12 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 **Amount:** ${storedQuote.amount} SOL → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC
 **Network:** Solana → Polygon
 
-**Transaction Details:**
-• Signature: \`${txSignature}\`
-• Order ID: \`${bridgeResult.orderId || "N/A"}\`
-
 🔄 **Status:** Processing
-⏱️ **Estimated Time:** 2-10 minutes
 
 [View on Solscan](https://solscan.io/tx/${txSignature})
 [Track on DeBridge](https://app.debridge.finance/order?orderId=${bridgeResult.orderId || ""})`;
 
-        const statusButtons = [
-            [Markup.button.callback("🔍 Check Status", `bridge_status:${userId}`)],
-            [Markup.button.callback("🏠 Main Menu", "back_to_main_menu")],
-        ];
+        const statusButtons = [[Markup.button.callback("🏠 Main Menu", "back_to_main_menu")]];
 
         await ctx.telegram.editMessageText(
             processingMsg.chat.id,
@@ -260,10 +276,8 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             }
         );
     } catch (error) {
-        console.error("Error confirming bridge:", error);
-        await ctx.reply(
-            `❌ Bridge Execution Failed: ${error instanceof Error ? error.message : "Unknown error"}`
-        );
+        bridgeQuotes.delete(quoteKey);
+        await ctx.reply(`Bridge Execution Failed!`);
     }
 }
 

@@ -135,19 +135,17 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleBridgeFunds(ctx);
     }
 
+    if (data.startsWith("bridge_confirm:")) {
+        const userId = data.split(":")[1];
+        return handleBridgeConfirm(ctx, userId);
+    }
+
     if (data === "withdraw_sol") {
         return handleWithdrawSOL(ctx);
     }
 
     if (data === "withdraw_usdc") {
         return handleWithdrawUSDC(ctx);
-    }
-
-    if (data.startsWith("bridge_confirm:")) {
-        const userId = data.split(":")[1];
-
-        await ctx.answerCbQuery();
-        return handleBridgeConfirm(ctx, userId);
     }
 
     if (data.startsWith("bridge_status:")) {

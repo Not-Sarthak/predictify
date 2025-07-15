@@ -13,7 +13,7 @@ export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBrid
         dstChainId: params.dstChainId,
         dstChainTokenOut: params.dstChainTokenOut,
         dstChainTokenOutAmount: params.dstChainTokenOutAmount || "auto",
-        prependOperatingExpenses: "false", // Don't include operating expenses for quote
+        prependOperatingExpenses: "false",
         ...(params.slippage && { slippage: params.slippage.toString() }),
     });
 

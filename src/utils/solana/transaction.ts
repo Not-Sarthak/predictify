@@ -81,7 +81,20 @@ export async function executeSolanaTransaction(
         }
 
         return signature;
-    } catch (error) {
+    } catch (error: any) {
+        // Check for insufficient lamports error
+        if (error.message?.includes("insufficient lamports")) {
+            const match = error.message.match(/insufficient lamports (\d+), need (\d+)/);
+            if (match) {
+                const hasLamports = parseInt(match[1]) / 1e9;
+                const needLamports = parseInt(match[2]) / 1e9;
+                const shortage = needLamports - hasLamports;
+                throw new Error(
+                    `Insufficient SOL balance. You have ${hasLamports.toFixed(4)} SOL but need ${needLamports.toFixed(4)} SOL (shortage: ${shortage.toFixed(4)} SOL)`
+                );
+            }
+        }
+
         throw new Error(
             `Failed to execute Solana transaction: ${error instanceof Error ? error.message : "Unknown error"}`
         );
