@@ -90,6 +90,11 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewProfileCallback(ctx).then(() => ctx.answerCbQuery());
     }
 
+    if (data === "show_portfolio") {
+        await ctx.answerCbQuery();
+        return handleViewTradePositions(ctx);
+    }
+
     // Handle autotrade callbacks
     if (data === "add_new_wallet") {
         return handleAddNewWalletCallback(ctx);
@@ -165,6 +170,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
+
+        await ctx.answerCbQuery();
         return handleViewMarket(ctx, marketId);
     }
 

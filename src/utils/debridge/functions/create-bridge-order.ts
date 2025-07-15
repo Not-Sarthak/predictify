@@ -22,7 +22,7 @@ export async function createDebridgeBridgeOrder(
         prependOperatingExpenses: "true",
     });
 
-    const response = await fetch(`${env.DEBRIDGE_API_URL}/dln/order/create-tx?${queryParams}`);
+    const response = await fetch(`${env.DEBRIDGE_API_URL}dln/order/create-tx?${queryParams}`);
 
     if (!response.ok) {
         const errorText = await response.text();

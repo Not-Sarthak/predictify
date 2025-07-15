@@ -32,9 +32,16 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
         const connectedWallet = userWallet.connect(provider);
 
         const feeData = await provider.getFeeData();
-        const gasPrice = feeData.gasPrice
-            ? (feeData.gasPrice * 150n) / 100n
-            : ethers.parseUnits("50", "gwei"); // 50% higher for speed
+
+        const gasConfig = {
+            gasLimit: 100000,
+            maxFeePerGas: feeData.maxFeePerGas
+                ? (feeData.maxFeePerGas * 150n) / 100n
+                : ethers.parseUnits("50", "gwei"),
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
+                ? (feeData.maxPriorityFeePerGas * 150n) / 100n
+                : ethers.parseUnits("2", "gwei"),
+        };
 
         const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, connectedWallet);
 
@@ -69,34 +76,29 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
             throw new Error(`Insufficient USDC Balance. Required: ${totalFeeAmount} USDC`);
         }
 
-        const transactions = [];
-
         const mainTx = await usdcContract.transfer(
             env.TREASURY_ADDRESS,
             ethers.parseUnits(mainTreasuryFee.toFixed(6), 6),
-            {
-                gasLimit: 100000,
-                gasPrice: gasPrice,
-                maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
-            }
+            gasConfig
         );
-        transactions.push(mainTx.wait());
+
+        const transactions = [mainTx];
+        let referralTx = null;
 
         if (referrerTreasuryAddress && referralCommission > 0) {
-            const referralTx = await usdcContract.transfer(
+            const currentNonce = await connectedWallet.getNonce();
+            referralTx = await usdcContract.transfer(
                 referrerTreasuryAddress,
                 ethers.parseUnits(referralCommission.toFixed(6), 6),
                 {
-                    gasLimit: 100000,
-                    gasPrice: gasPrice,
-                    maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
-                    nonce: (await connectedWallet.getNonce()) + 1,
+                    ...gasConfig,
+                    nonce: currentNonce + 1,
                 }
             );
-            transactions.push(referralTx.wait());
+            transactions.push(referralTx);
         }
 
-        const receipts = await Promise.all(transactions);
+        const receipts = await Promise.all(transactions.map((tx) => tx.wait()));
         const mainReceipt = receipts[0];
         const referralReceipt = receipts[1];
 
@@ -164,18 +166,13 @@ export async function processOrderWithTreasuryFee(params: TreasuryFeeTransferPar
             ? calculateTotalCostWithFee(positionAmount).totalCost
             : calculateFee(positionAmount);
 
-    if (
-        !validateBalanceWithFee(
-            userBalanceFormatted,
-            transactionType === "OPEN" ? positionAmount : 0
-        )
-    ) {
+    if (userBalanceFormatted < requiredBalance) {
         return {
             success: false,
             feeAmount: calculateFee(positionAmount),
             txHash: null,
             gasUsed: null,
-            error: `Insufficient Balance. Required: ${requiredBalance} USDC, Available: ${userBalanceFormatted} USDC`,
+            error: `Insufficient Balance. Required: ${requiredBalance.toFixed(6)} USDC, Available: ${userBalanceFormatted.toFixed(6)} USDC`,
         };
     }
 
