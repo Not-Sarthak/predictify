@@ -165,6 +165,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
+
+        await ctx.answerCbQuery();
         return handleViewMarket(ctx, marketId);
     }
 
