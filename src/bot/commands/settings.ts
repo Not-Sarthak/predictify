@@ -1,8 +1,7 @@
-import { WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
-import { Markup, type Context } from "telegraf";
+import type { Context } from "telegraf";
+
+import { getFundMessage } from "@/bot/utils/get-fund-message";
 
 export async function handleSettingsCommand(ctx: Context) {
-    const keyboard = Markup.inlineKeyboard(WALLET_SETTINGS_MENU);
-
-    return ctx.reply("📋 Wallet/Funds:", keyboard);
+    return getFundMessage(ctx);
 }

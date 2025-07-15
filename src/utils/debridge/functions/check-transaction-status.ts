@@ -23,7 +23,7 @@ export async function checkDebridgeTransactionStatus(
 
     const statuses = await Promise.all(
         orderIdsData.orderIds.map(async (orderId) => {
-            const statusUrl = `${env.DEBRIDGE_API_URL}/dln/order/${orderId}/status`;
+            const statusUrl = `${env.DEBRIDGE_API_URL}dln/order/${orderId}/status`;
             const statusResponse = await fetch(statusUrl);
 
             if (!statusResponse.ok) {

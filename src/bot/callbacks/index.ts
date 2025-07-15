@@ -90,6 +90,11 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewProfileCallback(ctx).then(() => ctx.answerCbQuery());
     }
 
+    if (data === "show_portfolio") {
+        await ctx.answerCbQuery();
+        return handleViewTradePositions(ctx);
+    }
+
     // Handle autotrade callbacks
     if (data === "add_new_wallet") {
         return handleAddNewWalletCallback(ctx);

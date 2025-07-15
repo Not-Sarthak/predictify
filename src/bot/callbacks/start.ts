@@ -7,6 +7,7 @@ import { handleTradeMenu } from "@/bot/callbacks/trade";
 import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
 import { CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { getUserTotalHoldings, getUserTotalPnL } from "@/bot/utils/get-user-polymarket-data";
 
 export async function handleStartMenuCallbacks(ctx: Context, target: string) {
     switch (target) {
@@ -36,11 +37,13 @@ export async function handleViewProfileCallback(ctx: Context) {
         return ctx.reply("❌ User does not exist");
     }
 
-    const { wallet_address, total_pnl, total_volume, referral_code, number_of_referrals } =
-        userData;
-    const emoji = total_pnl > 0 ? "📈" : "📉";
+    const { wallet_address, referral_code, number_of_referrals } = userData;
 
-    const positions = await getUserPositionsFromPolymarket(wallet_address);
+    const [total_holdings, total_pnl, positions] = await Promise.all([
+        getUserTotalHoldings(wallet_address),
+        getUserTotalPnL(wallet_address),
+        getUserPositionsFromPolymarket(wallet_address),
+    ]);
 
     let positionsWon = 0;
     if (positions && Array.isArray(positions)) {
@@ -50,12 +53,12 @@ export async function handleViewProfileCallback(ctx: Context) {
     }
 
     const winRate = positions && positions.length > 0 ? (positionsWon / positions.length) * 100 : 0;
-
+    const emoji = total_pnl > 0 ? "📈" : "📉";
     const message = `
 <b>👤 Your Polymarket Profile</b>
 
 ${emoji} <b>Lifetime PnL:</b> ${total_pnl.toFixed(3)} USDC
-💵 <b>Total Volume:</b> ${total_volume} USDC
+💵 <b>Total Holdings:</b> ${total_holdings.toFixed(3)} USDC
 🔥 <b>Win Rate:</b> ${winRate.toFixed(1)}%
 
 🎟️ <b>Your Referral Code:</b> <code>${referral_code || "Not assigned"}</code>

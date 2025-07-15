@@ -162,5 +162,6 @@ export function createPaginationKeyboard(conditionId: string, index: number, tot
         paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
     }
 
-    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons]).reply_markup;
+    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons, [CLOSE_BUTTON]])
+        .reply_markup;
 }

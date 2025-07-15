@@ -14,6 +14,8 @@ Final Todo:
 
 Pending:
 
+- HOLD (/cancel) [not working/might not work]
+
 1. PnL Card
 2. Notifications
 3. Tag Bot and Give Info
