@@ -12,9 +12,18 @@ import {
 const CHANNEL_NAME = "copy_wallets_changes";
 const TABLE_NAME = "Copy_Wallets";
 
-let channel: RealtimeChannel;
+let channel: RealtimeChannel | null = null;
+let retrying = false;
+let retryCount = 0;
+const MAX_RETRIES = 5;
+const RETRY_BASE_DELAY = 2000; // 2 seconds
 
 export const subscribe = async () => {
+    if (channel) {
+        await supabase.removeChannel(channel);
+        channel = null;
+    }
+
     channel = supabase
         .channel(CHANNEL_NAME)
         .on(
@@ -31,12 +40,16 @@ export const subscribe = async () => {
                     newData && Object.keys(newData).length > 0 ? newData : old
                 ) as TableRow<"Copy_Wallets">;
 
-                if (eventType === "INSERT") {
-                    await addWalletMonitor(data);
-                } else if (eventType === "UPDATE") {
-                    await updateWalletMonitor(data);
-                } else {
-                    await deleteWalletMonitor(data);
+                try {
+                    if (eventType === "INSERT") {
+                        await addWalletMonitor(data);
+                    } else if (eventType === "UPDATE") {
+                        await updateWalletMonitor(data);
+                    } else if (eventType === "DELETE") {
+                        await deleteWalletMonitor(data);
+                    }
+                } catch (err) {
+                    console.error(`[HANDLER ERROR - ${eventType}]:`, err);
                 }
             }
         );
@@ -49,12 +62,29 @@ export const subscribe = async () => {
         }
 
         if (status === "CHANNEL_ERROR" || status === "CLOSED") {
-            console.warn("[REALTIME] Channel closed or errored. Reconnecting in 2s...");
-            await supabase.removeChannel(channel);
+            if (retryCount >= MAX_RETRIES) {
+                console.error("[REALTIME] Max retries reached. Giving up.");
+                return;
+            }
 
-            setTimeout(() => {
-                subscribe();
-            }, 2000);
+            retryCount++;
+            const retryDelay = RETRY_BASE_DELAY * retryCount;
+
+            console.warn(
+                `[REALTIME] Channel closed or errored. Retrying in ${retryDelay / 1000}s...`
+            );
+            await supabase.removeChannel(channel as RealtimeChannel);
+            channel = null;
+
+            if (!retrying) {
+                retrying = true;
+                setTimeout(async () => {
+                    retrying = false;
+                    await subscribe(); // retry
+                }, retryDelay);
+            }
+        } else if (status === "SUBSCRIBED") {
+            retryCount = 0; // reset on success
         }
     });
 };

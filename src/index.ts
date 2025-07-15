@@ -4,7 +4,7 @@ import { apiServer } from "@/api";
 import { bot } from "./bot";
 import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./utils";
-import { cron } from "@/notifier";
+import { notifier } from "@/notifier";
 
 async function main() {
     // Starts the API Server
@@ -16,7 +16,7 @@ async function main() {
 
     // CRON JOB: Fetch New Markets every 12 Hours
     console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
-    cron.start();
+    notifier.start();
 
     // Listens to copy wallets db updates
     await connectToSupabaseRealtime();
