@@ -15,14 +15,25 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
     const userName = getUsernameFromCtx(ctx);
     const referralCode = textMessage.trim();
 
-    // Check if referral code exists
-    const { data: referrer, error: referralError } = await db("Users")
-        .select("*")
-        .eq("referral_code", referralCode)
-        .single();
+    // Check if it's the special code "PRED"
+    let referrer;
+    if (referralCode.toUpperCase() === "PRED") {
+        // Use a dummy referrer for the special code
+        referrer = {
+            id: 0,
+            number_of_referrals: 0,
+        };
+    } else {
+        // Check if referral code exists
+        const { data: referrerData, error: referralError } = await db("Users")
+            .select("*")
+            .eq("referral_code", referralCode)
+            .single();
 
-    if (referralError || !referrer) {
-        return ctx.reply("❌ Invalid invite code. Please try again with a valid code.");
+        if (referralError || !referrerData) {
+            return ctx.reply("❌ Invalid invite code. Please try again with a valid code.");
+        }
+        referrer = referrerData;
     }
 
     // Generate wallet and API credentials
@@ -56,12 +67,14 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
         return ctx.reply("❌ Error creating your account. Please try again later.");
     }
 
-    // Update referrer's count
-    await db("Users")
-        .update({
-            number_of_referrals: (referrer.number_of_referrals || 0) + 1,
-        })
-        .eq("id", referrer.id);
+    // Update referrer's count (skip for special code "PRED")
+    if (referralCode.toUpperCase() !== "PRED") {
+        await db("Users")
+            .update({
+                number_of_referrals: (referrer.number_of_referrals || 0) + 1,
+            })
+            .eq("id", referrer.id);
+    }
 
     // Remove from awaiting set
     clearUserInputState(userId.toString());
