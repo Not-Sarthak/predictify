@@ -9,3 +9,45 @@ export type MarketData = {
     liquidity: number;
     volume: number;
 };
+
+export interface EventData {
+    id: string;
+    ticker: string;
+    slug: string;
+    title: string;
+    description: string;
+    startDate: string;
+    creationDate: string;
+    endDate: string;
+    image: string;
+    icon: string;
+    active: boolean;
+    closed: boolean;
+    archived: boolean;
+    new: boolean;
+    featured: boolean;
+    restricted: boolean;
+    liquidity: number;
+    openInterest: number;
+    createdAt: string;
+    updatedAt: string;
+    competitive: number;
+    enableOrderBook: boolean;
+    liquidityClob: number;
+    negRisk: boolean;
+    commentCount: number;
+    cyom: boolean;
+    showAllOutcomes: boolean;
+    showMarketImages: boolean;
+    enableNegRisk: boolean;
+    automaticallyActive: boolean;
+    eventDate: string;
+    startTime: string;
+    eventWeek: number;
+    seriesSlug: string;
+    period: string;
+    negRiskAugmented: boolean;
+    pendingDeployment: boolean;
+    deploying: boolean;
+    volume?: number; // optional — since not always present
+}

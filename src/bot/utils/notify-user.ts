@@ -1,12 +1,13 @@
+import type { EventData } from "@/types/polymarket/market-data";
+
 import { bot } from "@/bot";
 import { generateNotificationMessage } from "@/bot/ui/messages";
-import type { MarketData } from "@/types/polymarket/market-data";
 
-export async function sendNotificationToUser(userId: string, market: MarketData, category: string) {
-    const { message, keyboard } = generateNotificationMessage(market, category);
+export async function sendNotificationToUser(userId: string, event: EventData, category: string) {
+    const { message, keyboard } = generateNotificationMessage(event, category);
 
     try {
-        await bot.telegram.sendPhoto(userId, market.image, {
+        await bot.telegram.sendPhoto(userId, event.image, {
             caption: message,
             parse_mode: "HTML",
             reply_markup: keyboard,
