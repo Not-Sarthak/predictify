@@ -13,34 +13,11 @@ export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBrid
         dstChainId: params.dstChainId,
         dstChainTokenOut: params.dstChainTokenOut,
         dstChainTokenOutAmount: params.dstChainTokenOutAmount || "auto",
-        dstChainTokenOutRecipient: params.dstChainTokenOutRecipient,
-        prependOperatingExpenses: "true",
-        additionalTakerRewardBps: (params.additionalTakerRewardBps || 0).toString(),
+        prependOperatingExpenses: "false", // Don't include operating expenses for quote
         ...(params.slippage && { slippage: params.slippage.toString() }),
-        ...(params.srcIntermediaryTokenAddress && {
-            srcIntermediaryTokenAddress: params.srcIntermediaryTokenAddress,
-        }),
-        ...(params.dstIntermediaryTokenAddress && {
-            dstIntermediaryTokenAddress: params.dstIntermediaryTokenAddress,
-        }),
-        ...(params.dstIntermediaryTokenSpenderAddress && {
-            dstIntermediaryTokenSpenderAddress: params.dstIntermediaryTokenSpenderAddress,
-        }),
-        ...(params.intermediaryTokenUSDPrice && {
-            intermediaryTokenUSDPrice: params.intermediaryTokenUSDPrice.toString(),
-        }),
-        ...(params.srcAllowedCancelBeneficiary && {
-            srcAllowedCancelBeneficiary: params.srcAllowedCancelBeneficiary,
-        }),
-        ...(params.referralCode && {
-            referralCode: params.referralCode.toString(),
-        }),
-        ...(params.affiliateFeePercent && {
-            affiliateFeePercent: params.affiliateFeePercent.toString(),
-        }),
     });
 
-    const url = env.DEBRIDGE_API_URL + `dln/order/create-tx?${queryParams}`;
+    const url = env.DEBRIDGE_API_URL + `/dln/order/quote?${queryParams}`;
 
     const response = await fetch(url);
 

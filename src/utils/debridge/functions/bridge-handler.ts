@@ -42,14 +42,12 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         }
 
         const solBalance = await getSOLBalance(user.solana_address);
-        if (solBalance < 0.01) {
-            await ctx.reply("❌ Insufficient SOL Balance. You need at least 0.01 SOL to bridge.");
+        if (solBalance < 0.001) {
+            await ctx.reply("❌ Insufficient SOL Balance. You need at least 0.001 SOL to bridge.");
             return;
         }
 
-        // Use available balance minus a small buffer for fees
-        const maxBridgeAmount = Math.max(0, solBalance - 0.005);
-        await fetchAndShowQuote(ctx, maxBridgeAmount.toString());
+        await fetchAndShowQuote(ctx, solBalance.toString());
     } catch (error) {
         await ctx.reply("❌ An Error Occurred While Preparing the Bridge. Please Try Again.");
     }
@@ -78,16 +76,16 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
         const solBalance = await getSOLBalance(user.solana_address);
 
-        // Use 90% of available balance to account for fees and operating expenses
-        const maxBridgeAmount = Math.max(0, solBalance - 0.005); // Keep 0.005 SOL for account rent
-        const bridgeAmount = Math.min(parseFloat(amount), maxBridgeAmount);
+        // Use the amount user wants to bridge (or their full balance if less)
+        const requestedAmount = parseFloat(amount);
+        const bridgeAmount = Math.min(requestedAmount, solBalance);
 
         if (bridgeAmount <= 0.001) {
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                "❌ Insufficient SOL Balance. You need at least 0.01 SOL to bridge."
+                "❌ Insufficient SOL Balance. You need at least 0.001 SOL to bridge."
             );
             return;
         }
@@ -107,9 +105,6 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
         const quote = await getBridgeQuote(bridgeParams);
 
-        // Use the original user input amount
-        const inputAmount = bridgeAmount;
-
         // Validate quote response
         if (
             !quote.estimation?.dstChainTokenOut?.amount ||
@@ -118,34 +113,13 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             throw new Error("Invalid bridge quote response - missing destination token data");
         }
 
-        if (
-            !quote.estimation?.srcChainTokenIn?.amount ||
-            !quote.estimation?.srcChainTokenIn?.decimals
-        ) {
-            throw new Error("Invalid bridge quote response - missing source token data");
-        }
-
         const outputAmount =
             parseFloat(quote.estimation.dstChainTokenOut.amount) /
             Math.pow(10, quote.estimation.dstChainTokenOut.decimals);
 
-        const totalAmountNeeded =
-            parseFloat(quote.estimation.srcChainTokenIn.amount) /
-            Math.pow(10, quote.estimation.srcChainTokenIn.decimals);
-
-        const bridgeFee = totalAmountNeeded - inputAmount;
-
-        // Check if total amount needed exceeds balance
-        if (totalAmountNeeded > solBalance) {
-            await ctx.telegram.editMessageText(
-                loadingMsg.chat.id,
-                loadingMsg.message_id,
-                undefined,
-                `❌ Insufficient SOL Balance.\n\n**Required:** ${totalAmountNeeded.toFixed(4)} SOL\n**Available:** ${solBalance.toFixed(4)} SOL\n\nPlease add more SOL to your wallet.`,
-                { parse_mode: "Markdown" }
-            );
-            return;
-        }
+        // For quote, we show what user will get for their exact amount
+        const inputAmount = bridgeAmount;
+        const bridgeFee = 0; // Quote doesn't include fees in the calculation
 
         const quoteKey = `bridge_quote_${userId}`;
         bridgeQuotes.set(quoteKey, {
@@ -160,10 +134,10 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
 **You Send:** ${inputAmount.toFixed(4)} SOL (Solana)
 **You Receive:** ${outputAmount.toFixed(2)} USDC (Polygon)
-**Total Deducted:** ${totalAmountNeeded.toFixed(4)} SOL
-**Bridge Fee:** ${bridgeFee.toFixed(4)} SOL
 
 **Exchange Rate:** 1 SOL ≈ ${(outputAmount / inputAmount).toFixed(2)} USDC
+
+⚠️ *Final amount may include small operating fees*
 `;
 
         const confirmButtons = [
