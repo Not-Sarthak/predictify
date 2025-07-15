@@ -1,4 +1,4 @@
-import { ClobClient } from "@polymarket/clob-client";
+import { ClobClient, type OpenOrder } from "@polymarket/clob-client";
 
 export async function getUnmatchedOpenOrders(clobClient: ClobClient, walletAddress: string) {
     try {
@@ -14,4 +14,12 @@ export async function getUnmatchedOpenOrders(clobClient: ClobClient, walletAddre
     } catch (error) {
         console.error("Error Fetching Unmatched Open Orders:", error);
     }
+}
+
+export async function getOpenUnmatchedOrders(
+    clobClient: ClobClient,
+    market?: string
+): Promise<OpenOrder[]> {
+    const orders = await clobClient.getOpenOrders({ market });
+    return orders.filter((order) => order.size_matched === "0");
 }
