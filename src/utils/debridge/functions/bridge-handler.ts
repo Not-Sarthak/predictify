@@ -6,6 +6,7 @@ import type { deBridgeOrderInput } from "../types";
 import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { executeSolanaTransaction } from "../../solana/transaction";
 
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
@@ -190,7 +191,7 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 
         const bridgeResult = await createDebridgeBridgeOrder(storedQuote.quoteData);
 
-        if (!bridgeResult || !bridgeResult.tx) {
+        if (!bridgeResult || !bridgeResult.tx || !bridgeResult.tx.data) {
             await ctx.telegram.editMessageText(
                 processingMsg.chat.id,
                 processingMsg.message_id,
@@ -200,21 +201,51 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             return;
         }
 
+        // Execute the Solana transaction
+        let txSignature: string;
+        try {
+            await ctx.telegram.editMessageText(
+                processingMsg.chat.id,
+                processingMsg.message_id,
+                undefined,
+                "🔄 Signing and sending transaction..."
+            );
+
+            if (!user.solana_private_key) {
+                throw new Error("Solana private key not found");
+            }
+
+            txSignature = await executeSolanaTransaction(
+                user.solana_private_key,
+                bridgeResult.tx.data
+            );
+        } catch (error) {
+            console.error("Transaction execution error:", error);
+            await ctx.telegram.editMessageText(
+                processingMsg.chat.id,
+                processingMsg.message_id,
+                undefined,
+                `❌ Failed to execute bridge transaction: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+            return;
+        }
+
         bridgeQuotes.delete(quoteKey);
 
-        const successMessage = `✅ **Bridge Transaction Created**
+        const successMessage = `✅ **Bridge Transaction Submitted**
 
 **Amount:** ${storedQuote.amount} SOL → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC
 **Network:** Solana → Polygon
 
 **Transaction Details:**
-• Contract: \`${bridgeResult.tx.to}\`
-• Value: \`${bridgeResult.tx.value}\`
+• Signature: \`${txSignature}\`
+• Order ID: \`${bridgeResult.orderId || "N/A"}\`
 
 🔄 **Status:** Processing
 ⏱️ **Estimated Time:** 2-10 minutes
 
-You can track your transaction status using DeBridge explorer.`;
+[View on Solscan](https://solscan.io/tx/${txSignature})
+[Track on DeBridge](https://app.debridge.finance/order?orderId=${bridgeResult.orderId || ""})`;
 
         const statusButtons = [
             [Markup.button.callback("🔍 Check Status", `bridge_status:${userId}`)],
