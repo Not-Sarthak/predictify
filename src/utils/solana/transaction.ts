@@ -2,27 +2,32 @@ import {
     Connection,
     Transaction,
     VersionedTransaction,
+    TransactionMessage,
+    PublicKey,
     clusterApiUrl,
     type SendOptions,
     type Commitment,
 } from "@solana/web3.js";
-import { decryptPrivateKey, decodePrivateKey } from "@/utils/crypto";
+import { decodePrivateKey } from "@/utils/crypto";
 import { env } from "@/config";
 
 const SOLANA_RPC_URL = env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta");
 const DEFAULT_COMMITMENT: Commitment = "confirmed";
 
 export async function executeSolanaTransaction(
-    encryptedPrivateKey: string,
+    privateKey: string,
     transactionData: string
 ): Promise<string> {
     try {
         const connection = new Connection(SOLANA_RPC_URL, DEFAULT_COMMITMENT);
+        const keypair = decodePrivateKey(privateKey);
 
-        const decryptedKey = decryptPrivateKey(encryptedPrivateKey);
-        const keypair = decodePrivateKey(decryptedKey);
-
-        const transactionBuffer = Buffer.from(transactionData, "base64");
+        let transactionBuffer: Buffer;
+        if (transactionData.startsWith("0x")) {
+            transactionBuffer = Buffer.from(transactionData.slice(2), "hex");
+        } else {
+            transactionBuffer = Buffer.from(transactionData, "base64");
+        }
 
         let transaction: Transaction | VersionedTransaction;
         try {
@@ -31,9 +36,34 @@ export async function executeSolanaTransaction(
             transaction = Transaction.from(transactionBuffer);
         }
 
+        const latestBlockhash = await connection.getLatestBlockhash();
+
         if (transaction instanceof VersionedTransaction) {
+            const addressLookupTableAccounts = [];
+            for (const lookup of transaction.message.addressTableLookups) {
+                try {
+                    const lookupTableAccount = await connection.getAddressLookupTable(
+                        lookup.accountKey
+                    );
+                    if (lookupTableAccount.value) {
+                        addressLookupTableAccounts.push(lookupTableAccount.value);
+                    }
+                } catch (e) {
+                    // Continue if lookup table fetch fails
+                }
+            }
+
+            const message = TransactionMessage.decompile(transaction.message, {
+                addressLookupTableAccounts,
+            });
+
+            message.recentBlockhash = latestBlockhash.blockhash;
+            const newMessage = message.compileToV0Message(addressLookupTableAccounts);
+            transaction = new VersionedTransaction(newMessage);
             transaction.sign([keypair]);
         } else {
+            transaction.recentBlockhash = latestBlockhash.blockhash;
+            transaction.feePayer = keypair.publicKey;
             transaction.partialSign(keypair);
         }
 
@@ -50,23 +80,8 @@ export async function executeSolanaTransaction(
             signature = await connection.sendTransaction(transaction, [], sendOptions);
         }
 
-        const latestBlockhash = await connection.getLatestBlockhash();
-        const confirmation = await connection.confirmTransaction(
-            {
-                signature,
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-            },
-            DEFAULT_COMMITMENT
-        );
-
-        if (confirmation.value.err) {
-            throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-        }
-
         return signature;
     } catch (error) {
-        console.error("Solana transaction execution error:", error);
         throw new Error(
             `Failed to execute Solana transaction: ${error instanceof Error ? error.message : "Unknown error"}`
         );

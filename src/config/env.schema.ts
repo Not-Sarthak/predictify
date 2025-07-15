@@ -37,7 +37,7 @@ export const envSchema = z.object({
 
     SUPABASE_ACCESS_TOKEN: z.string().optional(),
 
-    DEBRIDGE_API_URL: z.string().url().default("https://dln.debridge.finance/v1.0/"),
+    DEBRIDGE_API_URL: z.string().url().default("https://dln.debridge.finance/v1.0"),
 
     DEBRIDGE_API_KEY: z.string().default("-"),
 

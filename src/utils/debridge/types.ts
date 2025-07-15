@@ -93,29 +93,66 @@ export interface deBridgeOrderInput {
 }
 
 export interface deBridgeOrderResponse {
-    tx: {
+    tx?: {
         data: string;
-        to: string;
-        value: string;
+        to?: string;
+        value?: string;
     };
-    estimation: {
-        srcChainTokenIn: {
-            amount: string;
-            tokenAddress: string;
-            decimals: number;
-            symbol: string;
+    estimation?: {
+        srcChainTokenIn?: {
+            name?: string;
+            symbol?: string;
+            chainId?: number;
+            address?: string;
+            decimals?: number;
+            amount?: string;
+            approximateOperatingExpense?: string;
+            mutatedWithOperatingExpense?: boolean;
+            approximateUsdValue?: number;
+            originApproximateUsdValue?: number;
         };
-        dstChainTokenOut: {
-            amount: string;
-            tokenAddress: string;
-            decimals: number;
-            symbol: string;
+        srcChainTokenOut?: {
+            name?: string;
+            symbol?: string;
+            chainId?: number;
+            address?: string;
+            decimals?: number;
+            amount?: string;
+            maxRefundAmount?: string;
+            approximateUsdValue?: number;
         };
-        fees: {
-            srcChainTokenIn: string;
-            dstChainTokenOut: string;
+        dstChainTokenOut?: {
+            address?: string;
+            chainId?: number;
+            decimals?: number;
+            name?: string;
+            symbol?: string;
+            amount?: string;
+            recommendedAmount?: string;
+            maxTheoreticalAmount?: string;
+            approximateUsdValue?: number;
+            recommendedApproximateUsdValue?: number;
+            maxTheoreticalApproximateUsdValue?: number;
         };
+        costsDetails?: any[];
+        recommendedSlippage?: number;
     };
+    prependedOperatingExpenseCost?: string;
+    order?: {
+        approximateFulfillmentDelay?: number;
+        salt?: number;
+        metadata?: string;
+    };
+    orderId?: string;
+    fixFee?: string;
+    userPoints?: number;
+    integratorPoints?: number;
+    estimatedTransactionFee?: {
+        total?: string;
+        details?: any;
+    };
+    usdPriceImpact?: number;
+    error?: string;
 }
 
 export interface deBridgeOrderIdsResponse {

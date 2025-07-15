@@ -7,6 +7,7 @@ import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { CLOSE_BUTTON } from "@/bot/ui/buttons";
 import { executeSolanaTransaction } from "../../solana/transaction";
+import { decryptPrivateKey } from "../../../utils/crypto";
 
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
@@ -108,10 +109,25 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         };
 
         const quote = await getBridgeQuote(bridgeParams);
-        console.log("📦 Bridge Quote Response:", JSON.stringify(quote, null, 2));
 
         // Use the original user input amount
         const inputAmount = bridgeAmount;
+
+        // Validate quote response
+        if (
+            !quote.estimation?.dstChainTokenOut?.amount ||
+            !quote.estimation?.dstChainTokenOut?.decimals
+        ) {
+            throw new Error("Invalid bridge quote response - missing destination token data");
+        }
+
+        if (
+            !quote.estimation?.srcChainTokenIn?.amount ||
+            !quote.estimation?.srcChainTokenIn?.decimals
+        ) {
+            throw new Error("Invalid bridge quote response - missing source token data");
+        }
+
         const outputAmount =
             parseFloat(quote.estimation.dstChainTokenOut.amount) /
             Math.pow(10, quote.estimation.dstChainTokenOut.decimals);
@@ -176,7 +192,7 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             return;
         }
 
-        const processingMsg = await ctx.reply("⏳ Processing bridge transaction...");
+        const processingMsg = await ctx.reply("⏳ Processing Bridge Transaction...");
 
         const user = await getUserDetails(Number(userId));
         if (!user) {
@@ -215,10 +231,8 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
                 throw new Error("Solana private key not found");
             }
 
-            txSignature = await executeSolanaTransaction(
-                user.solana_private_key,
-                bridgeResult.tx.data
-            );
+            const decryptedPrivateKey = decryptPrivateKey(user.solana_private_key);
+            txSignature = await executeSolanaTransaction(decryptedPrivateKey, bridgeResult.tx.data);
         } catch (error) {
             console.error("Transaction execution error:", error);
             await ctx.telegram.editMessageText(
@@ -265,7 +279,7 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
     } catch (error) {
         console.error("Error confirming bridge:", error);
         await ctx.reply(
-            `❌ Bridge execution failed: ${error instanceof Error ? error.message : "Unknown error"}`
+            `❌ Bridge Execution Failed: ${error instanceof Error ? error.message : "Unknown error"}`
         );
     }
 }

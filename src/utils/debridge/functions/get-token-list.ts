@@ -45,31 +45,3 @@ export function getDebridgeTokenList(chainId: string): Promise<TokenListResponse
             throw new Error("An Unknown Error Occurred");
         });
 }
-
-// "11111111111111111111111111111111": {
-// "symbol": "SOL",
-// "name": "Solana",
-// "decimals": 9,
-// "address": "11111111111111111111111111111111",
-// "logoURI": "https://tokens.debridge.finance/Logo/7565164/11111111111111111111111111111111/small/token-logo.svg",
-// "tags": [],
-// "eip2612": false
-
-// "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": {
-// "symbol": "USDC",
-// "name": "Bridged USDC (Polygon PoS Bridge)",
-// "decimals": 6,
-// "address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-// "logoURI": "https://tokens.debridge.finance/Logo/137/0x2791bca1f2de4661ed88a30c99a7a9449aa84174/small/token-logo.png",
-// "tags": [
-// {
-// "name": "oneinch",
-// "sourceUrl": "https://app.1inch.io/advanced/swap?network=137&src=0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
-// },
-// {
-// "name": "coingecko",
-// "sourceUrl": "https://www.coingecko.com/en/coins/bridged-usdc-polygon-pos-bridge"
-// }
-// ],
-// "eip2612": false
-// },
