@@ -20,9 +20,4 @@ Manav:
 
 1. limit orders cancel order (store orderIds in redis and use cance-order)
 
-Sarthak:
-
-1. comment invite code
-2. optimise speed
-3. remove name from autotrade
-4. copytrade
+Sarthak 4. comment invite code 5. optimise speed 6. remove name from autotrade 7. copytrade

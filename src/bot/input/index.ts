@@ -23,9 +23,10 @@ export async function handleUserTextMessage(ctx: Context) {
     }
 
     switch (flow) {
-        case "referral":
-            await handleReferralCodeTextMessage(ctx, textMessage);
-            break;
+        // TEMPORARILY DISABLED - Bot is open for everyone
+        // case "referral":
+        //     await handleReferralCodeTextMessage(ctx, textMessage);
+        //     break;
         case "walletDetails":
             await handleWalletDetailsTextMessage(ctx, textMessage, userId);
             break;
