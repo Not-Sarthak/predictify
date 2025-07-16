@@ -90,6 +90,11 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewProfileCallback(ctx).then(() => ctx.answerCbQuery());
     }
 
+    if (data === "show_portfolio") {
+        await ctx.answerCbQuery();
+        return handleViewTradePositions(ctx);
+    }
+
     // Handle autotrade callbacks
     if (data === "add_new_wallet") {
         return handleAddNewWalletCallback(ctx);
@@ -165,6 +170,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
+
+        await ctx.answerCbQuery();
         return handleViewMarket(ctx, marketId);
     }
 
@@ -260,7 +267,8 @@ export async function handleCallbackQuery(ctx: Context) {
                 `**Format:** \`<price> <size>\`\n` +
                 `**Example:** \`0.65 100\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
-                `• **Size:** Number of Shares to Buy`,
+                `• **Size:** Number of Shares to Buy\n\n` +
+                `Note: Price \\* Size should be minimum 10`,
             { parse_mode: "Markdown" }
         );
     }
@@ -281,7 +289,8 @@ export async function handleCallbackQuery(ctx: Context) {
             `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
                 `Enter The Amount in USDC You Want to Spend:\n\n` +
                 `**Format:** \`<amount>\`\n` +
-                `**Example:** \`50\`\n\n`,
+                `**Example:** \`50\`\n\n` +
+                `Note: Minimum Amount should be 10`,
             { parse_mode: "Markdown" }
         );
     }

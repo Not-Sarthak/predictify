@@ -17,7 +17,7 @@ export async function getBridgeQuote(params: deBridgeOrderInput): Promise<deBrid
         ...(params.slippage && { slippage: params.slippage.toString() }),
     });
 
-    const url = env.DEBRIDGE_API_URL + `/dln/order/quote?${queryParams}`;
+    const url = env.DEBRIDGE_API_URL + `dln/order/quote?${queryParams}`;
 
     const response = await fetch(url);
 

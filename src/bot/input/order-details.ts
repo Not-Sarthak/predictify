@@ -247,10 +247,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             {
                 parse_mode: "HTML",
                 reply_markup: Markup.inlineKeyboard([
-                    Markup.button.url(
-                        "📊 Track My Order",
-                        `https://polymarket.com/profile/${userDetails.wallet_address}`
-                    ),
+                    Markup.button.callback("📊 Track My Order", `show_portfolio`),
                 ]).reply_markup,
             }
         );

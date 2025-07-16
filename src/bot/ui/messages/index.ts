@@ -1,4 +1,3 @@
-import { generateTradeButtons } from "@/bot/ui/buttons/trade";
 import { truncate } from "@/utils/truncate";
 import type { EventData } from "@/types/polymarket/market-data";
 import { Context, Markup } from "telegraf";
@@ -67,7 +66,7 @@ ${truncate(market.description, 500)}
     `.trim();
 
     const keyboard = Markup.inlineKeyboard([
-        ...generateTradeButtons(market.id),
+        [Markup.button.callback("🛒 Buy Market", `view_markets:${market.id}`)],
         [CLOSE_BUTTON],
     ]).reply_markup;
 
@@ -163,5 +162,6 @@ export function createPaginationKeyboard(conditionId: string, index: number, tot
         paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
     }
 
-    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons]).reply_markup;
+    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons, [CLOSE_BUTTON]])
+        .reply_markup;
 }
