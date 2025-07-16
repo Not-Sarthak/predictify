@@ -12,23 +12,19 @@ Final Todo:
 
 ---
 
-Pending:
-
-- HOLD (/cancel) [not working/might not work]
-
 1. PnL Card
-2. Notifications
-3. Tag Bot and Give Info
-4. Twitter Bot
+2. Tag Bot and Give Info
+3. Twitter Bot
 
 Manav:
-1. fix alert message
-2. add custom alert
-3. descending order in open position
-7. limit orders cancel order
 
-Sarthak
-4. comment invite code
-5. optimise speed
-6. remove name from autotrade
-7. copytrade
+1. fix alert message (show list of titles and buttons on clicking which shows details about the market)
+2. add custom alert (store categories in redis Map)
+3. limit orders cancel order (store orderIds in redis and use cance-order)
+
+Sarthak:
+
+1. comment invite code
+2. optimise speed
+3. remove name from autotrade
+4. copytrade

@@ -61,9 +61,15 @@ export async function handleCallbackQuery(ctx: Context) {
     const data =
         ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
 
-    if (!data) {
-        return ctx.answerCbQuery();
-    }
+    // Always answer a callback query.
+    // Works for both valid and invalid incoming data.
+    await ctx.answerCbQuery();
+
+    if (!data) return;
+
+    /**
+     * Handle Callbacks based on Data Value
+     */
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
@@ -82,16 +88,14 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("close_position:")) {
         const encodedConditioId = data.split(":")[1];
-        await ctx.answerCbQuery();
         return handleCloseOpenPosition(ctx, encodedConditioId);
     }
 
     if (data === "view_profile") {
-        return handleViewProfileCallback(ctx).then(() => ctx.answerCbQuery());
+        return handleViewProfileCallback(ctx);
     }
 
     if (data === "show_portfolio") {
-        await ctx.answerCbQuery();
         return handleViewTradePositions(ctx);
     }
 
@@ -122,15 +126,12 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("settings:")) {
         const action = data.split(":")[1];
         if (action === "wallet") {
-            await ctx.answerCbQuery();
             return handleWalletSettingsMenu(ctx);
         }
     }
 
     if (data.startsWith("export_private_key:")) {
         const network = data.split(":")[1] as "evm" | "solana";
-
-        await ctx.answerCbQuery();
         return handleExportPrivateKey(ctx, network);
     }
 
@@ -165,18 +166,16 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "reset_wallet") {
-        return handleResetWallet(ctx).then(() => ctx.answerCbQuery());
+        return handleResetWallet(ctx);
     }
 
     if (data.startsWith("selected_market:")) {
         const marketId = data.split(":")[1];
-
-        await ctx.answerCbQuery();
         return handleViewMarket(ctx, marketId);
     }
 
     if (data === "trade_position_view") {
-        return handleViewTradePositions(ctx).then(() => ctx.answerCbQuery());
+        return handleViewTradePositions(ctx);
     }
 
     if (data.startsWith("portfolio_page")) {
@@ -185,11 +184,11 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_position_open") {
-        return handleManageTradePositionsCallback(ctx, "open").then(() => ctx.answerCbQuery());
+        return handleManageTradePositionsCallback(ctx, "open");
     }
 
     if (data === "trade_position_close") {
-        return handleCloseTradePositions(ctx).then(() => ctx.answerCbQuery());
+        return handleCloseTradePositions(ctx);
     }
 
     if (data.startsWith("trade_position_")) {
@@ -198,7 +197,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_top_markets_view") {
-        return handleViewTopMarketsCallback(ctx).then(() => ctx.answerCbQuery());
+        return handleViewTopMarketsCallback(ctx);
     }
 
     if (data.startsWith("fetch_markets:")) {
@@ -237,15 +236,13 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("confirm_order:")) {
-        await ctx.answerCbQuery();
-
         const textMessage = data.split(":")[1];
         return handleOrderDetailsTextMessage(ctx, textMessage);
     }
 
     // TODO:FIX - Clear User Data from Redis
     if (data === "cancel_order") {
-        await ctx.answerCbQuery().then(() => ctx.deleteMessage());
+        await ctx.deleteMessage();
         return ctx.reply("✅ Order Cancelled!");
     }
 
@@ -260,7 +257,6 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userId.toString(), "orderDetails");
-        await ctx.answerCbQuery();
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
@@ -284,7 +280,6 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userId.toString(), "orderDetails");
-        await ctx.answerCbQuery();
         return ctx.reply(
             `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
                 `Enter The Amount in USDC You Want to Spend:\n\n` +
@@ -306,7 +301,6 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userId.toString(), "orderDetails");
-        await ctx.answerCbQuery();
         return ctx.reply(
             `💵 **Sell Position**\n\n` +
                 `Enter The Amount in USDC You Want to Sell:\n\n` +
@@ -355,7 +349,6 @@ export async function handleCallbackQuery(ctx: Context) {
             });
 
             await setUserInputState(userId.toString(), "close_position");
-            await ctx.answerCbQuery();
             return ctx.reply(
                 `💵 **Sell Custom Amount**\n\n` +
                     `You currently have **${position.size}** shares.\n\n` +
@@ -401,13 +394,11 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("toggle_copy_trade:")) {
         const action = data.split(":")[1];
-        await ctx.answerCbQuery();
         return handleToggleCopyTradeStatus(ctx, action === "true" ? true : false);
     }
 
     if (data.startsWith("toggle_wallet_ct:")) {
         const address = data.split(":")[1];
-        await ctx.answerCbQuery();
         await handleToggleWalletCopyTradeStatus(ctx, address);
         return handleAutoTradeCommand(ctx);
     }
@@ -448,14 +439,10 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("cancel_order:")) {
         const orderId = decodeMarketId(data.split(":")[1]);
-
-        await ctx.answerCbQuery();
         return handleCancelOrderCallback(ctx, orderId);
     }
 
     if (data === "close_message") {
         return ctx.deleteMessage();
     }
-
-    return ctx.answerCbQuery();
 }
