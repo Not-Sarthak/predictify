@@ -18,3 +18,15 @@ Pending:
 2. Notifications
 3. Tag Bot and Give Info
 4. Twitter Bot
+
+Manav:
+1. fix alert message
+2. add custom alert
+3. descending order in open position
+7. limit orders cancel order
+
+Sarthak
+4. comment invite code
+5. optimise speed
+6. remove name from autotrade
+7. copytrade

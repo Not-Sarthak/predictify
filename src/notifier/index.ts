@@ -14,7 +14,7 @@ const notifierJob = CronJob.from({
     start: false,
     timeZone: "Etc/UTC",
     runOnInit: false,
-    errorHandler: (err) => handleCronError(err, "GlobalCronHandler"),
+    errorHandler: (err: any) => handleCronError(err, "GlobalCronHandler"),
 });
 
 export { notifierJob as notifier };
