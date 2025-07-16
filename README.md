@@ -18,9 +18,7 @@ Final Todo:
 
 Manav:
 
-1. fix alert message (show list of titles and buttons on clicking which shows details about the market)
-2. add custom alert (store categories in redis Map)
-3. limit orders cancel order (store orderIds in redis and use cance-order)
+1. limit orders cancel order (store orderIds in redis and use cance-order)
 
 Sarthak:
 
