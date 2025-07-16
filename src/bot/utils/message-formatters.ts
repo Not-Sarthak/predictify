@@ -30,7 +30,7 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatActiveSubscriptionsMessage(categories: string[]): string {
-    return `You're Subscribed To:\n• ${categories.join("\n• ")}`;
+    return `Your Subscriptions:\n• ${categories.join("\n• ")}`;
 }
 
 export function formatCurrentTradePositionsMessage(userPositions: UserPositionResponse[]) {

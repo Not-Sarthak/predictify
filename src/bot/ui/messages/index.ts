@@ -1,5 +1,3 @@
-import { truncate } from "@/utils/truncate";
-import type { EventData } from "@/types/polymarket/market-data";
 import { Context, Markup } from "telegraf";
 import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "@/bot/ui/buttons";
 import {
@@ -47,31 +45,6 @@ export const generateUnsubscribedMessage = (category: string) => `🔕 Unsubscri
 
 export const generateActiveSubscriptionsMessage = (categories: string[]) =>
     `You're Subscribed To:\n• ${categories.join("\n• ")}`;
-
-export const generateNotificationMessage = (market: EventData, category: string) => {
-    const message = `
-
-<b>🆕 ${truncate(market.title, 200)}</b>
-    
-<b>📝 Description</b>
-${truncate(market.description, 500)}
-
-<b>📂 Category:</b> ${category}
-<b>🕒 Start:</b> ${new Date(market.startDate).toLocaleString()}
-<b>⏳ End:</b> ${new Date(market.endDate).toLocaleString()}
-<b>💧 Liquidity:</b> $${(market.liquidity || 0).toLocaleString()}
-<b>📊 Volume (24h):</b> $${(market.volume || 0).toLocaleString()}
-
-<a href="https://polymarket.com/event/${encodeURIComponent(market.slug)}">🔗 View Full Market</a>
-    `.trim();
-
-    const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("🛒 Buy Market", `view_markets:${market.id}`)],
-        [CLOSE_BUTTON],
-    ]).reply_markup;
-
-    return { message, keyboard };
-};
 
 export const generateWalletDetailsMessage = (
     evmWalletAddress: string,

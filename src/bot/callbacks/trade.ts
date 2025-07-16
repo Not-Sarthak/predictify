@@ -324,7 +324,18 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const data = response.data[0];
 
     const title = data.title;
-    const markets = data.markets.filter((m: any) => m.active && m.acceptingOrders && !m.closed);
+    const markets = data.markets
+        .filter((m: any) => m.active && m.acceptingOrders && !m.closed)
+        .map((market: any) => {
+            const outcomes: number[] = JSON.parse(market.outcomePrices);
+            return {
+                ...market,
+                yesPrice: outcomes[0],
+                noPrice: outcomes[1],
+                probability: Math.round(outcomes[0] * 100),
+            };
+        })
+        .sort((a: any, b: any) => b.yesPrice - a.yesPrice);
 
     if (markets.length === 0) {
         return ctx.reply("❌ No Active Markets Available in This Event.");

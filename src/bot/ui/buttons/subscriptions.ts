@@ -1,10 +1,12 @@
 import { Markup } from "telegraf";
-import { CATEGORY_LIST } from "@/shared/constants";
 
-function generateSubscriptionButtons(action: "subscribe" | "unsubscribe") {
+export function generateSubscriptionButtons(
+    category: readonly string[],
+    action: "subscribe" | "unsubscribe"
+) {
     const isSubscribe = action === "subscribe";
 
-    const buttons = CATEGORY_LIST.map((cat) =>
+    const buttons = category.map((cat) =>
         Markup.button.callback(
             `${isSubscribe ? "🔔" : "🔕"} ${cat}`,
             `subscribe:${isSubscribe ? "yes" : "no"}:${cat}`
@@ -18,7 +20,3 @@ function generateSubscriptionButtons(action: "subscribe" | "unsubscribe") {
 
     return layout;
 }
-
-export const SUBSCRIBE_BUTTONS = generateSubscriptionButtons("subscribe");
-
-export const UNSUBSCRIBE_BUTTONS = generateSubscriptionButtons("unsubscribe");

@@ -1,9 +1,9 @@
 import { type ApiKeyCreds, ClobClient, Side, OrderType } from "@polymarket/clob-client";
 import { ethers } from "ethers";
-import { checkNetworkConnection } from "../../utils/check-network-connection";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 import { createLegacyWallet } from "../../utils";
+import { CHAIN_ID, HOST } from "@/shared/constants";
 
 interface BuyOrderGTCRequest {
     size: number;
@@ -22,12 +22,6 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
         const wallet = new ethers.Wallet(orderRequest.privateKey);
         const walletAddress = await wallet.getAddress();
         let txHash;
-
-        const networkOk = await checkNetworkConnection();
-        if (!networkOk) {
-            console.error("Network Connection Failed");
-            return { response: null, error: "Internal Server Error" };
-        }
 
         const balance = await getUserWrappedUSDCBalance(walletAddress);
         const totalCost = orderRequest.price * orderRequest.size;
@@ -49,12 +43,9 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
             };
         }
 
-        const host = "https://clob.polymarket.com";
-        const chainId = 137;
-
         const clobClient = new ClobClient(
-            host,
-            chainId,
+            HOST,
+            CHAIN_ID,
             createLegacyWallet(wallet) as any,
             orderRequest.apiCreds
         );

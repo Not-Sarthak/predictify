@@ -1,6 +1,6 @@
 import { CronJob } from "cron";
 import { notifyUsersAboutNewMarkets } from "@/notifier/job";
-import { handleCronError } from "@/notifier/error";
+import { handleCronError } from "@/notifier/utils";
 
 const notifierJob = CronJob.from({
     cronTime: "0 */12 * * *", // Every 12 Hours UTC
@@ -14,7 +14,7 @@ const notifierJob = CronJob.from({
     start: false,
     timeZone: "Etc/UTC",
     runOnInit: false,
-    errorHandler: (err) => handleCronError(err, "GlobalCronHandler"),
+    errorHandler: (err: any) => handleCronError(err, "GlobalCronHandler"),
 });
 
 export { notifierJob as notifier };

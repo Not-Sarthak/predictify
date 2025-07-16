@@ -21,7 +21,10 @@ export const SUBSCRIPTIONS_MENU_BUTTONS = [
         Markup.button.callback("🔔 Subscribe", "subscriptions:subscribe"),
         Markup.button.callback("🔕 Unsubscribe", "subscriptions:unsubscribe"),
     ],
-    [Markup.button.callback("📋 My Subscriptions", "subscriptions:view")],
+    [
+        Markup.button.callback("📋 My Subscriptions", "subscriptions:view"),
+        Markup.button.callback("✨ Enter Custom", "subscriptions:custom"),
+    ],
     [BACK_TO_MAIN_MENU_BUTTON],
 ];
 

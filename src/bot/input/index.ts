@@ -10,6 +10,7 @@ import { handleCloseOpenPosition, handleConfirmOrder } from "@/bot/callbacks/tra
 import { handleWithdrawalInput } from "@/utils/withdrawal/index";
 import { getUserInputState } from "@/bot/input/state";
 import { redisClient } from "@/lib/redis";
+import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -22,9 +23,10 @@ export async function handleUserTextMessage(ctx: Context) {
     }
 
     switch (flow) {
-        case "referral":
-            await handleReferralCodeTextMessage(ctx, textMessage);
-            break;
+        // TEMPORARILY DISABLED - Bot is open for everyone
+        // case "referral":
+        //     await handleReferralCodeTextMessage(ctx, textMessage);
+        //     break;
         case "walletDetails":
             await handleWalletDetailsTextMessage(ctx, textMessage, userId);
             break;
@@ -48,6 +50,9 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "withdrawal":
             await handleWithdrawalInput(ctx, textMessage);
+            break;
+        case "custom_category":
+            await handleCustomCategoryInput(ctx, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");
