@@ -1,21 +1,29 @@
 import { Markup, type Context } from "telegraf";
 
-import { getUserIdFromCtx } from "@/bot/utils";
+import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
 import { getUserByIdFromDb } from "@/bot/utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { generateWelcomeMessage } from "@/bot/ui/messages";
 import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { setUserInputState } from "@/bot/input/state";
+import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
+import { CHAIN_ID, HOST } from "@/shared/constants";
+import { encryptPrivateKey } from "@/utils/crypto";
+import { db } from "@/lib/supabase";
+import { generateRandomString } from "@/utils/encoding";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    console.log(`[START] Processing /start command for user ${userId}`);
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {
+        console.error(`[START] Database error for user ${userId}:`, dbError);
         return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
     }
 
     if (existingUser) {
+        console.log(`[START] Existing user found: ${userId}`);
         const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
         const solBalance = existingUser.solana_address
             ? await getSOLBalance(existingUser.solana_address)
@@ -35,11 +43,69 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     // For new users, ask for referral code
-    await setUserInputState(userId.toString(), "referral");
+    // TEMPORARILY DISABLED - Bot is open for everyone
+    // await setUserInputState(userId.toString(), "referral");
 
-    return ctx.reply(
-        "👋 Welcome to PolyMarket Trading Bot!\n\n" +
-            "To get started, please enter a valid invite code.",
-        { parse_mode: "HTML" }
-    );
+    // return ctx.reply(
+    //     "👋 Welcome to PolyMarket Trading Bot!\n\n" +
+    //         "To get started, please enter a valid invite code.",
+    //     { parse_mode: "HTML" }
+    // );
+
+    // Instead, create new user directly without invite code
+    console.log(`[START] Creating new user without invite code: ${userId}`);
+
+    try {
+        const { address, privateKey, apiCreds, solanaAddress, solanaPrivateKey } =
+            await generateAPIKeyAndWallet({
+                host: HOST,
+                chainId: CHAIN_ID,
+            });
+
+        console.log(`[START] Generated wallet for user ${userId}: ${address}`);
+
+        const newUserReferralCode = generateRandomString(6);
+        const userName = getUsernameFromCtx(ctx);
+
+        const { error: insertError } = await db("Users").insert([
+            {
+                id: userId,
+                telegram_username: userName,
+                wallet_address: address,
+                private_key: encryptPrivateKey(privateKey),
+                api_credentials: JSON.stringify(apiCreds),
+                solana_address: solanaAddress,
+                solana_private_key: encryptPrivateKey(solanaPrivateKey),
+                referred_code: "OPEN", // Default value for open registration
+                referral_code: newUserReferralCode,
+                treasury_wallet_address: address,
+            },
+        ]);
+
+        if (insertError) {
+            console.error(`[START] Error creating user ${userId}:`, insertError);
+            return ctx.reply("❌ Error creating your account. Please try again later.");
+        }
+
+        console.log(`[START] User ${userId} created successfully`);
+
+        const balance = await getUserWrappedUSDCBalance(address);
+        const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
+        const message = generateWelcomeMessage(
+            address,
+            solanaAddress || "N/A",
+            balance.toString(),
+            solBalance
+        );
+        const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
+
+        console.log(`[START] Sending welcome message to user ${userId}`);
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+            reply_markup: keyboard.reply_markup,
+        });
+    } catch (error) {
+        console.error(`[START] Unexpected error for user ${userId}:`, error);
+        return ctx.reply("❌ An unexpected error occurred. Please try again later.");
+    }
 }
