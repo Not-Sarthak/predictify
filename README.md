@@ -17,8 +17,10 @@ Final Todo:
 3. Twitter Bot
 
 ---
+Manav: 
+1. limit orders cancel order (store orderIds in redis and use cancel-order)
 
-1. limit orders cancel order (store orderIds in redis and use cance-order)
+Sarthak:
 2. remove name from autotrade
 3. copytrade
 4. Fix OrderBook
