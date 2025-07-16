@@ -94,14 +94,12 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             creds: apiCreds,
         });
 
-        // Format order book in the requested style
         let orderBookDisplay = `📈 **Order Book**\n\n`;
         orderBookDisplay += `\`\`\`\n`;
         orderBookDisplay += `Price     Size     Total\n`;
         orderBookDisplay += `---------------------------\n`;
 
-        // YES asks (top 4)
-        const yesAsks = yesResponse.asks.slice(0, 4).reverse();
+        const yesAsks = yesResponse.asks.slice(-3);
         for (const ask of yesAsks) {
             const price = (parseFloat(ask.price) * 100).toFixed(1);
             const size = parseInt(ask.size);
@@ -109,7 +107,6 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             orderBookDisplay += `${price.padEnd(4)} ¢    ${size.toString().padEnd(8)} $${total.toFixed(0)}\n`;
         }
 
-        // Calculate totals
         const yesTotalSize = yesResponse.asks.reduce(
             (sum: number, ask: any) => sum + parseInt(ask.size),
             0
@@ -123,12 +120,11 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
         const dashCount = Math.max(0, (27 - separator.length) / 2);
         orderBookDisplay += `${"-".repeat(Math.floor(dashCount))} ${separator} ${"-".repeat(Math.ceil(dashCount))}\n`;
 
-        // NO bids (top 4)
-        const noBids = noResponse.bids.slice(0, 4);
-        for (const bid of noBids) {
-            const price = (parseFloat(bid.price) * 100).toFixed(1);
-            const size = parseInt(bid.size);
-            const total = parseFloat(bid.price) * size;
+        const noAsks = noResponse.asks.slice(-3).reverse();
+        for (const ask of noAsks) {
+            const price = (parseFloat(ask.price) * 100).toFixed(1);
+            const size = parseInt(ask.size);
+            const total = parseFloat(ask.price) * size;
             orderBookDisplay += `${price.padEnd(4)} ¢    ${size.toString().padEnd(8)} $${total.toFixed(0)}\n`;
         }
 
