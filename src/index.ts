@@ -2,7 +2,7 @@ import { env } from "./config/env";
 import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
-import { connectToSupabaseRealtime } from "@/watcher";
+// import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./utils";
 import { notifier } from "@/notifier";
 
@@ -18,8 +18,11 @@ async function main() {
     console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
     notifier.start();
 
+    /**
+     * DISABLED AUTOTRADING TEMPORARILY
+     */
     // Listens to copy wallets db updates
-    await connectToSupabaseRealtime();
+    // await connectToSupabaseRealtime();
 
     // Initialize Telegram Bot Webhook
     bot.launch(

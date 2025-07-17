@@ -1,22 +1,9 @@
 import { setUserInputState } from "@/bot/input/state";
-import { generateAutoTradeMenu } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
-
-export async function handleAutoTradeMenu(ctx: Context) {
-    const menuResult = await generateAutoTradeMenu(ctx);
-    if (!menuResult) return;
-
-    const { message, replyMarkup } = menuResult;
-
-    await ctx.reply(message, {
-        parse_mode: "Markdown",
-        reply_markup: replyMarkup,
-    });
-}
 
 export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();

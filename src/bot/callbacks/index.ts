@@ -47,9 +47,12 @@ import {
     handleToggleCopyTradeStatus,
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
-import { handleAutoTradeCommand } from "@/bot/commands";
 import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
-import { generateAutoTradeMenu, generateWelcomeMessage } from "@/bot/ui/messages";
+import {
+    generateAutoTradeMenu,
+    generateWelcomeMessage,
+    handleAutoTradeMenu,
+} from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
@@ -412,7 +415,7 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("toggle_wallet_ct:")) {
         const address = data.split(":")[1];
         await handleToggleWalletCopyTradeStatus(ctx, address);
-        return handleAutoTradeCommand(ctx);
+        return handleAutoTradeMenu(ctx);
     }
 
     if (data === "enable_copy_trade") {

@@ -1,6 +1,6 @@
 import { Markup, type Context } from "telegraf";
 
-import { handleAutoTradeMenu } from "@/bot/callbacks/autotrade";
+import { handleAutoTradeMenu } from "@/bot/ui/messages";
 import { handleSettingsMenu } from "@/bot/callbacks/settings";
 import { handleSubscriptionsMenu } from "@/bot/callbacks/subscriptions";
 import { handleTradeMenu } from "@/bot/callbacks/trade";

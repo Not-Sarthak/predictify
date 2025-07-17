@@ -4,7 +4,6 @@ import { botCommands } from "./commands";
 import { message } from "telegraf/filters";
 import { rejectBotSenders, requireId } from "./middlewares";
 import {
-    handleAutoTradeCommand,
     handleSettingsCommand,
     handleStartCommand,
     handleSubscriptionsCommand,
@@ -15,6 +14,7 @@ import { handleCallbackQuery } from "@/bot/callbacks";
 import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
 import { handleViewTradePositions } from "@/bot/callbacks/trade";
 import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
+import { handleAutoTradeMenu } from "@/bot/ui/messages";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -28,7 +28,7 @@ bot.use(rejectBotSenders);
 bot.command("start", handleStartCommand);
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
-bot.command("autotrade", handleAutoTradeCommand);
+bot.command("autotrade", handleAutoTradeMenu);
 bot.command("fund", handleSettingsCommand);
 bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
