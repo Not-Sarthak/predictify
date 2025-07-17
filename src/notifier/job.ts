@@ -50,9 +50,8 @@ export const notifyUsersAboutNewMarkets = async () => {
         })
     );
 
-    // const userKeys = await redisClient.keys("user:subs:*");
-    // const userIds = userKeys.map((key) => key.split(":")[2]);
-    const userIds = ["1869143890"];
+    const userKeys = await redisClient.keys("user:subs:*");
+    const userIds = userKeys.map((key) => key.split(":")[2]);
 
     await Promise.all(
         userIds.map(async (userId) => {
@@ -82,7 +81,7 @@ export const notifyUsersAboutNewMarkets = async () => {
 
             let idx = 1;
             const buttons: { text: string; callback_data: string }[] = [];
-            const messageParts: string[] = ["🔔 *NEW MARKETS*\n"];
+            const messageParts: string[] = ["🔔 *NEW MARKETS*"];
 
             for (const [category, events] of categorizedEvents.entries()) {
                 messageParts.push(`\n*${capitalize(category)}* (${events.length} markets)`);

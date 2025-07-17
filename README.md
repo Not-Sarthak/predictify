@@ -22,3 +22,4 @@ Final Todo:
 2. remove name from autotrade
 3. copytrade
 4. Fix OrderBook
+5. Fix expired orders in portfolio (either don't show them at all or just show that they are expired and can't do anything)
