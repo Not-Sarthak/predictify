@@ -20,11 +20,10 @@ Final Todo:
 
 <!-- PRIORITY -->
 
-Manav:
-
 1. limit orders cancel order (store orderIds in redis and use cancel-order)
-
-Sarthak: 2. remove name from autotrade 3. copytrade 4. Fix OrderBook 5. Replace Public RPC with Private RPC in Env and in code everywhere
+2. copytrade
+3. Replace Public RPC with Private RPC in Env and in code everywhere
+4. Fix Not Enough Balance/Allowance Error (See Saved Messages Screenshot)
 
 <!-- NOT PRIORITY -->
 

@@ -49,7 +49,7 @@ import {
 } from "@/bot/utils/database/toggle-copytrade-status";
 import { handleAutoTradeCommand } from "@/bot/commands";
 import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
-import { generateWelcomeMessage } from "@/bot/ui/messages";
+import { generateAutoTradeMenu, generateWelcomeMessage } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
@@ -114,6 +114,18 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "copy_trade_configure") {
         return handleCopyTradeConfigureMenu(ctx);
+    }
+
+    if (data === "back_to_autotrade") {
+        const menuResult = await generateAutoTradeMenu(ctx);
+        if (!menuResult) return;
+
+        const { message, replyMarkup } = menuResult;
+
+        await ctx.editMessageText(message, {
+            parse_mode: "Markdown",
+            reply_markup: replyMarkup,
+        });
     }
 
     // Handle copy trade config callbacks
