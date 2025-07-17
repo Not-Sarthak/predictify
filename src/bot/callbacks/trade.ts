@@ -670,10 +670,7 @@ export async function handleEnableCopyTrade(ctx: Context) {
             `✅ **Copy Trading Enabled**\n\n` +
                 `You Are Now Copy Trading From ${userWallets.length} Wallet(s):\n` +
                 userWallets
-                    .map(
-                        (wallet, index) =>
-                            `${index + 1}. ${wallet.wallet_name} (\`${wallet.wallet_address}\`)`
-                    )
+                    .map((wallet, index) => `${index + 1}. (\`${wallet.wallet_address}\`)`)
                     .join("\n"),
             { parse_mode: "Markdown" }
         );

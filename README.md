@@ -17,10 +17,12 @@ Final Todo:
 3. Twitter Bot
 
 ---
-Manav: 
-1. limit orders cancel order (store orderIds in redis and use cancel-order)
 
-Sarthak:
-2. remove name from autotrade
-3. copytrade
-4. Fix OrderBook
+<!-- PRIORITY -->
+
+1. limit orders cancel order (store orderIds in redis and use cancel-order)
+2. copytrade
+
+<!-- NOT PRIORITY -->
+
+1. Landing Page for the Bot (any design for now)

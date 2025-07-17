@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../shared/constants";
+import { env } from "@/config";
 
 const WRAPPED_USDC_ABI = [
     "function approve(address spender, uint256 amount) external returns (bool)",
@@ -9,7 +10,7 @@ const WRAPPED_USDC_ABI = [
 
 export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
     try {
-        const provider = new ethers.JsonRpcProvider("https://polygon-rpc.com");
+        const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const connectedWallet = wallet.connect(provider);
 
         const usdcContract = new ethers.Contract(USDC_ADDRESS, WRAPPED_USDC_ABI, connectedWallet);

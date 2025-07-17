@@ -115,17 +115,12 @@ export const generateAutoTradeMenu = async (
     return { message: statusMessage, replyMarkup: markup };
 };
 
-export function createPaginationKeyboard(conditionId: string, index: number, total: number) {
-    const baseButtons = [
-        Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
-        Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
-        Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
-    ];
-    const buyButtons = [
-        Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
-        Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
-    ];
-
+export function createPaginationKeyboard(
+    conditionId: string,
+    index: number,
+    total: number,
+    isResolved: boolean
+) {
     const paginationButtons = [];
 
     if (index > 0) {
@@ -135,6 +130,39 @@ export function createPaginationKeyboard(conditionId: string, index: number, tot
         paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
     }
 
-    return Markup.inlineKeyboard([baseButtons, buyButtons, paginationButtons, [CLOSE_BUTTON]])
-        .reply_markup;
+    const rows = [];
+
+    if (!isResolved) {
+        rows.push([
+            Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
+            Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
+            Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
+        ]);
+        rows.push([
+            Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
+            Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
+        ]);
+    }
+
+    rows.push(paginationButtons);
+    rows.push([CLOSE_BUTTON]);
+
+    return Markup.inlineKeyboard(rows).reply_markup;
+}
+
+export async function handleAutoTradeMenu(ctx: Context) {
+    return ctx.reply(
+        "🚧 *Coming Soon!*\n\nThis feature isn't available yet, but it's in the works. Stay tuned! 👷‍♂️",
+        { parse_mode: "Markdown" }
+    );
+
+    // const menuResult = await generateAutoTradeMenu(ctx);
+    // if (!menuResult) return;
+
+    // const { message, replyMarkup } = menuResult;
+
+    // await ctx.reply(message, {
+    //     parse_mode: "Markdown",
+    //     reply_markup: replyMarkup,
+    // });
 }

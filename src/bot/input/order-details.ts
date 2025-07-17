@@ -220,24 +220,20 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       : Number(textMessage.trim())
                   : Number(textMessage.trim());
 
-        const hasTx = !!orderResponse?.response?.tx;
-
-        const polygonScanMsg =
-            orderType !== "fok_sell"
-                ? hasTx
-                    ? `\n<a href="https://polygonscan.com/tx/${orderResponse?.response.tx}">View on Polygonscan</a>\n\n`
-                    : `\n✅ USDC Already Approved\n\n`
-                : `\n`;
+        const txHash = orderResponse?.response.transactionsHashes[0];
+        const polygonScanMsg = `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`;
 
         const orderPlacedMessage =
             orderType === "fok_sell"
-                ? `✅ Your Sell Order is Placed!\n\n` +
-                  `Market: ${marketQuestion}\n` +
-                  `Shares Sold: ${orderPlaceAmountToShow}\n` +
-                  `Outcome: ${position?.outcome || "Unknown"}`
-                : `✅ Your Order is Placed!${polygonScanMsg}` +
-                  `Market: ${marketQuestion}\n` +
-                  `Amount: ${orderPlaceAmountToShow} | Side: ${side}`;
+                ? `✅ Your Sell Order was Placed!\n\n` +
+                  `<b>Market:</b> ${marketQuestion}\n` +
+                  `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
+                  `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
+                  polygonScanMsg
+                : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
+                  `<b>Market:</b> ${marketQuestion}\n` +
+                  `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
+                  polygonScanMsg;
 
         await ctx.telegram.editMessageText(
             ctx.chat!.id,

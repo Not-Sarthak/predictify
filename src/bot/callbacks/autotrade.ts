@@ -1,22 +1,9 @@
 import { setUserInputState } from "@/bot/input/state";
-import { generateAutoTradeMenu } from "@/bot/ui/messages";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
-
-export async function handleAutoTradeMenu(ctx: Context) {
-    const menuResult = await generateAutoTradeMenu(ctx);
-    if (!menuResult) return;
-
-    const { message, replyMarkup } = menuResult;
-
-    await ctx.reply(message, {
-        parse_mode: "Markdown",
-        reply_markup: replyMarkup,
-    });
-}
 
 export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
@@ -44,7 +31,7 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             Markup.button.callback("100%", "config_position_100"),
             Markup.button.callback("Custom", "config_position_custom"),
         ],
-        [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
+        [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
     ];
 
     await ctx.editMessageText(configMessage, {
@@ -69,7 +56,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
 
             const buttons = [
                 [Markup.button.callback("➕ Add Wallet", "add_new_wallet")],
-                [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
+                [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
             ];
 
             return ctx.editMessageText(message, {
@@ -81,11 +68,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
         const message =
             `👁️ *Watched Wallets (${userWallets.length}/3)*\n\n` +
             userWallets
-                .map(
-                    (wallet, index) =>
-                        `${index + 1}. *${wallet.wallet_name}*\n` +
-                        `   \`${wallet.wallet_address}\``
-                )
+                .map((wallet, index) => `${index + 1}. *${wallet.wallet_address}*`)
                 .join("\n\n");
 
         const buttons = [
@@ -93,7 +76,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
                 Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
                 Markup.button.callback("🗑️ Remove Wallet", "delete_wallet"),
             ],
-            [Markup.button.callback("↩️ Back to Auto Trade", "start:autotrade")],
+            [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
         ];
 
         await ctx.editMessageText(message, {
@@ -190,14 +173,10 @@ export async function handleAddNewWalletCallback(ctx: Context) {
 
     await setUserInputState(userId.toString(), "walletDetails");
 
-    const message = `🧾 *Add Wallet Instructions*
-
-Please Enter Your Wallet in the Following Format:
-
-\`<wallet_name> <wallet_address>\`
+    const message = `🧾 *Add Wallet Address*
 
 📌 *Example:*  
-\`my_wallet 0x56687bf447db6ffa42ffe2204a05edaa20f55839\`
+\`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`
 `;
 
     return ctx.reply(message, { parse_mode: "Markdown" });
@@ -219,7 +198,7 @@ export async function handleDeleteWalletCallback(ctx: Context) {
             data.map((wallet) => {
                 return [
                     Markup.button.callback(
-                        `${wallet.wallet_name} (${wallet.wallet_address})`,
+                        `${wallet.wallet_address}`,
                         `delete_copy_wallet:${wallet.wallet_address}`
                     ),
                 ];

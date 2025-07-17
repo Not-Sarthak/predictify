@@ -7,17 +7,16 @@ export async function handleWalletDetailsTextMessage(
     textMessage: string,
     userId: number
 ) {
-    const [walletName, walletAddress] = textMessage?.split(/\s+/);
+    const walletAddress = textMessage;
 
-    if (!walletName || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-        return ctx.reply("❌ Invalid format. Try again using:\n\n`<wallet_name> <wallet_address>`");
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+        return ctx.reply("❌ Invalid Wallet Address. Try again.");
     }
 
     try {
         const { error } = await db("Copy_Wallets").insert([
             {
                 user_id: userId,
-                wallet_name: walletName,
                 wallet_address: walletAddress,
             },
         ]);
@@ -25,7 +24,7 @@ export async function handleWalletDetailsTextMessage(
         if (error) throw new Error(error.message, { cause: error.cause });
 
         await clearUserInputState(userId.toString());
-        return ctx.reply(`✅ Wallet *${walletName}* saved successfully!`, {
+        return ctx.reply(`✅ Wallet *${walletAddress}* saved successfully!`, {
             parse_mode: "Markdown",
         });
     } catch (error) {

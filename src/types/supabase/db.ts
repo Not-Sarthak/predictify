@@ -16,7 +16,6 @@ export type Database = {
                     percent_ratio: number;
                     user_id: number;
                     wallet_address: string;
-                    wallet_name: string;
                 };
                 Insert: {
                     created_at?: string;
@@ -25,7 +24,6 @@ export type Database = {
                     percent_ratio?: number;
                     user_id: number;
                     wallet_address: string;
-                    wallet_name: string;
                 };
                 Update: {
                     created_at?: string;
@@ -34,7 +32,6 @@ export type Database = {
                     percent_ratio?: number;
                     user_id?: number;
                     wallet_address?: string;
-                    wallet_name?: string;
                 };
                 Relationships: [
                     {
