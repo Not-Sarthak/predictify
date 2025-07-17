@@ -20,8 +20,7 @@ Final Todo:
 
 <!-- PRIORITY -->
 
-1. limit orders cancel order (store orderIds in redis and use cancel-order)
-2. copytrade
+1. copytrade
 
 <!-- NOT PRIORITY -->
 

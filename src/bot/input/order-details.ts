@@ -221,48 +221,60 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                   : Number(textMessage.trim());
 
         const txHash = orderResponse?.response.transactionsHashes[0];
-        const polygonScanMsg = `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`;
+        const orderId = orderResponse?.response.orderID;
 
-        const orderPlacedMessage =
-            orderType === "fok_sell"
-                ? `✅ Your Sell Order was Placed!\n\n` +
-                  `<b>Market:</b> ${marketQuestion}\n` +
-                  `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
-                  `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
-                  polygonScanMsg
-                : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
-                  `<b>Market:</b> ${marketQuestion}\n` +
-                  `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
-                  polygonScanMsg;
+        if (orderResponse?.response.success) {
+            const polygonScanMsg = `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`;
 
-        await ctx.telegram.editMessageText(
-            ctx.chat!.id,
-            sentMessage.message_id,
-            undefined,
-            orderPlacedMessage,
-            {
-                parse_mode: "HTML",
-                reply_markup: Markup.inlineKeyboard([
-                    Markup.button.callback("📊 Track My Order", `show_portfolio`),
-                ]).reply_markup,
+            const orderPlacedMessage =
+                orderType === "fok_sell"
+                    ? `✅ Your Sell Order was Placed!\n\n` +
+                      `<b>Market:</b> ${marketQuestion}\n` +
+                      `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
+                      `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
+                      polygonScanMsg
+                    : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
+                      `<b>Market:</b> ${marketQuestion}\n` +
+                      `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
+                      polygonScanMsg;
+
+            await ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                orderPlacedMessage,
+                {
+                    parse_mode: "HTML",
+                    reply_markup: Markup.inlineKeyboard([
+                        Markup.button.callback("📊 Track My Order", `show_portfolio`),
+                    ]).reply_markup,
+                }
+            );
+            await redisClient.rPush(`user:order_ids:${userId}`, orderId);
+
+            if (orderType !== "fok_sell") {
+                const amount =
+                    orderType === "gtc"
+                        ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
+                        : Number(textMessage.trim());
+
+                await transferFeeToTreasury({
+                    userWallet: new ethers.Wallet(decryptedPrivateKey),
+                    positionAmount: amount,
+                    transactionType: "OPEN",
+                    userId: userId,
+                });
             }
-        );
 
-        if (orderType !== "fok_sell") {
-            const amount =
-                orderType === "gtc"
-                    ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                    : Number(textMessage.trim());
-
-            await transferFeeToTreasury({
-                userWallet: new ethers.Wallet(decryptedPrivateKey),
-                positionAmount: amount,
-                transactionType: "OPEN",
-                userId: userId,
-            });
+            await ensureTokenApproval(decryptedPrivateKey);
+        } else {
+            await ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                "❌ Error Placing Order"
+            );
         }
-
-        await ensureTokenApproval(decryptedPrivateKey);
     } catch (error) {
         console.error("Error placing the order: ", error);
         await ctx.telegram.editMessageText(
