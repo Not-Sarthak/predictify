@@ -6,14 +6,13 @@ import { bot } from "@/bot";
 import { Markup } from "telegraf";
 import { layoutButtons } from "@/bot/utils";
 import { normalizeTitle } from "@/notifier/utils";
+import { capitalize } from "@/utils";
 
 export const notifyUsersAboutNewMarkets = async () => {
     const now = Date.now();
     const categoryToMarketMap = new Map<string, EventData[]>();
-
     const categories = await redisClient.hKeys(`categories`);
 
-    // TODO:FIX - Fetch more than 1 events (could be more than 1 event created in 12 hour timeframe) (add filter for start_date_min)
     await Promise.all(
         categories.map(async (category) => {
             try {
@@ -51,49 +50,70 @@ export const notifyUsersAboutNewMarkets = async () => {
         })
     );
 
-    const userKeys = await redisClient.keys("user:subs:*");
-    const userIds = userKeys.map((key) => key.split(":")[2]);
+    // const userKeys = await redisClient.keys("user:subs:*");
+    // const userIds = userKeys.map((key) => key.split(":")[2]);
+    const userIds = ["1869143890"];
 
     await Promise.all(
         userIds.map(async (userId) => {
             const userCategories = await redisClient.sMembers(`user:subs:${userId}`);
-            const newEvents: EventData[] = [];
+            const categorizedEvents = new Map<string, EventData[]>();
 
             for (const category of userCategories) {
                 const events = categoryToMarketMap.get(category);
                 if (events && events.length > 0) {
-                    newEvents.push(...events);
+                    // Deduplicate by normalized title
+                    const map = new Map<string, EventData>();
+                    for (const e of events) {
+                        const key = normalizeTitle(e.title);
+                        if (
+                            !map.has(key) ||
+                            new Date(e.createdAt).getTime() >
+                                new Date(map.get(key)!.createdAt).getTime()
+                        ) {
+                            map.set(key, e);
+                        }
+                    }
+                    categorizedEvents.set(category, Array.from(map.values()));
                 }
             }
 
-            if (newEvents.length === 0) return;
+            if (categorizedEvents.size === 0) return;
 
-            const latestEventsByTitle = new Map<string, EventData>();
+            let idx = 1;
+            const buttons: { text: string; callback_data: string }[] = [];
+            const messageParts: string[] = ["🔔 *NEW MARKETS*\n"];
 
-            for (const event of newEvents) {
-                const key = normalizeTitle(event.title);
-                const existing = latestEventsByTitle.get(key);
+            for (const [category, events] of categorizedEvents.entries()) {
+                messageParts.push(`\n*${capitalize(category)}* (${events.length} markets)`);
+                for (const event of events) {
+                    const price = `$${(event.volume || 0 / 100).toFixed(0)}`;
+                    const date = new Date(event.endDate).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                    });
 
-                if (
-                    !existing ||
-                    new Date(event.createdAt).getTime() > new Date(existing.createdAt).getTime()
-                ) {
-                    latestEventsByTitle.set(key, event);
+                    messageParts.push(`${idx}. ${event.title}`);
+                    messageParts.push(`📊 ${price} • ⏰ ${date}\n`);
+
+                    buttons.push({
+                        text: `#${idx}`,
+                        callback_data: `view_markets:${event.id}`,
+                    });
+
+                    idx++;
                 }
             }
 
-            const finalEvents = Array.from(latestEventsByTitle.values());
+            messageParts.push("\n📈 Use /subscriptions to manage subscriptions");
 
-            const messageLines = finalEvents.map((event, idx) => `${idx + 1}. ${event.title}`);
-            const message = `🆕 *New Markets in Your Subscribed Categories*\n\n${messageLines.join("\n")}`;
-            const buttons = finalEvents.map((event, idx) => ({
-                text: `#${idx + 1}`,
-                callback_data: `view_markets:${event.id}`,
-            }));
+            const message = messageParts.join("\n");
             const buttonLayout = layoutButtons(buttons);
 
             try {
                 await bot.telegram.sendMessage(userId, message, {
+                    parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard(buttonLayout).reply_markup,
                 });
             } catch (err) {
