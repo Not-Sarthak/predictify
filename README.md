@@ -18,8 +18,14 @@ Final Todo:
 
 ---
 
+<!-- PRIORITY -->
+
 1. limit orders cancel order (store orderIds in redis and use cance-order)
 2. remove name from autotrade
 3. copytrade
 4. Fix OrderBook
-5. Fix expired orders in portfolio (either don't show them at all or just show that they are expired and can't do anything)
+5. Replace Public RPC with Private RPC in Env and in code everywhere
+
+<!-- NOT PRIORITY -->
+
+1. Landing Page for the Bot (any design for now)

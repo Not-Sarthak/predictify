@@ -172,6 +172,7 @@ export function formatSinglePositionMessage(
         initialValue,
         currentValue,
         endDate,
+        redeemable,
     } = position;
 
     const isProfit = cashPnl >= 0;
@@ -191,6 +192,10 @@ export function formatSinglePositionMessage(
         year: "numeric",
     });
 
+    const statusLine = redeemable
+        ? `✅ *Market Resolved*`
+        : `${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
+
     const text = `
 *📊 Your Polymarket Dashboard*
 
@@ -198,12 +203,12 @@ export function formatSinglePositionMessage(
 
 ${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} shares @ ${avgPriceFormatted}
 🎯 *Current Price:* ${curPriceFormatted}
-${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})
+${statusLine}
 💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}
 📆 *Expires:* ${expiryDateFormatted}
     `.trim();
 
-    const markup = createPaginationKeyboard(conditionId, index, total);
+    const markup = createPaginationKeyboard(conditionId, index, total, redeemable);
 
     return { text, markup };
 }
