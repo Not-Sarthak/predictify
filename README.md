@@ -20,11 +20,11 @@ Final Todo:
 
 <!-- PRIORITY -->
 
-1. limit orders cancel order (store orderIds in redis and use cance-order)
-2. remove name from autotrade
-3. copytrade
-4. Fix OrderBook
-5. Replace Public RPC with Private RPC in Env and in code everywhere
+Manav:
+
+1. limit orders cancel order (store orderIds in redis and use cancel-order)
+
+Sarthak: 2. remove name from autotrade 3. copytrade 4. Fix OrderBook 5. Replace Public RPC with Private RPC in Env and in code everywhere
 
 <!-- NOT PRIORITY -->
 
