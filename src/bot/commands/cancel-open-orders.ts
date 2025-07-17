@@ -1,40 +1,20 @@
-import type { ApiKeyCreds } from "@/types/polymarket";
 import { Markup, type Context } from "telegraf";
-
-import { env } from "@/config";
 import { getUserIdFromCtx } from "@/bot/utils";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { CHAIN_ID } from "@/shared/constants";
-import { createLegacyWallet } from "@/utils";
-import { ClobClient } from "@polymarket/clob-client";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 import { encodeMarketId } from "@/utils/encoding";
-import { ethers } from "ethers";
-import { decryptPrivateKey } from "@/utils/crypto";
-
-const host = env.CLOB_API_URL;
+import { redisClient } from "@/lib/redis";
 
 export async function handleCancelOpenOrdersCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    const user = await getUserDetails(userId);
+    const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
 
-    if (!user) {
-        return ctx.reply("❌ User does not exist");
+    if (!trackedOrderIds || trackedOrderIds.length === 0) {
+        return ctx.reply("✅ No unmatched open orders found.");
     }
 
-    const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
+    const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
 
-    const creds: ApiKeyCreds = {
-        key: api_creds.key,
-        secret: api_creds.secret,
-        passphrase: api_creds.passphrase,
-    };
-
-    const legacyWallet = createLegacyWallet(new ethers.Wallet(decryptPrivateKey(user.private_key)));
-    const clobClient = new ClobClient(host, CHAIN_ID, legacyWallet as any, creds);
-
-    const unmatchedOrders = await getUnmatchedOpenOrders(clobClient, user.wallet_address);
-    if (!unmatchedOrders) {
+    if (!Array.isArray(unmatchedOrders) && !unmatchedOrders) {
         return ctx.reply("❌ Internal Server Error");
     }
 
