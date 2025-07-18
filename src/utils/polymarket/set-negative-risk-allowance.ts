@@ -1,17 +1,18 @@
 import { getContractConfig } from "@polymarket/clob-client";
-import { getWallet } from "../../helpers/get-wallet-address";
 import { getCtfContract, getUsdcContract } from "../../helpers/contract-utilities";
 import type { BigNumberish } from "ethers";
 import { ethers } from "ethers";
+import { CHAIN_ID } from "@/shared/constants";
+import { env } from "@/config";
 
-// TODO:FIX - CONFIRM IF THIS FN IS NEEDED AND REMOVE IT
-export async function setNegativeRiskAllowance(mainnet: boolean) {
-    const wallet = getWallet(mainnet);
-    const chainId = mainnet ? 137 : 80002;
+// THIS IS A VERY IMPORTANT FUNCTION - TOOK US A MONTH TO REALIZE
+export async function setNegativeRiskAllowance(privateKey: string) {
+    const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
+    const wallet = new ethers.Wallet(privateKey, provider);
 
-    const contractConfig = getContractConfig(chainId);
-    const usdc = getUsdcContract(mainnet, wallet);
-    const ctf = getCtfContract(mainnet, wallet);
+    const contractConfig = getContractConfig(CHAIN_ID);
+    const usdc = getUsdcContract(true, wallet);
+    const ctf = getCtfContract(true, wallet);
 
     const usdcAllowanceNegRiskAdapter = (await usdc.allowance(
         wallet.address,
@@ -31,40 +32,29 @@ export async function setNegativeRiskAllowance(mainnet: boolean) {
         contractConfig.negRiskAdapter
     )) as BigNumberish;
 
-    // let txn;
-
     // For Splitting through the NegRiskAdapter
     if (ethers.toBigInt(usdcAllowanceNegRiskAdapter) === 0n) {
         await usdc.approve(contractConfig.negRiskAdapter, ethers.MaxUint256, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
-        // console.log(`Setting USDC Allowance for NegRiskAdapter: ${txn.hash}`);
     }
     if (ethers.toBigInt(usdcAllowanceNegRiskExchange) === 0n) {
         await usdc.approve(contractConfig.negRiskExchange, ethers.MaxUint256, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
-        // console.log(`Setting USDC Allowance for NegRiskExchange: ${txn.hash}`);
     }
-    if (ethers.toBigInt(conditionalTokensAllowanceNegRiskExchange) === 0n) {
+    if (!conditionalTokensAllowanceNegRiskExchange) {
         await ctf.setApprovalForAll(contractConfig.negRiskExchange, true, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
-        // console.log(
-        //   `Setting Conditional Tokens Allowance for NegRiskExchange: ${txn.hash}`
-        // );
     }
-    if (ethers.toBigInt(conditionalTokensAllowanceNegRiskAdapter) === 0n) {
+    if (!conditionalTokensAllowanceNegRiskAdapter) {
         await ctf.setApprovalForAll(contractConfig.negRiskAdapter, true, {
             gasPrice: 100_000_000_000,
             gasLimit: 200_000,
         });
-        // console.log(
-        //   `Setting Conditional Tokens Allowance for NegRiskAdapter: ${txn.hash}`
-        // );
     }
-    // console.log("Allowances Set");
 }

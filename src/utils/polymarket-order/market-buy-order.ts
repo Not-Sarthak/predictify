@@ -5,6 +5,7 @@ import { env } from "../../config/env";
 import { createLegacyWallet } from "../../utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
+import { setNegativeRiskAllowance } from "@/utils/polymarket/set-negative-risk-allowance";
 
 interface MarketBuyOrderRequest {
     privateKey: string;
@@ -81,6 +82,8 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
             error: "Error setting USDC Allowance",
         };
     }
+
+    await setNegativeRiskAllowance(marketBuyOrderRequest.privateKey);
 
     try {
         const marketBuyOrder = await clobClient.createMarketOrder({

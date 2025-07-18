@@ -4,6 +4,7 @@ import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
 import { createLegacyWallet } from "../../utils";
 import { CHAIN_ID, HOST } from "@/shared/constants";
+import { setNegativeRiskAllowance } from "@/utils/polymarket/set-negative-risk-allowance";
 
 interface BuyOrderGTCRequest {
     size: number;
@@ -42,6 +43,8 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
                 error: "Error setting USDC Allowance",
             };
         }
+
+        await setNegativeRiskAllowance(orderRequest.privateKey);
 
         const clobClient = new ClobClient(
             HOST,
