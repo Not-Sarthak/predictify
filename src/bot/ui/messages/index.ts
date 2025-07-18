@@ -150,6 +150,29 @@ export function createPaginationKeyboard(
     return Markup.inlineKeyboard(rows).reply_markup;
 }
 
+export function splitIntoChunks(lines: string[], maxChunkSize: number): string[] {
+    const chunks: string[] = [];
+    let currentChunk = "";
+
+    for (const line of lines) {
+        // Add 2 newlines as separator
+        const entry = line + "\n\n";
+
+        if ((currentChunk + entry).length > maxChunkSize) {
+            chunks.push(currentChunk.trim());
+            currentChunk = entry;
+        } else {
+            currentChunk += entry;
+        }
+    }
+
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+}
+
 export async function handleAutoTradeMenu(ctx: Context) {
     return ctx.reply(
         "🚧 *Coming Soon!*\n\nThis feature isn't available yet, but it's in the works. Stay tuned! 👷‍♂️",
