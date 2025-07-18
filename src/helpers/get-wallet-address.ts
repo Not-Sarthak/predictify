@@ -11,6 +11,3 @@ export function getWallet(mainnet: boolean): ethers.Wallet {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     return new ethers.Wallet(env.PRIVATE_KEY, provider);
 }
-
-// const wallet = getWallet(true);
-// console.log(wallet.address);
