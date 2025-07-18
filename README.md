@@ -20,7 +20,8 @@ Final Todo:
 
 <!-- PRIORITY -->
 
-1. copytrade
+1. Limit Orders (See Scalper's Message)
+2. copytrade
 
 <!-- NOT PRIORITY -->
 

@@ -834,13 +834,17 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
     const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
 
     try {
-        await cancelOrder({
-            privateKey: user.private_key,
+        const response = await cancelOrder({
+            privateKey: decryptPrivateKey(user.private_key),
             creds: api_creds,
             orderIds: [orderId],
         });
 
-        return ctx.reply("✅ Order Successfully Cancelled!");
+        if (response.canceled.length > 0) {
+            return ctx.reply("✅ Order Successfully Cancelled!");
+        } else if (response.not_canceled.length > 0) {
+            return ctx.reply("✅ Order Already Cancelled!");
+        }
     } catch (error) {
         console.error("Error cancelling the Order: ", error);
         return ctx.reply("❌ Order could not be Cancelled. Please try again later.");

@@ -220,11 +220,15 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       : Number(textMessage.trim())
                   : Number(textMessage.trim());
 
-        const txHash = orderResponse?.response.transactionsHashes[0];
+        const txHash = orderResponse?.response.transactionsHashes
+            ? orderResponse?.response.transactionsHashes[0]
+            : null;
         const orderId = orderResponse?.response.orderID;
 
         if (orderResponse?.response.success) {
-            const polygonScanMsg = `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`;
+            const polygonScanMsg = txHash
+                ? `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`
+                : "\n";
 
             const orderPlacedMessage =
                 orderType === "fok_sell"
