@@ -11,14 +11,12 @@ interface CancelOrderRequest {
 }
 
 export const cancelOrder = async (cancelOrderRequest: CancelOrderRequest) => {
-    const wallet = new ethers.Wallet(env.PRIVATE_KEY);
-
+    const wallet = new ethers.Wallet(cancelOrderRequest.privateKey);
     const host = env.CLOB_API_URL;
-    const chainId = CHAIN_ID;
 
     const clobClient = new ClobClient(
         host,
-        chainId,
+        CHAIN_ID,
         createLegacyWallet(wallet) as any,
         cancelOrderRequest.creds
     );
