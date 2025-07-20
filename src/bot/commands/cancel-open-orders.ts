@@ -5,8 +5,12 @@ import { encodeMarketId } from "@/utils/encoding";
 import { redisClient } from "@/lib/redis";
 
 export async function handleCancelOpenOrdersCommand(ctx: Context) {
+    const { message_id } = await ctx.reply("⌛ Fetching your Unmatched Limit Orders...");
+
     const userId = getUserIdFromCtx(ctx);
     const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+
+    await ctx.deleteMessage(message_id);
 
     if (!trackedOrderIds || trackedOrderIds.length === 0) {
         return ctx.reply("✅ No unmatched open orders found.");
@@ -23,6 +27,17 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
     }
 
     for (const order of unmatchedOrders) {
+        const createdDate = new Date(order.created_at);
+        const createdDateStr = isNaN(createdDate.getTime())
+            ? "N/A"
+            : createdDate.toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              });
+
         const text = `
 🧾 *Open Order*
 📊 *Market:* ${order.market}
@@ -30,11 +45,15 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
 💰 *Price:* $${parseFloat(order.price).toFixed(4)}
 📦 *Size:* ${parseFloat(order.original_size).toFixed(2)}
 🎯 *Outcome:* ${order.outcome}
-⏱ *Created:* ${new Date(order.created_at).toLocaleString()}
+⏱ *Created:* ${createdDateStr}
         `.trim();
 
+        const encodedOrderId = encodeMarketId(order.id);
         const inlineKeyboard = Markup.inlineKeyboard([
-            Markup.button.callback("❌ Cancel Order", `cancel_order:${encodeMarketId(order.id)}`),
+            [
+                Markup.button.callback("✏️ Edit Order", `edit_order:${encodedOrderId}`),
+                Markup.button.callback("❌ Cancel Order", `cancel_order:${encodedOrderId}`),
+            ],
         ]);
 
         await ctx.reply(text, {

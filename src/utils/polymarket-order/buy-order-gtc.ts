@@ -15,6 +15,7 @@ interface BuyOrderGTCRequest {
     feeRateBps: number;
     apiCreds: ApiKeyCreds;
     privateKey: string;
+    expiration: number;
 }
 
 // GTC -> Good Till Canceled. Order Stays Active until you Manually Cancel it or it gets Filled
@@ -28,8 +29,6 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
         orderRequest.apiCreds
     );
 
-    let txHash;
-
     const balance = await getUserWrappedUSDCBalance(walletAddress);
     const totalCost = orderRequest.price * orderRequest.size;
 
@@ -41,7 +40,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     }
 
     try {
-        txHash = await setUSDCAllowance(wallet, totalCost.toString());
+        await setUSDCAllowance(wallet, totalCost.toString());
     } catch (error) {
         console.error("Error setting USDC Allowance: ", error);
         return {
@@ -55,10 +54,11 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     try {
         const order = await clobClient.createOrder({
             tokenID: orderRequest.tokenId,
-            price: orderRequest.price,
+            price: Number(orderRequest.price.toFixed(4)),
             side: orderRequest.side,
-            size: orderRequest.size,
+            size: Number(orderRequest.size.toFixed(6)),
             feeRateBps: 0,
+            expiration: orderRequest.expiration,
         });
 
         const response = await clobClient.postOrder(order, orderRequest.orderType);
@@ -67,12 +67,12 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
             throw new Error(response.error);
         }
 
-        return { response, tx: txHash, error: null };
+        return { response, error: null };
     } catch (error) {
         console.error("Error Placing GTC Order: ", error);
         return {
             response: null,
-            error: error,
+            error,
         };
     }
 }

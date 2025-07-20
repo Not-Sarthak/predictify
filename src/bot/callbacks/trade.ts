@@ -291,7 +291,13 @@ export async function handleViewTopMarketsByCategory(
         filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_top_markets:${marketCategory}:${filter}:${offset}`
+            ),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     if (ctx.updateType === "callback_query") {
@@ -397,7 +403,10 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const marketButtonsLayout = layoutButtons(marketButtons);
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_markets:${eventId}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -440,7 +449,10 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -492,7 +504,10 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -772,49 +787,102 @@ export async function handleCloseOpenPosition(
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
-    const textMsgArray = textMsg.split(" ");
+    const textMsgArray = textMsg.trim().split(/\s+/);
+
+    if (textMsgArray.length < 1 || textMsgArray.length > 3) {
+        return ctx.reply("❌ Invalid input. Use: `<price> <amount> [expiry]` or just `<amount>`.");
+    }
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
-    const { marketId, side } = orderContext;
+    const { marketId, side, orderType } = orderContext;
 
-    const market = await getMarketById(marketId);
-
-    let price = null;
-    let size = null;
-
-    price = Number(textMsgArray[0]);
-    if (textMsgArray.length === 2) {
-        size = textMsgArray[1];
-    }
-
+    const market = marketId.startsWith("0x")
+        ? await getMarketByConditionId(marketId)
+        : await getMarketById(marketId);
     const outcomes: number[] = JSON.parse(market.outcomePrices);
-    const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
     const endDate = market.endDate || market.events?.[0]?.endDate;
 
-    let shares: number;
-    let potentialProfit: number;
+    const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+    const expiry = textMsgArray[2] || "none";
 
-    if (size) {
-        shares = Number(size);
-        potentialProfit = shares * (1 - price);
-    } else {
-        shares = price / pricePerShare;
-        potentialProfit = shares * (1 - pricePerShare);
-    }
+    let message = "";
+    let shares = 0;
+    let amount = 0;
+    let executionPrice = 0;
 
-    const message = `
+    if (orderType === "fok") {
+        // Market Order
+        amount = parseFloat(textMsgArray[0]);
+        if (isNaN(amount) || amount <= 0) {
+            return ctx.reply("❌ Invalid amount. Please enter a valid number.");
+        }
+
+        shares = amount / pricePerShare;
+
+        message = `
 📌 *${escapeMarkdown(market.question)}*
+
+💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 📅 Ends: ${formatDate(endDate)}
-🔷 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 
-🔷 Buying *${side}* with *$${price}*
+🎯 *Market Order - ${side}*
+💵 *Amount:* $${amount.toFixed(2)}
+📈 *Current Market Price:* $${pricePerShare}
 
-• Shares: ${size || Math.floor(shares)}
-• Price: ${side === "YES" ? outcomes[0] : outcomes[1]}
-• Potential Profit: $${potentialProfit.toFixed(2)}
+🚀 *Will execute immediately* at market price
 
-Tap *Confirm* to place the order.
-`;
+*Estimated Fill:*
+• Shares: ${shares.toFixed(4)}
+• Execution Price: $${pricePerShare}
+• Total Cost: $${amount.toFixed(2)}
+• Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
+
+Press *Confirm* to place the order or *Cancel*.
+        `;
+    } else {
+        // Limit Order
+        if (textMsgArray.length < 2) {
+            return ctx.reply("❌ Invalid input. Use format: `<price> <amount> [expiry]`");
+        }
+
+        const price = parseFloat(textMsgArray[0]);
+        amount = parseFloat(textMsgArray[1]);
+
+        if (isNaN(price) || isNaN(amount) || price <= 0 || amount <= 0) {
+            return ctx.reply("❌ Invalid price or amount. Please enter valid numbers.");
+        }
+
+        const isExecutableNow = pricePerShare <= price;
+        shares = amount / price;
+        if (shares < 5) {
+            return ctx.reply("❌ Your order would result in less than 5 shares. Minimum is 5.");
+        }
+
+        executionPrice = isExecutableNow ? pricePerShare : price;
+
+        const priceDiff = (((price - pricePerShare) / pricePerShare) * 100).toFixed(1);
+        const totalPayout = shares * 1;
+
+        message = `
+📌 *${escapeMarkdown(market.question)}*
+
+💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
+📅 Ends: ${formatDate(endDate)}
+
+🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
+💵 *Amount:* $${amount.toFixed(2)}
+📈 *Current Market Price:* $${pricePerShare}
+🕐 *Expiry:* *${expiry.toUpperCase()}*
+
+${
+    isExecutableNow
+        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+}
+
+Press *Confirm* to place the order or *Cancel*.
+        `;
+    }
 
     return ctx.reply(message, {
         parse_mode: "Markdown",
@@ -851,4 +919,108 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
         console.error("Error cancelling the Order: ", error);
         return ctx.reply("❌ Order could not be Cancelled. Please try again later.");
     }
+}
+
+export async function handleRefreshMarket(ctx: Context, marketId: string) {
+    await ctx.deleteMessage();
+    return handleViewMarket(ctx, marketId);
+}
+
+export async function handleRefreshMarketDetails(ctx: Context, marketId: string) {
+    await ctx.deleteMessage();
+    return handleMarketDetails(ctx, marketId);
+}
+
+export async function handleRefreshMarkets(ctx: Context, eventId: string) {
+    await ctx.deleteMessage();
+    return handleShowMarkets(ctx, Number(eventId));
+}
+
+export async function handleRefreshTopMarkets(
+    ctx: Context,
+    marketCategory: string,
+    filter: string,
+    offset: string
+) {
+    await ctx.deleteMessage();
+
+    // We need to handle this as a new message, not an edit
+    const LIMIT = 8;
+    let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+
+    const markets = await fetchMarkets(marketCategory, filter, Number(offset) || 0);
+
+    const filteredMarkets =
+        filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
+
+    if (filteredMarkets.length === 0) {
+        return ctx.reply("⚠️ No Available Markets!");
+    }
+
+    for (let i = 0; i < filteredMarkets.length; i++) {
+        const market = filteredMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVolumne = formatDollarVolume(market.volume1mo || 0);
+
+        message += `${i + 1}. **${market.title}**
+📊 Volume : ${fVolumne}
+⏰ Ends: ${fDate}
+
+`;
+    }
+
+    const filterButtons = MARKET_FILTERS.map((marketFilter) =>
+        Markup.button.callback(
+            marketFilter.split(" ")[1].toLowerCase() === filter
+                ? `✅ ${marketFilter}`
+                : `   ${marketFilter}`,
+            `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
+        )
+    );
+
+    const paginationButtons = [];
+    const offsetNum = Number(offset) || 0;
+
+    if (offsetNum > 0) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "⏮️ Prev",
+                `filter_top_market:${marketCategory}:${filter}:${offsetNum - LIMIT}`
+            )
+        );
+    }
+
+    if (filteredMarkets.length === LIMIT) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "Next ⏭️",
+                `filter_top_market:${marketCategory}:${filter}:${offsetNum + LIMIT}`
+            )
+        );
+    }
+
+    const marketButtons = filteredMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        filterButtons.slice(0, 3),
+        filterButtons.slice(3),
+        ...marketButtonsLayout,
+        paginationButtons,
+        [
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_top_markets:${marketCategory}:${filter}:${offsetNum}`
+            ),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }

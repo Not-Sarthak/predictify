@@ -1,5 +1,6 @@
 import type { ContractConfig } from "@polymarket/clob-client";
 
+export const POLYMARKET_WS_USER_URL = `wss://ws-subscriptions-clob.polymarket.com/ws/user`;
 export const HOST = "https://clob.polymarket.com";
 export const CHAIN_ID = 137;
 
