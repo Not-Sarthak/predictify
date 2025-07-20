@@ -772,61 +772,100 @@ export async function handleCloseOpenPosition(
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
-    const textMsgArray = textMsg.split(" ");
+    const textMsgArray = textMsg.trim().split(/\s+/);
 
-    if (textMsgArray.length < 2 || textMsgArray.length > 4) {
-        return ctx.reply("❌ Invalid Input. Please use format: `<price> <amount> <expiry>`");
+    if (textMsgArray.length < 1 || textMsgArray.length > 3) {
+        return ctx.reply("❌ Invalid input. Use: `<price> <amount> [expiry]` or just `<amount>`.");
     }
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
-    const { marketId, side } = orderContext;
+    const { marketId, side, orderType } = orderContext;
 
     const market = await getMarketById(marketId);
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const endDate = market.endDate || market.events?.[0]?.endDate;
 
-    const limitPrice = parseFloat(textMsgArray[0]);
-    const amount = parseFloat(textMsgArray[1]);
+    const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
     const expiry = textMsgArray[2] || "none";
 
-    if (isNaN(limitPrice) || isNaN(amount) || limitPrice <= 0 || amount <= 0) {
-        return ctx.reply("❌ Invalid numbers. Please enter valid price and amount.");
-    }
+    let message = "";
+    let shares = 0;
+    let amount = 0;
+    let executionPrice = 0;
 
-    const currentMarketPrice = side === "YES" ? outcomes[0] : outcomes[1];
-    const isExecutableNow = currentMarketPrice <= limitPrice;
+    if (orderType === "fok") {
+        // Market Order
+        amount = parseFloat(textMsgArray[0]);
+        if (isNaN(amount) || amount <= 0) {
+            return ctx.reply("❌ Invalid amount. Please enter a valid number.");
+        }
 
-    const executionPrice = isExecutableNow ? currentMarketPrice : limitPrice;
-    const shares = amount / executionPrice;
+        shares = amount / pricePerShare;
 
-    if (shares < 5) {
-        return ctx.reply(
-            "❌ Your order would result in less than 5 shares.\n\nMinimum share size required is 5."
-        );
-    }
-
-    const totalPayout = shares * 1; // $1 per share
-    const priceDiff = (((limitPrice - currentMarketPrice) / currentMarketPrice) * 100).toFixed(1);
-
-    const message = `
+        message = `
 📌 *${escapeMarkdown(market.question)}*
 
 💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 📅 Ends: ${formatDate(endDate)}
 
-🎯 *Limit Order - ${side} at $${limitPrice.toFixed(4)}*
+🎯 *Market Order - ${side}*
 💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${currentMarketPrice}
+📈 *Current Market Price:* $${pricePerShare}
+
+🚀 *Will execute immediately* at market price
+
+*Estimated Fill:*
+• Shares: ${shares.toFixed(4)}
+• Execution Price: $${pricePerShare}
+• Total Cost: $${amount.toFixed(2)}
+• Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
+
+Press *Confirm* to place the order or *Cancel*.
+        `;
+    } else {
+        // Limit Order
+        if (textMsgArray.length < 2) {
+            return ctx.reply("❌ Invalid input. Use format: `<price> <amount> [expiry]`");
+        }
+
+        const price = parseFloat(textMsgArray[0]);
+        amount = parseFloat(textMsgArray[1]);
+
+        if (isNaN(price) || isNaN(amount) || price <= 0 || amount <= 0) {
+            return ctx.reply("❌ Invalid price or amount. Please enter valid numbers.");
+        }
+
+        const isExecutableNow = pricePerShare <= price;
+        shares = amount / price;
+        if (shares < 5) {
+            return ctx.reply("❌ Your order would result in less than 5 shares. Minimum is 5.");
+        }
+
+        executionPrice = isExecutableNow ? pricePerShare : price;
+
+        const priceDiff = (((price - pricePerShare) / pricePerShare) * 100).toFixed(1);
+        const totalPayout = shares * 1;
+
+        message = `
+📌 *${escapeMarkdown(market.question)}*
+
+💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
+📅 Ends: ${formatDate(endDate)}
+
+🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
+💵 *Amount:* $${amount.toFixed(2)}
+📈 *Current Market Price:* $${pricePerShare}
 🕐 *Expiry:* *${expiry.toUpperCase()}*
 
 ${
     isExecutableNow
-        ? `🚀 Will execute immediately - Your limit ($${limitPrice.toFixed(4)}) is ${priceDiff}% above current price ($${currentMarketPrice})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${currentMarketPrice} (better than your limit)\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
-        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${limitPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
 }
 
 Press *Confirm* to place the order or *Cancel*.
-`;
+        `;
+    }
 
     return ctx.reply(message, {
         parse_mode: "Markdown",

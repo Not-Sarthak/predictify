@@ -24,9 +24,8 @@ Refactor:
 
 Manav:
 
-1. Limit order on success send notification (use WSS - User Channel)
-2. edit order (close the prev limit order and open new one)
-3. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
+1. edit order (close the prev limit order and open new one)
+2. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
 
 Sarthak:
 

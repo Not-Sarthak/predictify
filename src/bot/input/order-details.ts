@@ -20,6 +20,7 @@ import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
 import { clearUserInputState } from "@/bot/input/state";
 import { getMarketById } from "@/utils/polymarket/get-markets";
+import { PolymarketUserTradeWatcher } from "@/notifier/ws";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -284,6 +285,14 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                         ? "show_portfolio"
                         : "view_cancel_order_menu"
                     : "show_portfolio";
+
+            if (orderType === "gtc" && orderResponse.response.status !== "matched") {
+                new PolymarketUserTradeWatcher(
+                    userId.toString(),
+                    JSON.parse(userDetails.api_credentials),
+                    marketId
+                );
+            }
 
             await ctx.telegram.editMessageText(
                 ctx.chat!.id,

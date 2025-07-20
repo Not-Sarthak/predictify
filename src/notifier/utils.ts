@@ -30,3 +30,40 @@ export function normalizeTitle(title: string): string {
             .trim()
     );
 }
+
+export function generateOrderFilledMessage(trade: any, question: string): string {
+    const matched = trade.maker_orders[0];
+    const isBuy = trade.side === "BUY";
+    const side = isBuy ? "Buy" : "Sell";
+    const amount = parseFloat(trade.size).toFixed(4);
+    const outcome = isBuy ? trade.outcome : matched.outcome;
+    const price = parseFloat(trade.price).toFixed(2);
+
+    const polygonScanMsg = `<b>Tx:</b> <a href="https://polygonscan.com/tx/${trade.transaction_hash}">View on Polygonscan</a>`;
+
+    return (
+        `🎯 <b>Your Limit Order Was Filled!</b>\n\n` +
+        `<b>Market:</b> ${question}\n` +
+        `<b>Side:</b> ${side}\n` +
+        `<b>Outcome:</b> ${outcome}\n` +
+        `<b>Shares:</b> ${amount}\n` +
+        `<b>Price:</b> ${price}\n` +
+        polygonScanMsg
+    );
+}
+
+export async function getMarketQuestion(marketId: string): Promise<string | null> {
+    try {
+        const res = await fetch(
+            `https://gamma-api.polymarket.com/markets?condition_ids=${marketId}`
+        );
+        const market = await res.json();
+
+        if (!market) return null;
+
+        return market[0].question;
+    } catch (error) {
+        console.error("❌ Error fetching Market Question: ", error);
+        return null;
+    }
+}
