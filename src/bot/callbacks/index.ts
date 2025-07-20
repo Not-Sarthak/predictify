@@ -59,6 +59,7 @@ import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
+import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -450,6 +451,10 @@ export async function handleCallbackQuery(ctx: Context) {
             parse_mode: "HTML",
             reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
         });
+    }
+
+    if (data === "view_cancel_order_menu") {
+        return handleCancelOpenOrdersCommand(ctx);
     }
 
     if (data.startsWith("cancel_order:")) {

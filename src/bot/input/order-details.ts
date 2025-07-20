@@ -226,6 +226,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const orderId = orderResponse?.response.orderID;
 
         if (orderResponse?.response.success) {
+            console.log(orderResponse.response);
             const polygonScanMsg = txHash
                 ? `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`
                 : "\n";
@@ -242,6 +243,13 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;
 
+            const button_callback_data =
+                orderType === "gtc"
+                    ? orderResponse.response.status === "matched"
+                        ? "show_portfolio"
+                        : "view_cancel_order_menu"
+                    : "show_portfolio";
+
             await ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -250,7 +258,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 {
                     parse_mode: "HTML",
                     reply_markup: Markup.inlineKeyboard([
-                        Markup.button.callback("📊 Track My Order", `show_portfolio`),
+                        Markup.button.callback("📊 Track My Order", button_callback_data),
                     ]).reply_markup,
                 }
             );
