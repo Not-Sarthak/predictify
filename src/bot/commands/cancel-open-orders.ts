@@ -5,8 +5,12 @@ import { encodeMarketId } from "@/utils/encoding";
 import { redisClient } from "@/lib/redis";
 
 export async function handleCancelOpenOrdersCommand(ctx: Context) {
+    const { message_id } = await ctx.reply("⌛ Fetching your Unmatched Limit Orders...");
+
     const userId = getUserIdFromCtx(ctx);
     const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+
+    await ctx.deleteMessage(message_id);
 
     if (!trackedOrderIds || trackedOrderIds.length === 0) {
         return ctx.reply("✅ No unmatched open orders found.");

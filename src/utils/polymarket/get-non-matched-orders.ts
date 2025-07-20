@@ -18,28 +18,23 @@ export async function getUnmatchedOpenOrders(userId: number, trackedOrderIds: st
     const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, creds);
 
     const unmatchedOrders = [];
-    const matchedOrders = [];
+    const redisKey = `user:order_ids:${userId}`;
 
     try {
         for (const orderId of trackedOrderIds) {
             try {
                 const order = await clobClient.getOrder(orderId);
+                if (!order) continue;
 
-                if (order) {
-                    if (order.status !== "MATCHED") {
-                        unmatchedOrders.push(order);
-                    } else {
-                        matchedOrders.push(order);
-                    }
+                if (order.status === "MATCHED" || order.status === "CANCELED") {
+                    await redisClient.lRem(redisKey, 0, order.id);
+                    continue;
                 }
+
+                unmatchedOrders.push(order);
             } catch (error) {
                 console.warn(`⚠️ Failed to fetch order ${orderId}:`, error);
             }
-        }
-
-        const redisKey = `user:order_ids:${userId}`;
-        for (const matchedOrder of matchedOrders) {
-            await redisClient.lRem(redisKey, 0, matchedOrder.id);
         }
 
         return unmatchedOrders;
