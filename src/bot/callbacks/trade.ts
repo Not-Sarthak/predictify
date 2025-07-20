@@ -57,12 +57,14 @@ export async function handleViewTopMarketsCallback(ctx: Context) {
         Markup.button.callback(cat, `view_top_markets:${cat}`)
     );
 
-    const layout = [];
-    for (let i = 0; i < tradeCategoriesButtons.length; i += 2) {
-        layout.push(tradeCategoriesButtons.slice(i, i + 2));
-    }
+    const layout = [
+        tradeCategoriesButtons.slice(0, 3),
+        tradeCategoriesButtons.slice(3, 6),
+        tradeCategoriesButtons.slice(6, 9),
+        tradeCategoriesButtons.slice(9, 12),
+    ];
 
-    return ctx.reply("🔥 Trading Markets: ", {
+    return ctx.reply("🔥 Trending Markets: ", {
         reply_markup: Markup.inlineKeyboard(layout).reply_markup,
     });
 }
