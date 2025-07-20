@@ -14,12 +14,12 @@ import {
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
 import { decryptPrivateKey } from "@/utils/crypto";
-import { getMarketQuestion } from "@/bot/utils/get-market-question";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
 import { clearUserInputState } from "@/bot/input/state";
+import { getMarketById } from "@/utils/polymarket/get-markets";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -30,13 +30,17 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     }
 
     const { marketId, orderType, side } = orderContext;
-    const [userDetails, marketQuestion] = await Promise.all([
+    const [userDetails, market] = await Promise.all([
         getUserDetails(Number(userId)),
-        getMarketQuestion(marketId),
+        getMarketById(marketId),
     ]);
 
     if (!userDetails) {
         return ctx.reply("⚠️ Error fetching your account details! Please try again later.");
+    }
+
+    if (!market) {
+        return ctx.reply("⚠️ Error fetching market details! Please try again later.");
     }
 
     await clearUserInputState(userId.toString());
@@ -50,11 +54,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     let orderResponse;
     let position: any;
     let isMinimumAmount = true;
+    let executionPrice = 0;
+    let shares = 0;
+    let expiry = 0;
 
-    if (orderType === "gtc") {
-        const [price, size] = textMessage.split(/\s+/).slice(0, 2);
-        isMinimumAmount = Number(price) * Number(size) >= 10;
-    } else if (orderType === "fok") {
+    if (orderType === "fok") {
         const amount = Number(textMessage.trim());
         isMinimumAmount = amount >= 10;
     }
@@ -70,13 +74,43 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
     try {
         if (orderType === "gtc") {
-            const [price, size] = textMessage.split(/\s+/).slice(0, 2);
+            const [priceStr, amountStr, rawExpiry] = textMessage.trim().split(/\s+/);
 
-            if (!price || !size || isNaN(Number(price)) || isNaN(Number(size))) {
-                return ctx.reply(
-                    "❌ Invalid format! Please use: `<price> <size>`\nExample: `0.65 100`",
-                    { parse_mode: "Markdown" }
+            const limitPrice = Number(priceStr);
+            const amount = Number(amountStr);
+            if (isNaN(limitPrice) || isNaN(amount) || limitPrice <= 0 || amount <= 0) {
+                return ctx.reply("❌ Invalid format. Use: `<price> <amount> <expiry>`", {
+                    parse_mode: "Markdown",
+                });
+            }
+
+            const currentPrice =
+                side === "YES"
+                    ? JSON.parse(market.outcomePrices)[0]
+                    : JSON.parse(market.outcomePrices)[1];
+
+            const isExecutableNow = currentPrice <= limitPrice;
+            executionPrice = isExecutableNow ? currentPrice : limitPrice;
+            shares = amount / executionPrice;
+
+            if (!isMinimumAmount && !ADMIN_USERS_ID.includes(userId)) {
+                return await ctx.telegram.editMessageText(
+                    ctx.chat!.id,
+                    sentMessage.message_id,
+                    undefined,
+                    "❌ Order Size must be at least $10."
                 );
+            }
+
+            if (rawExpiry && rawExpiry.toLowerCase() !== "none") {
+                const match = rawExpiry.match(/^(\d+)([mh])$/i);
+                if (match) {
+                    const [, numStr, unit] = match;
+                    const num = parseInt(numStr, 10);
+                    expiry = Math.floor(Date.now() / 1000) + (unit === "h" ? num * 3600 : num * 60);
+                } else {
+                    return ctx.reply("❌ Invalid expiry format. Use `30m` or `2h` or `none`.");
+                }
             }
 
             const tokenId = await getTokenId(side.toLowerCase(), marketId);
@@ -85,14 +119,15 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             }
 
             orderResponse = await buyOrderGTC({
-                size: Number(size),
-                price: Number(price),
+                size: shares,
+                price: executionPrice,
                 orderType: OrderType.GTC,
                 tokenId,
                 side: Side.BUY,
                 feeRateBps: 0,
                 apiCreds,
                 privateKey: decryptedPrivateKey,
+                expiration: expiry,
             });
         } else if (orderType === "fok") {
             const amount = Number(textMessage.trim());
@@ -226,7 +261,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const orderId = orderResponse?.response.orderID;
 
         if (orderResponse?.response.success) {
-            console.log(orderResponse.response);
             const polygonScanMsg = txHash
                 ? `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`
                 : "\n";
@@ -234,12 +268,13 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             const orderPlacedMessage =
                 orderType === "fok_sell"
                     ? `✅ Your Sell Order was Placed!\n\n` +
-                      `<b>Market:</b> ${marketQuestion}\n` +
+                      `<b>Market:</b> ${market.question}\n` +
                       `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
                       `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
                       polygonScanMsg
                     : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
-                      `<b>Market:</b> ${marketQuestion}\n` +
+                      `<b>Status:</b> ${orderResponse.response.status}` +
+                      `<b>Market:</b> ${market.question}\n` +
                       `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;
 

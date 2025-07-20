@@ -1,5 +1,6 @@
-Final Todo:
+Refactor:
 
+- [ ] Use an ORM
 - [ ] ADD UNIT TESTS
 - [ ] Setup Monorepo
 - [ ] Use Docker Compose
@@ -18,15 +19,14 @@ Final Todo:
 
 ---
 
-12. 0dte
+1. 0dte
+2. ask for rpc - scalper
 
 Manav:
 
-1. Limit order usd logic (like polycule, take usd value instead of size, also take time limit)
-2. Limit order on success send notification (use WSS - User Channel)
-3. edit order (close the prev limit order and open new one)
-4. ask for rpc - scalper
-5. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
+1. Limit order on success send notification (use WSS - User Channel)
+2. edit order (close the prev limit order and open new one)
+3. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
 
 Sarthak:
 
