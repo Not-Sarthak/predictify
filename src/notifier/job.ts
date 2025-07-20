@@ -87,11 +87,14 @@ export const notifyUsersAboutNewMarkets = async () => {
                 messageParts.push(`\n*${capitalize(category)}* (${events.length} markets)`);
                 for (const event of events) {
                     const price = `$${(event.volume || 0 / 100).toFixed(0)}`;
-                    const date = new Date(event.endDate).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                    });
+                    const eventDate = new Date(event.endDate);
+                    const date = isNaN(eventDate.getTime())
+                        ? "N/A"
+                        : eventDate.toLocaleDateString("en-US", {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                          });
 
                     messageParts.push(`${idx}. ${event.title}`);
                     messageParts.push(`📊 ${price} • ⏰ ${date}\n`);

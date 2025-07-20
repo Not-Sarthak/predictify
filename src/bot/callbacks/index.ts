@@ -17,6 +17,10 @@ import {
     handleViewTradePositions,
     handleTradePagination,
     handleCancelOrderCallback,
+    handleRefreshMarket,
+    handleRefreshMarketDetails,
+    handleRefreshMarkets,
+    handleRefreshTopMarkets,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -460,6 +464,26 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("cancel_order:")) {
         const orderId = decodeMarketId(data.split(":")[1]);
         return handleCancelOrderCallback(ctx, orderId);
+    }
+
+    if (data.startsWith("refresh_market:")) {
+        const marketId = data.split(":")[1];
+        return handleRefreshMarket(ctx, marketId);
+    }
+
+    if (data.startsWith("refresh_market_details:")) {
+        const marketId = data.split(":")[1];
+        return handleRefreshMarketDetails(ctx, marketId);
+    }
+
+    if (data.startsWith("refresh_markets:")) {
+        const eventId = data.split(":")[1];
+        return handleRefreshMarkets(ctx, eventId);
+    }
+
+    if (data.startsWith("refresh_top_markets:")) {
+        const [marketCategory, filter, offset] = data.split(":").slice(1);
+        return handleRefreshTopMarkets(ctx, marketCategory, filter, offset);
     }
 
     if (data === "close_message") {

@@ -31,8 +31,6 @@ Manav:
 Sarthak:
 
 1. Limit order escrow
-2. Fix expires date in Portfolio
-3. Add refresh button in market details
 4. Add set alert for price and take profit/stop loss
 5. User balance: Total funds, available funds, locked funds
 6. fix potential profit -> Max Profit = (1 x number of shares ) - USD amount paid

@@ -7,6 +7,11 @@ import { createPaginationKeyboard } from "@/bot/ui/messages";
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
 
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return "N/A";
+    }
+
     const month = date.toLocaleString("en-US", { month: "long" }); // e.g., June
     const day = date.getDate();
     const year = date.getFullYear();
@@ -182,15 +187,21 @@ export function formatSinglePositionMessage(
     const curPriceFormatted = `$${curPrice.toFixed(4)}`;
     const initialValueFormatted = `$${initialValue.toFixed(2)}`;
     const currentValueFormatted = `$${currentValue.toFixed(2)}`;
-    const expiryDateFormatted = new Date(endDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
+    const expiryDate = new Date(endDate);
+    const isValidDate = !isNaN(expiryDate.getTime());
+    const expiryDateFormatted = isValidDate
+        ? expiryDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
 
     const statusLine = redeemable
         ? `✅ *Market Resolved*`
         : `${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
+
+    const expiresLine = expiryDateFormatted ? `📆 *Expires:* ${expiryDateFormatted}` : "";
 
     const text = `
 *📊 Your Polymarket Dashboard*
@@ -200,8 +211,7 @@ export function formatSinglePositionMessage(
 ${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} shares @ ${avgPriceFormatted}
 🎯 *Current Price:* ${curPriceFormatted}
 ${statusLine}
-💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}
-📆 *Expires:* ${expiryDateFormatted}
+💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
     `.trim();
 
     const markup = createPaginationKeyboard(conditionId, index, total, redeemable);

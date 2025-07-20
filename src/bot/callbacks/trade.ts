@@ -291,7 +291,13 @@ export async function handleViewTopMarketsByCategory(
         filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_top_markets:${marketCategory}:${filter}:${offset}`
+            ),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     if (ctx.updateType === "callback_query") {
@@ -397,7 +403,10 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const marketButtonsLayout = layoutButtons(marketButtons);
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_markets:${eventId}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -440,7 +449,10 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -492,7 +504,10 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
-        [Markup.button.callback("❌ Close", "close_message")],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
     ]);
 
     return ctx.reply(message, {
@@ -851,4 +866,108 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
         console.error("Error cancelling the Order: ", error);
         return ctx.reply("❌ Order could not be Cancelled. Please try again later.");
     }
+}
+
+export async function handleRefreshMarket(ctx: Context, marketId: string) {
+    await ctx.deleteMessage();
+    return handleViewMarket(ctx, marketId);
+}
+
+export async function handleRefreshMarketDetails(ctx: Context, marketId: string) {
+    await ctx.deleteMessage();
+    return handleMarketDetails(ctx, marketId);
+}
+
+export async function handleRefreshMarkets(ctx: Context, eventId: string) {
+    await ctx.deleteMessage();
+    return handleShowMarkets(ctx, Number(eventId));
+}
+
+export async function handleRefreshTopMarkets(
+    ctx: Context,
+    marketCategory: string,
+    filter: string,
+    offset: string
+) {
+    await ctx.deleteMessage();
+
+    // We need to handle this as a new message, not an edit
+    const LIMIT = 8;
+    let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+
+    const markets = await fetchMarkets(marketCategory, filter, Number(offset) || 0);
+
+    const filteredMarkets =
+        filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
+
+    if (filteredMarkets.length === 0) {
+        return ctx.reply("⚠️ No Available Markets!");
+    }
+
+    for (let i = 0; i < filteredMarkets.length; i++) {
+        const market = filteredMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVolumne = formatDollarVolume(market.volume1mo || 0);
+
+        message += `${i + 1}. **${market.title}**
+📊 Volume : ${fVolumne}
+⏰ Ends: ${fDate}
+
+`;
+    }
+
+    const filterButtons = MARKET_FILTERS.map((marketFilter) =>
+        Markup.button.callback(
+            marketFilter.split(" ")[1].toLowerCase() === filter
+                ? `✅ ${marketFilter}`
+                : `   ${marketFilter}`,
+            `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
+        )
+    );
+
+    const paginationButtons = [];
+    const offsetNum = Number(offset) || 0;
+
+    if (offsetNum > 0) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "⏮️ Prev",
+                `filter_top_market:${marketCategory}:${filter}:${offsetNum - LIMIT}`
+            )
+        );
+    }
+
+    if (filteredMarkets.length === LIMIT) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "Next ⏭️",
+                `filter_top_market:${marketCategory}:${filter}:${offsetNum + LIMIT}`
+            )
+        );
+    }
+
+    const marketButtons = filteredMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        filterButtons.slice(0, 3),
+        filterButtons.slice(3),
+        ...marketButtonsLayout,
+        paginationButtons,
+        [
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_top_markets:${marketCategory}:${filter}:${offsetNum}`
+            ),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }
