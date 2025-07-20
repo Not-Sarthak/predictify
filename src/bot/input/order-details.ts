@@ -19,8 +19,9 @@ import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
 import { clearUserInputState } from "@/bot/input/state";
-import { getMarketById } from "@/utils/polymarket/get-markets";
+import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
 import { PolymarketUserTradeWatcher } from "@/notifier/ws";
+import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -30,10 +31,12 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         return ctx.reply("❌ Something went wrong. Please try placing your order again.");
     }
 
-    const { marketId, orderType, side } = orderContext;
+    const { marketId, orderType, side, cancel, orderId: prevOrderId } = orderContext;
+    const fetchMarketById = marketId.startsWith("0x") ? getMarketByConditionId : getMarketById;
+
     const [userDetails, market] = await Promise.all([
         getUserDetails(Number(userId)),
-        getMarketById(marketId),
+        fetchMarketById(marketId),
     ]);
 
     if (!userDetails) {
@@ -75,6 +78,18 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
     try {
         if (orderType === "gtc") {
+            if (cancel === "true") {
+                const response = await cancelOrder({
+                    privateKey: decryptPrivateKey(userDetails.private_key),
+                    creds: apiCreds,
+                    orderIds: [prevOrderId],
+                });
+
+                if (response.not_canceled.length > 0) {
+                    return ctx.reply("❌ There was an Error.");
+                }
+            }
+
             const [priceStr, amountStr, rawExpiry] = textMessage.trim().split(/\s+/);
 
             const limitPrice = Number(priceStr);
@@ -274,7 +289,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
                       polygonScanMsg
                     : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
-                      `<b>Status:</b> ${orderResponse.response.status}` +
+                      `<b>Status:</b> ${orderResponse.response.status.toUpperCase()}\n` +
                       `<b>Market:</b> ${market.question}\n` +
                       `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;

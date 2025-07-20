@@ -37,8 +37,12 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
 ⏱ *Created:* ${new Date(order.created_at).toLocaleString()}
         `.trim();
 
+        const encodedOrderId = encodeMarketId(order.id);
         const inlineKeyboard = Markup.inlineKeyboard([
-            Markup.button.callback("❌ Cancel Order", `cancel_order:${encodeMarketId(order.id)}`),
+            [
+                Markup.button.callback("✏️ Edit Order", `edit_order:${encodedOrderId}`),
+                Markup.button.callback("❌ Cancel Order", `cancel_order:${encodedOrderId}`),
+            ],
         ]);
 
         await ctx.reply(text, {

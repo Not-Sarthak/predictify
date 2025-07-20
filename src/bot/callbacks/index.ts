@@ -60,6 +60,13 @@ import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
 import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
+import { getUserDetails } from "@/helpers/get-user-details";
+import type { ApiKeyCreds } from "@/types/polymarket";
+import { createLegacyWallet } from "@/utils";
+import { decryptPrivateKey } from "@/utils/crypto";
+import { ethers } from "ethers";
+import { ClobClient } from "@polymarket/clob-client";
+import { CHAIN_ID, HOST } from "@/shared/constants";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -303,6 +310,45 @@ export async function handleCallbackQuery(ctx: Context) {
                 `**Format:** \`<amount>\`\n` +
                 `**Example:** \`50\`\n\n` +
                 `Note: Minimum Amount should be 10`,
+            { parse_mode: "Markdown" }
+        );
+    }
+
+    if (data.startsWith("edit_order:")) {
+        const encodedOrderId = data.split(":")[1];
+        const orderId = decodeMarketId(encodedOrderId);
+
+        const userId = getUserIdFromCtx(ctx);
+        const user = await getUserDetails(userId);
+        if (!user) return;
+
+        const creds: ApiKeyCreds = JSON.parse(user.api_credentials) as ApiKeyCreds;
+
+        const legacyWallet = createLegacyWallet(
+            new ethers.Wallet(decryptPrivateKey(user.private_key))
+        );
+
+        const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, creds);
+        const order = await clobClient.getOrder(orderId);
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId: order.market,
+            orderType: "gtc",
+            side: order.side.toUpperCase(),
+            cancel: "true",
+            orderId: orderId,
+        });
+
+        await setUserInputState(userId.toString(), "orderDetails");
+        return ctx.reply(
+            `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
+                `Enter Your Order Details:\n\n` +
+                `**Format:** \`<price> <amount> <expiry>\`\n` +
+                `**Example:** \`0.65 100 none\`\n\n` +
+                `• **Price:** The Limit Price You Want to Pay\n` +
+                `• **Amount:** The USD amount you want to spend at this limit price\n` +
+                `• **Expiry Time:** The Time after which the order expires if not matched (e.g. 30m, 2h)\n\n` +
+                `Note: Amount / Price should be minimum 10`,
             { parse_mode: "Markdown" }
         );
     }
