@@ -27,6 +27,17 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
     }
 
     for (const order of unmatchedOrders) {
+        const createdDate = new Date(order.created_at);
+        const createdDateStr = isNaN(createdDate.getTime())
+            ? "N/A"
+            : createdDate.toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              });
+
         const text = `
 🧾 *Open Order*
 📊 *Market:* ${order.market}
@@ -34,7 +45,7 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
 💰 *Price:* $${parseFloat(order.price).toFixed(4)}
 📦 *Size:* ${parseFloat(order.original_size).toFixed(2)}
 🎯 *Outcome:* ${order.outcome}
-⏱ *Created:* ${new Date(order.created_at).toLocaleString()}
+⏱ *Created:* ${createdDateStr}
         `.trim();
 
         const encodedOrderId = encodeMarketId(order.id);
