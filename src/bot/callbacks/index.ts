@@ -63,7 +63,7 @@ import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
+import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
 import { getUserDetails } from "@/helpers/get-user-details";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { createLegacyWallet } from "@/utils";
@@ -288,11 +288,10 @@ export async function handleCallbackQuery(ctx: Context) {
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount> <expiry>\`\n` +
+                `**Format:** \`<price> <amount>\`\n` +
                 `**Example:** \`0.65 100 none\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `• **Expiry Time:** The Time after which the order expires if not matched (e.g. 30m, 2h)\n\n` +
                 `Note: Amount / Price should be minimum 10`,
             { parse_mode: "Markdown" }
         );
@@ -348,11 +347,10 @@ export async function handleCallbackQuery(ctx: Context) {
         return ctx.reply(
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount> <expiry>\`\n` +
+                `**Format:** \`<price> <amount>\`\n` +
                 `**Example:** \`0.65 100 none\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `• **Expiry Time:** The Time after which the order expires if not matched (e.g. 30m, 2h)\n\n` +
                 `Note: Amount / Price should be minimum 10`,
             { parse_mode: "Markdown" }
         );

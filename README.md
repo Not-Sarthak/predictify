@@ -19,6 +19,8 @@ Refactor:
 
 ---
 
-1. 0dte (ask scalper)
-2. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
-3. Add set alert for price and take profit/stop loss
+1. Update Stats in View Profile
+2. Cancel Orders (Refresh Button, Show Market Title, Paginate)
+3. 0dte (Daily Markets Only in Trade Menu)
+4. Add set alert for price and take profit/stop loss
+5. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded

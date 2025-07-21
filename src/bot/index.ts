@@ -13,7 +13,7 @@ import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
 import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
 import { handleViewTradePositions } from "@/bot/callbacks/trade";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/cancel-open-orders";
+import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
 import { handleAutoTradeMenu } from "@/bot/ui/messages";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
@@ -32,7 +32,7 @@ bot.command("autotrade", handleAutoTradeMenu);
 bot.command("fund", handleSettingsCommand);
 bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
-bot.command("cancel", handleCancelOpenOrdersCommand);
+bot.command("manage", handleCancelOpenOrdersCommand);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);

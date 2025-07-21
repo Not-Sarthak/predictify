@@ -36,7 +36,7 @@ export const botCommands: BotCommand[] = [
         description: "View your Portfolio",
     },
     {
-        command: "cancel",
-        description: "Cancel your Current Open Orders",
+        command: "manage",
+        description: "Manage your Open Limit Orders",
     },
 ];
