@@ -22,6 +22,7 @@ import { clearUserInputState } from "@/bot/input/state";
 import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
 import { PolymarketUserTradeWatcher } from "@/notifier/ws";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
+import { getUserUSDCBalance } from "@/helpers/get-user-balance";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -76,6 +77,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         );
     }
 
+    const userBalance = await getUserUSDCBalance(userDetails.wallet_address);
+    const amount =
+        orderType === "gtc"
+            ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
+            : Number(textMessage.trim());
+
+    if (userBalance - amount <= 0) {
+        return ctx.reply("❌ Not Enough Balance! Use /fund to add funds to your account.");
+    }
+
     try {
         if (orderType === "gtc") {
             if (cancel === "true") {
@@ -108,15 +119,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             const isExecutableNow = currentPrice <= limitPrice;
             executionPrice = isExecutableNow ? currentPrice : limitPrice;
             shares = amount / executionPrice;
-
-            if (!isMinimumAmount && !ADMIN_USERS_ID.includes(userId)) {
-                return await ctx.telegram.editMessageText(
-                    ctx.chat!.id,
-                    sentMessage.message_id,
-                    undefined,
-                    "❌ Order Size must be at least $10."
-                );
-            }
 
             if (rawExpiry && rawExpiry.toLowerCase() !== "none") {
                 const match = rawExpiry.match(/^(\d+)([mh])$/i);
@@ -323,12 +325,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             );
             await redisClient.rPush(`user:order_ids:${userId}`, orderId);
 
-            if (orderType !== "fok_sell") {
-                const amount =
-                    orderType === "gtc"
-                        ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                        : Number(textMessage.trim());
+            if (orderType === "gtc") {
+                await db("Users")
+                    .update({
+                        total_balance: userBalance - amount,
+                        locked_balance: userDetails.locked_balance + amount,
+                    })
+                    .eq("id", userId);
+            }
 
+            if (orderType !== "fok_sell") {
                 await transferFeeToTreasury({
                     userWallet: new ethers.Wallet(decryptedPrivateKey),
                     positionAmount: amount,

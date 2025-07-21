@@ -1,5 +1,4 @@
 import axios from "axios";
-
 interface UserTradeHistory {
     proxyWallet: string;
     side: string;
@@ -22,17 +21,19 @@ interface UserTradeHistory {
     transactionHash: string;
 }
 
-export async function getUserHistory(userAddress: string): Promise<UserTradeHistory[]> {
+export async function getUserHistory(
+    userAddress: string,
+    offset = 0,
+    limit = 10
+): Promise<UserTradeHistory[]> {
     const response = await axios.get("https://data-api.polymarket.com/trades", {
         params: {
-            limit: 100,
-            takerOnly: true,
             user: userAddress.toLowerCase(),
+            takerOnly: true,
+            limit,
+            offset,
         },
     });
 
     return response.data;
 }
-
-// Example usage:
-// const trades = await getUserHistory('userAddress');

@@ -1,6 +1,8 @@
 import { POLYMARKET_WS_USER_URL } from "@/shared/constants";
 import { generateOrderFilledMessage, getMarketQuestion } from "@/notifier/utils";
 import { bot } from "@/bot";
+import { db } from "@/lib/supabase";
+import { getUserDetails } from "@/helpers/get-user-details";
 
 type Auth = {
     apiKey: string;
@@ -19,7 +21,7 @@ export class PolymarketUserTradeWatcher {
         this.marketId = marketId;
         this.auth = auth;
 
-        this.socket = new WebSocket(POLYMARKET_WS_USER_URL + "/user", ["stream-v1"]);
+        this.socket = new WebSocket(POLYMARKET_WS_USER_URL);
         this.registerHandlers();
     }
 
@@ -38,7 +40,6 @@ export class PolymarketUserTradeWatcher {
         };
 
         this.socket.send(JSON.stringify(msg));
-        console.log(`[WS] Subscribed for user ${this.userId} on market ${this.marketId}`);
     }
 
     private async onMessage(event: MessageEvent) {
@@ -51,11 +52,18 @@ export class PolymarketUserTradeWatcher {
                 message.event_type === "trade" &&
                 message.market === this.marketId
             ) {
+                const userDetails = await getUserDetails(Number(this.userId));
                 const question = await getMarketQuestion(this.marketId);
+
+                const amount = Number(message.price) * Number(message.size);
                 const txtMessage = generateOrderFilledMessage(message, question!);
 
                 await bot.telegram.sendMessage(this.userId, txtMessage, {
                     parse_mode: "Markdown",
+                });
+
+                await db("Users").update({
+                    locked_balance: userDetails?.locked_balance || 0 - amount,
                 });
 
                 this.socket.close();

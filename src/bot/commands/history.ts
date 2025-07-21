@@ -1,22 +1,41 @@
-import { splitIntoChunks } from "@/bot/ui/messages";
-import { getUserIdFromCtx } from "@/bot/utils";
+import { formatUnixDate, getUserIdFromCtx } from "@/bot/utils";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { getUserHistory } from "@/utils/polymarket/get-user-history";
-import type { Context } from "telegraf";
+import { Markup, type Context } from "telegraf";
+
+const PAGE_SIZE = 10;
 
 export async function handleUserTradeHistoryCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const user = await getUserDetails(userId);
 
     if (!user) {
-        return ctx.reply("❌ User does not exist");
+        return ctx.reply("❌ User does not exist.");
+    }
+
+    return sendPaginatedHistory(ctx, user.wallet_address, 0);
+}
+
+export async function sendPaginatedHistory(ctx: Context, walletAddress: string, offset: number) {
+    const isFromCallback = !!ctx.callbackQuery;
+    let msg;
+
+    if (!isFromCallback) {
+        msg = await ctx.reply("⌛ Fetching your Trade History...");
     }
 
     try {
-        const history = await getUserHistory(user.wallet_address);
+        const history = await getUserHistory(walletAddress, offset, PAGE_SIZE);
+
+        if (msg) {
+            await ctx.deleteMessage(msg.message_id);
+        }
 
         if (!history || history.length === 0) {
-            return ctx.reply("📭 No trades found for your account.");
+            const fallbackMsg = offset === 0 ? "📭 No trades found." : "❌ No more trades.";
+            return isFromCallback
+                ? ctx.editMessageText(fallbackMsg).catch(() => ctx.reply(fallbackMsg))
+                : ctx.reply(fallbackMsg);
         }
 
         const formattedTrades = history.map((trade) => {
@@ -24,29 +43,45 @@ export async function handleUserTradeHistoryCommand(ctx: Context) {
             const title = trade.title.length > 50 ? trade.title.slice(0, 47) + "…" : trade.title;
             const amount = Number(trade.size).toFixed(2);
             const price = Number(trade.price).toFixed(2);
-            const link = `https://polymarket.com/market/${trade.slug}`;
+            const polyMarketLink = `https://polymarket.com/market/${trade.slug}`;
+            const polygonScanLink = `https://polygonscan.com/tx/${trade.transactionHash}`;
 
-            return `${side} ${amount} shares @ $${price}\n📊 ${title}\n🔗 [View on Polymarket](${link})`;
+            return `📊 ${title}
+${side} ${amount} shares @ $${price} on ${formatUnixDate(trade.timestamp)}
+🔗 [Polymarket](${polyMarketLink}) | [Polygonscan](${polygonScanLink})`;
         });
 
-        const header = "🧾 *Your Recent Trades*\n\n";
-        const chunks = splitIntoChunks(formattedTrades, 4000 - header.length);
+        const message =
+            `🧾 *Your Trades (${offset + 1}-${offset + formattedTrades.length})*\n\n` +
+            formattedTrades.join("\n\n");
 
-        // Send the first chunk with header
-        await ctx.reply(header + chunks[0], {
-            parse_mode: "Markdown",
-            link_preview_options: { is_disabled: true },
-        });
+        const navButtons = [];
 
-        // Send the rest
-        for (let i = 1; i < chunks.length; i++) {
-            await ctx.reply(chunks[i], {
-                parse_mode: "Markdown",
-                link_preview_options: { is_disabled: true },
-            });
+        if (offset > 0) {
+            navButtons.push(
+                Markup.button.callback("⬅️ Prev", `history:${offset - PAGE_SIZE}:${walletAddress}`)
+            );
         }
+        if (history.length === PAGE_SIZE) {
+            navButtons.push(
+                Markup.button.callback("➡️ Next", `history:${offset + PAGE_SIZE}:${walletAddress}`)
+            );
+        }
+
+        const options = {
+            parse_mode: "Markdown" as const,
+            link_preview_options: { is_disabled: true },
+            reply_markup: Markup.inlineKeyboard(navButtons).reply_markup,
+        };
+
+        return isFromCallback
+            ? ctx.editMessageText(message, options).catch(() => ctx.reply(message, options))
+            : ctx.reply(message, options);
     } catch (err) {
         console.error("Error fetching trade history:", err);
-        return ctx.reply("❌ Failed to fetch trade history.");
+        const fallbackMsg = "❌ Failed to fetch trade history.";
+        return isFromCallback
+            ? ctx.editMessageText(fallbackMsg).catch(() => ctx.reply(fallbackMsg))
+            : ctx.reply(fallbackMsg);
     }
 }
