@@ -1,4 +1,4 @@
-import { getUserIdFromCtx } from "@/bot/utils";
+import { formatUnixDate, getUserIdFromCtx } from "@/bot/utils";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { getUserHistory } from "@/utils/polymarket/get-user-history";
 import { Markup, type Context } from "telegraf";
@@ -43,9 +43,12 @@ export async function sendPaginatedHistory(ctx: Context, walletAddress: string, 
             const title = trade.title.length > 50 ? trade.title.slice(0, 47) + "…" : trade.title;
             const amount = Number(trade.size).toFixed(2);
             const price = Number(trade.price).toFixed(2);
-            const link = `https://polymarket.com/market/${trade.slug}`;
+            const polyMarketLink = `https://polymarket.com/market/${trade.slug}`;
+            const polygonScanLink = `https://polygonscan.com/tx/${trade.transactionHash}`;
 
-            return `${side} ${amount} shares @ $${price}\n📊 ${title}\n🔗 [View on Polymarket](${link})`;
+            return `📊 ${title}
+${side} ${amount} shares @ $${price} on ${formatUnixDate(trade.timestamp)}
+🔗 [Polymarket](${polyMarketLink}) | [Polygonscan](${polygonScanLink})`;
         });
 
         const message =

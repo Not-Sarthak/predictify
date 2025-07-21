@@ -43,68 +43,6 @@ export type Database = {
                     },
                 ];
             };
-            Positions: {
-                Row: {
-                    amount: number;
-                    buys: string[];
-                    created_at: string;
-                    description: string;
-                    fees: number;
-                    id: number;
-                    is_open: boolean;
-                    market: string;
-                    market_slug: string;
-                    pnl_all: number;
-                    pnl_individual: number;
-                    question: string;
-                    sells: string[];
-                    token_id: string;
-                    wallet_address: string;
-                };
-                Insert: {
-                    amount: number;
-                    buys: string[];
-                    created_at?: string;
-                    description: string;
-                    fees?: number;
-                    id: number;
-                    is_open?: boolean;
-                    market: string;
-                    market_slug: string;
-                    pnl_all: number;
-                    pnl_individual: number;
-                    question: string;
-                    sells: string[];
-                    token_id: string;
-                    wallet_address: string;
-                };
-                Update: {
-                    amount?: number;
-                    buys?: string[];
-                    created_at?: string;
-                    description?: string;
-                    fees?: number;
-                    id?: number;
-                    is_open?: boolean;
-                    market?: string;
-                    market_slug?: string;
-                    pnl_all?: number;
-                    pnl_individual?: number;
-                    question?: string;
-                    sells?: string[];
-                    token_id?: string;
-                    wallet_address?: string;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: "Positions_id_fkey";
-                        columns: ["id"];
-                        isOneToOne: true;
-                        referencedRelation: "Users";
-                        referencedColumns: ["id"];
-                    },
-                ];
-            };
             Users: {
                 Row: {
                     amount_deposited: number;
@@ -115,6 +53,7 @@ export type Database = {
                     fees_total: number;
                     id: number;
                     is_copytrading_enabled: boolean;
+                    locked_balance: number;
                     number_of_referrals: number | null;
                     private_key: string;
                     referral_code: string | null;
@@ -137,6 +76,7 @@ export type Database = {
                     fees_total?: number;
                     id: number;
                     is_copytrading_enabled?: boolean;
+                    locked_balance?: number;
                     number_of_referrals?: number | null;
                     private_key: string;
                     referral_code?: string | null;
@@ -159,6 +99,7 @@ export type Database = {
                     fees_total?: number;
                     id?: number;
                     is_copytrading_enabled?: boolean;
+                    locked_balance?: number;
                     number_of_referrals?: number | null;
                     private_key?: string;
                     referral_code?: string | null;
