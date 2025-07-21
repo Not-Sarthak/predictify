@@ -63,7 +63,10 @@ import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
+import {
+    handleCancelOpenOrdersCommand,
+    sendPaginatedOrder,
+} from "@/bot/commands/manage-limit-orders";
 import { getUserDetails } from "@/helpers/get-user-details";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { createLegacyWallet } from "@/utils";
@@ -72,6 +75,7 @@ import { ethers } from "ethers";
 import { ClobClient } from "@polymarket/clob-client";
 import { CHAIN_ID, HOST } from "@/shared/constants";
 import { sendPaginatedHistory } from "@/bot/commands/history";
+import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -289,7 +293,7 @@ export async function handleCallbackQuery(ctx: Context) {
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
                 `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100 none\`\n\n` +
+                `**Example:** \`0.65 100\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
                 `Note: Amount / Price should be minimum 10`,
@@ -348,7 +352,7 @@ export async function handleCallbackQuery(ctx: Context) {
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
                 `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100 none\`\n\n` +
+                `**Example:** \`0.65 100\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
                 `Note: Amount / Price should be minimum 10`,
@@ -511,6 +515,33 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "view_cancel_order_menu") {
         return handleCancelOpenOrdersCommand(ctx);
+    }
+
+    if (data.startsWith("orders:")) {
+        const [, _, offsetStr] = data.split(":");
+        const offset = parseInt(offsetStr, 10);
+        const userId = getUserIdFromCtx(ctx);
+        const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+        const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
+
+        if (!unmatchedOrders || unmatchedOrders.length === 0) {
+            return ctx
+                .editMessageText("✅ No unmatched open orders found.")
+                .catch(() => ctx.reply("✅ No unmatched open orders found."));
+        }
+
+        return sendPaginatedOrder(ctx, unmatchedOrders, offset);
+    }
+
+    if (data.startsWith("refresh_order:")) {
+        const offset = parseInt(data.split(":")[1], 10);
+        const userId = getUserIdFromCtx(ctx);
+        const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+        const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
+        if (!unmatchedOrders || unmatchedOrders.length === 0) {
+            return ctx.editMessageText("✅ No unmatched open orders found.");
+        }
+        return sendPaginatedOrder(ctx, unmatchedOrders, offset);
     }
 
     if (data.startsWith("cancel_order:")) {

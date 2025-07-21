@@ -10,6 +10,7 @@ interface Market {
     ticker: string;
     slug: string;
     title: string;
+    question: string;
     description: string;
     resolutionSource: string;
     startDate: string;

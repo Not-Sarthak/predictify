@@ -15,8 +15,7 @@ Refactor:
 
 Manav:
 
-1. Cancel Orders (Refresh Button, Show Market Title, Paginate)
-2. Add set alert for price and take profit/stop loss
+1. Add set alert for price and take profit/stop loss
 
 Sarthak:
 
