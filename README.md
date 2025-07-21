@@ -19,16 +19,8 @@ Refactor:
 
 ---
 
-1. 0dte
-2. ask for rpc - scalper
-
-Manav:
-
-1. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
-
-Sarthak:
-
-1. Limit order escrow
+1. Update Stats in View Profile
+2. Cancel Orders (Refresh Button, Show Market Title, Paginate)
+3. 0dte (Daily Markets Only in Trade Menu)
 4. Add set alert for price and take profit/stop loss
-5. User balance: Total funds, available funds, locked funds
-6. fix potential profit -> Max Profit = (1 x number of shares ) - USD amount paid
+5. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded

@@ -245,7 +245,7 @@ export async function handleViewTopMarketsByCategory(
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
         message += `${i + 1}. **${market.title}**
-📊 Volume : ${fVolumne}
+💧 Volume : ${fVolumne}
 ⏰ Ends: ${fDate}
 
 `;
@@ -365,7 +365,9 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
             message += `----------------------------------\n\n`;
         }
 
-        message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
+        message += `💹 **Prices**
+• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
+• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -436,8 +438,9 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     const yesPrice = outcomes[0];
     const noPrice = outcomes[1];
 
-    message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n\n`;
-
+    message += `💹 **Prices**
+• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
+• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -487,7 +490,9 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     const minOrderValue = (minOrderSize * Math.min(yesPrice, noPrice)).toFixed(2);
 
     message += `----------------------------------\n\n`;
-    message += `💹 **Prices:** Yes $${yesPrice} (${Math.round(yesPrice * 100)}%) • No $${noPrice} (${Math.round(noPrice * 100)}%)\n`;
+    message += `💹 **Prices**
+• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
+• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
     message += `📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
 
     if (market.lastTradePrice) {
@@ -789,8 +794,8 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
     const textMsgArray = textMsg.trim().split(/\s+/);
 
-    if (textMsgArray.length < 1 || textMsgArray.length > 3) {
-        return ctx.reply("❌ Invalid input. Use: `<price> <amount> [expiry]` or just `<amount>`.");
+    if (textMsgArray.length < 1 || textMsgArray.length > 2) {
+        return ctx.reply("❌ Invalid input. Use: `<price> <amount>` or just `<amount>`.");
     }
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
@@ -803,7 +808,6 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const endDate = market.endDate || market.events?.[0]?.endDate;
 
     const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
-    const expiry = textMsgArray[2] || "none";
 
     let message = "";
     let shares = 0;
@@ -822,7 +826,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
         message = `
 📌 *${escapeMarkdown(market.question)}*
 
-💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
+💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum || 0)}
 📅 Ends: ${formatDate(endDate)}
 
 🎯 *Market Order - ${side}*
@@ -842,7 +846,7 @@ Press *Confirm* to place the order or *Cancel*.
     } else {
         // Limit Order
         if (textMsgArray.length < 2) {
-            return ctx.reply("❌ Invalid input. Use format: `<price> <amount> [expiry]`");
+            return ctx.reply("❌ Invalid input. Use format: `<price> <amount>`");
         }
 
         const price = parseFloat(textMsgArray[0]);
@@ -872,7 +876,6 @@ Press *Confirm* to place the order or *Cancel*.
 🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
 💵 *Amount:* $${amount.toFixed(2)}
 📈 *Current Market Price:* $${pricePerShare}
-🕐 *Expiry:* *${expiry.toUpperCase()}*
 
 ${
     isExecutableNow
@@ -942,8 +945,6 @@ export async function handleRefreshTopMarkets(
     filter: string,
     offset: string
 ) {
-    await ctx.deleteMessage();
-
     // We need to handle this as a new message, not an edit
     const LIMIT = 8;
     let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
@@ -1019,8 +1020,16 @@ export async function handleRefreshTopMarkets(
         ],
     ]);
 
-    return ctx.reply(message, {
-        parse_mode: "Markdown",
-        reply_markup: keyboard.reply_markup,
-    });
+    try {
+        await ctx.editMessageText(message, {
+            parse_mode: "Markdown",
+            reply_markup: keyboard.reply_markup,
+        });
+    } catch (error) {
+        if (error instanceof Error) {
+            if (!error.message.startsWith("400")) {
+                console.log(error);
+            }
+        }
+    }
 }

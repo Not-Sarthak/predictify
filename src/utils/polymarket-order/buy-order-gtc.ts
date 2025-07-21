@@ -15,7 +15,6 @@ interface BuyOrderGTCRequest {
     feeRateBps: number;
     apiCreds: ApiKeyCreds;
     privateKey: string;
-    expiration: number;
 }
 
 // GTC -> Good Till Canceled. Order Stays Active until you Manually Cancel it or it gets Filled
@@ -58,7 +57,6 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
             side: orderRequest.side,
             size: Number(orderRequest.size.toFixed(6)),
             feeRateBps: 0,
-            expiration: orderRequest.expiration,
         });
 
         const response = await clobClient.postOrder(order, orderRequest.orderType);

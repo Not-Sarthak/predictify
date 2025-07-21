@@ -61,7 +61,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     let isMinimumAmount = true;
     let executionPrice = 0;
     let shares = 0;
-    let expiry = 0;
 
     if (orderType === "fok") {
         const amount = Number(textMessage.trim());
@@ -78,14 +77,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     }
 
     const userBalance = await getUserUSDCBalance(userDetails.wallet_address);
-    const amount =
-        orderType === "gtc"
-            ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-            : Number(textMessage.trim());
-
-    if (userBalance - amount <= 0) {
-        return ctx.reply("❌ Not Enough Balance! Use /fund to add funds to your account.");
-    }
 
     try {
         if (orderType === "gtc") {
@@ -99,14 +90,21 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 if (response.not_canceled.length > 0) {
                     return ctx.reply("❌ There was an Error.");
                 }
+
+                const amount =
+                    Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1]);
+
+                await db("Users").update({
+                    locked_balance: userDetails?.locked_balance || 0 - amount,
+                });
             }
 
-            const [priceStr, amountStr, rawExpiry] = textMessage.trim().split(/\s+/);
+            const [priceStr, amountStr, _] = textMessage.trim().split(/\s+/);
 
             const limitPrice = Number(priceStr);
             const amount = Number(amountStr);
             if (isNaN(limitPrice) || isNaN(amount) || limitPrice <= 0 || amount <= 0) {
-                return ctx.reply("❌ Invalid format. Use: `<price> <amount> <expiry>`", {
+                return ctx.reply("❌ Invalid format. Use: `<price> <amount>`", {
                     parse_mode: "Markdown",
                 });
             }
@@ -119,17 +117,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             const isExecutableNow = currentPrice <= limitPrice;
             executionPrice = isExecutableNow ? currentPrice : limitPrice;
             shares = amount / executionPrice;
-
-            if (rawExpiry && rawExpiry.toLowerCase() !== "none") {
-                const match = rawExpiry.match(/^(\d+)([mh])$/i);
-                if (match) {
-                    const [, numStr, unit] = match;
-                    const num = parseInt(numStr, 10);
-                    expiry = Math.floor(Date.now() / 1000) + (unit === "h" ? num * 3600 : num * 60);
-                } else {
-                    return ctx.reply("❌ Invalid expiry format. Use `30m` or `2h` or `none`.");
-                }
-            }
 
             const tokenId = await getTokenId(side.toLowerCase(), marketId);
             if (!tokenId) {
@@ -145,7 +132,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 feeRateBps: 0,
                 apiCreds,
                 privateKey: decryptedPrivateKey,
-                expiration: expiry,
             });
         } else if (orderType === "fok") {
             const amount = Number(textMessage.trim());
@@ -324,6 +310,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 }
             );
             await redisClient.rPush(`user:order_ids:${userId}`, orderId);
+
+            const amount =
+                orderType === "gtc"
+                    ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
+                    : Number(textMessage.trim());
 
             if (orderType === "gtc") {
                 await db("Users")

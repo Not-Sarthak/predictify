@@ -14,7 +14,6 @@ import { generateRandomString } from "@/utils/encoding";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    console.log(`[START] Processing /start command for user ${userId}`);
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {
@@ -23,7 +22,6 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     if (existingUser) {
-        console.log(`[START] Existing user found: ${userId}`);
         const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
         const solBalance = existingUser.solana_address
             ? await getSOLBalance(existingUser.solana_address)
@@ -53,16 +51,12 @@ export async function handleStartCommand(ctx: Context) {
     // );
 
     // Instead, create new user directly without invite code
-    console.log(`[START] Creating new user without invite code: ${userId}`);
-
     try {
         const { address, privateKey, apiCreds, solanaAddress, solanaPrivateKey } =
             await generateAPIKeyAndWallet({
                 host: HOST,
                 chainId: CHAIN_ID,
             });
-
-        console.log(`[START] Generated wallet for user ${userId}: ${address}`);
 
         const newUserReferralCode = generateRandomString(6);
         const userName = getUsernameFromCtx(ctx);
@@ -87,8 +81,6 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }
 
-        console.log(`[START] User ${userId} created successfully`);
-
         const balance = await getUserWrappedUSDCBalance(address);
         const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
         const message = generateWelcomeMessage(
@@ -99,7 +91,6 @@ export async function handleStartCommand(ctx: Context) {
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
-        console.log(`[START] Sending welcome message to user ${userId}`);
         return ctx.reply(message, {
             parse_mode: "HTML",
             reply_markup: keyboard.reply_markup,
