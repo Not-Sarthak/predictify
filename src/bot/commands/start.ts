@@ -11,6 +11,7 @@ import { CHAIN_ID, HOST } from "@/shared/constants";
 import { encryptPrivateKey } from "@/utils/crypto";
 import { db } from "@/lib/supabase";
 import { generateRandomString } from "@/utils/encoding";
+import { getUserDetails } from "@/helpers/get-user-details";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -22,15 +23,22 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     if (existingUser) {
-        const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
-        const solBalance = existingUser.solana_address
-            ? await getSOLBalance(existingUser.solana_address)
-            : 0;
+        const [balance, user, solBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(existingUser.wallet_address),
+            getUserDetails(userId),
+            getSOLBalance(existingUser.solana_address!),
+        ]);
+
+        if (!user) {
+            return ctx.reply("❌ Internal Server Error");
+        }
+
         const message = generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
-            solBalance
+            solBalance,
+            user?.locked_balance
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
@@ -81,13 +89,22 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }
 
-        const balance = await getUserWrappedUSDCBalance(address);
-        const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
+        const [balance, user, solBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(address),
+            getUserDetails(userId),
+            getSOLBalance(solanaAddress),
+        ]);
+
+        if (!user) {
+            return ctx.reply("❌ Internal Server Error");
+        }
+
         const message = generateWelcomeMessage(
             address,
             solanaAddress || "N/A",
             balance.toString(),
-            solBalance
+            solBalance,
+            user?.locked_balance
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 

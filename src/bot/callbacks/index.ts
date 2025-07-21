@@ -485,16 +485,22 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
         }
 
-        const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
-        const solBalance = existingUser.solana_address
-            ? await getSOLBalance(existingUser.solana_address)
-            : 0;
+        const [balance, user, solBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(existingUser.wallet_address),
+            getUserDetails(userId),
+            getSOLBalance(existingUser.solana_address!),
+        ]);
+
+        if (!user) {
+            return ctx.reply("❌ Internal Server Error");
+        }
 
         const message = generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
-            solBalance
+            solBalance,
+            user?.locked_balance
         );
 
         return ctx.editMessageText(message, {

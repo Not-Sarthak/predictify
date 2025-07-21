@@ -12,7 +12,8 @@ export const generateWelcomeMessage = (
     evm_address: string,
     solana_address: string,
     usdcBalance: string,
-    solBalance: number
+    solBalance: number,
+    lockedBalance: number
 ): string => {
     return `
 Welcome to Predictify
@@ -24,8 +25,9 @@ Your wallet’s live. Let’s degen.
 • Polygon Address: <code>${evm_address}</code>
 
 💰 Your Balances
-• USDC: $${usdcBalance}
+• Total Balance: $${usdcBalance}
 • SOL: ${solBalance} SOL
+• Locked Balance: $${lockedBalance}
 
 🔥 What you can do:
 • Blast YES/NO bets with market or limit orders
