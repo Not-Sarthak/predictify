@@ -71,6 +71,7 @@ import { decryptPrivateKey } from "@/utils/crypto";
 import { ethers } from "ethers";
 import { ClobClient } from "@polymarket/clob-client";
 import { CHAIN_ID, HOST } from "@/shared/constants";
+import { sendPaginatedHistory } from "@/bot/commands/history";
 
 export async function handleCallbackQuery(ctx: Context) {
     const data =
@@ -531,6 +532,13 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("refresh_top_markets:")) {
         const [marketCategory, filter, offset] = data.split(":").slice(1);
         return handleRefreshTopMarkets(ctx, marketCategory, filter, offset);
+    }
+
+    if (data.startsWith("history:")) {
+        const [, offsetStr, walletAddress] = data.split(":");
+        const offset = parseInt(offsetStr, 10);
+
+        return sendPaginatedHistory(ctx, walletAddress, offset);
     }
 
     if (data === "close_message") {
