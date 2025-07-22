@@ -22,7 +22,7 @@ import { clearUserInputState } from "@/bot/input/state";
 import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
 import { PolymarketUserTradeWatcher } from "@/notifier/ws";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
-import { getUserUSDCBalance } from "@/helpers/get-user-balance";
+import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -62,9 +62,32 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     let executionPrice = 0;
     let shares = 0;
 
+    const userBalance = await getUserWrappedUSDCBalance(userDetails.wallet_address);
+
     if (orderType === "fok") {
         const amount = Number(textMessage.trim());
         isMinimumAmount = amount >= 10;
+
+        if (amount > userBalance - userDetails.locked_balance) {
+            return ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                "❌ Not Enough Funds."
+            );
+        }
+    } else if (orderType === "gtc") {
+        const [_1, amountStr, _] = textMessage.trim().split(/\s+/);
+        const amount = Number(amountStr);
+
+        if (amount > userBalance - userDetails.locked_balance) {
+            return ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                "❌ Not Enough Funds."
+            );
+        }
     }
 
     if (!isMinimumAmount && !ADMIN_USERS_ID.includes(userId)) {
@@ -75,8 +98,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             "❌ Order Size must be at least 10."
         );
     }
-
-    const userBalance = await getUserUSDCBalance(userDetails.wallet_address);
 
     try {
         if (orderType === "gtc") {
@@ -122,6 +143,12 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             if (!tokenId) {
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
+
+            await db("Users")
+                .update({
+                    locked_balance: userDetails.locked_balance + amount,
+                })
+                .eq("id", userId);
 
             orderResponse = await buyOrderGTC({
                 size: shares,
@@ -320,7 +347,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 await db("Users")
                     .update({
                         total_balance: userBalance - amount,
-                        locked_balance: userDetails.locked_balance + amount,
                     })
                     .eq("id", userId);
             }

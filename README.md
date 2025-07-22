@@ -1,5 +1,6 @@
-Refactor:
+TODO:
 
+- [ ] Refactor & Optimize
 - [ ] Use an ORM
 - [ ] ADD UNIT TESTS
 - [ ] Setup Monorepo
@@ -13,17 +14,12 @@ Refactor:
 
 ---
 
-Manav:
-
-1. Add set alert for price and take profit/stop loss
-
-Sarthak:
-
-1. PnL Card
-2. 0dte (Daily Markets Only in Trade Menu)
+1. Add set alert for price and take profit/stop loss (main execution logic left)
+2. PnL Card
 3. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
+4. Show Market Title in Cancel Order
 
-<!-- VERY VERY LATER -->
+ <!-- VERY VERY LATER -->
 
-1. Tag Bot and Give Info
-2. Twitter Bot
+5. Tag Bot and Give Info
+6. Twitter Bot

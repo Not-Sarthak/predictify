@@ -15,7 +15,7 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
+import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -29,12 +29,14 @@ import axios from "axios";
 import { db } from "@/lib/supabase";
 import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
-import { OrderType } from "@polymarket/clob-client";
+import { ClobClient, OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
+import { createLegacyWallet } from "@/utils";
+import { ethers } from "ethers";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -246,7 +248,7 @@ export async function handleViewTopMarketsByCategory(
 
         message += `${i + 1}. **${market.title}**
 💧 Volume : ${fVolumne}
-⏰ Ends: ${fDate}
+⌛ Ends: ${fDate}
 
 `;
     }
@@ -259,6 +261,11 @@ export async function handleViewTopMarketsByCategory(
             `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
         )
     );
+
+    const filterButtonRows: InlineKeyboardButton[][] = [];
+    for (let i = 0; i < filterButtons.length; i += 2) {
+        filterButtonRows.push(filterButtons.slice(i, i + 2));
+    }
 
     const paginationButtons = [];
 
@@ -287,8 +294,7 @@ export async function handleViewTopMarketsByCategory(
     const marketButtonsLayout = layoutButtons(marketButtons);
 
     const keyboard = Markup.inlineKeyboard([
-        filterButtons.slice(0, 3),
-        filterButtons.slice(3),
+        ...filterButtonRows,
         ...marketButtonsLayout,
         paginationButtons,
         [
@@ -377,6 +383,20 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
                 Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
                 Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
             ],
+            [
+                Markup.button.callback(
+                    "🔔 Set Price Alert",
+                    `set_price_alert:${encodeMarketId(market.conditionId)}`
+                ),
+                Markup.button.callback(
+                    "💰 Take Profit",
+                    `take_profit:${encodeMarketId(market.conditionId)}`
+                ),
+                Markup.button.callback(
+                    "🛑 Stop Loss",
+                    `stop_loss:${encodeMarketId(market.conditionId)}`
+                ),
+            ],
             [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
             [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
             [Markup.button.callback("❌ Close", "close_message")],
@@ -438,6 +458,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     const yesPrice = outcomes[0];
     const noPrice = outcomes[1];
 
+    console.log(market);
+
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
@@ -449,6 +471,20 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "💰 Take Profit",
+                `take_profit:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "🛑 Stop Loss",
+                `stop_loss:${encodeMarketId(market.conditionId)}`
+            ),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
@@ -493,7 +529,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
-    message += `📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
+    message += `\n\n📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
 
     if (market.lastTradePrice) {
         message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
@@ -507,6 +543,20 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "💰 Take Profit",
+                `take_profit:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "🛑 Stop Loss",
+                `stop_loss:${encodeMarketId(market.conditionId)}`
+            ),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
@@ -906,12 +956,24 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
 
     const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
 
+    const legacyWallet = createLegacyWallet(new ethers.Wallet(decryptPrivateKey(user.private_key)));
+    const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, api_creds);
+
+    const order = await clobClient.getOrder(orderId);
+
     try {
         const response = await cancelOrder({
             privateKey: decryptPrivateKey(user.private_key),
             creds: api_creds,
             orderIds: [orderId],
         });
+
+        await db("Users")
+            .update({
+                locked_balance:
+                    user.locked_balance - Number(order.original_size) * Number(order.price),
+            })
+            .eq("id", userId);
 
         if (response.canceled.length > 0) {
             return ctx.reply("✅ Order Successfully Cancelled!");

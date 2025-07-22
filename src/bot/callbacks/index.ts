@@ -51,7 +51,7 @@ import {
     handleToggleCopyTradeStatus,
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
-import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
+import { formatSinglePositionMessage, getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import {
     generateAutoTradeMenu,
     generateWelcomeMessage,
@@ -59,7 +59,7 @@ import {
 } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
@@ -90,6 +90,8 @@ export async function handleCallbackQuery(ctx: Context) {
     /**
      * Handle Callbacks based on Data Value
      */
+
+    console.log(data);
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
@@ -542,6 +544,43 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.editMessageText("✅ No unmatched open orders found.");
         }
         return sendPaginatedOrder(ctx, unmatchedOrders, offset);
+    }
+
+    if (data.startsWith("refresh_portfolio:")) {
+        const index = parseInt(data.split(":")[1], 10);
+        const userId = getUserIdFromCtx(ctx);
+        const userAddress = await getUserAddressFromId(userId);
+
+        if (!userAddress) {
+            return ctx.answerCbQuery("⚠️ No linked wallet.");
+        }
+
+        const userPositions = await getUserPosition({ user: userAddress });
+
+        if (!userPositions || userPositions.length === 0) {
+            return ctx.editMessageText("✅ No open positions found.");
+        }
+
+        if (index >= userPositions.length) {
+            return ctx.answerCbQuery("⚠️ Invalid index.");
+        }
+
+        const { text, markup } = formatSinglePositionMessage(
+            userPositions[index],
+            index,
+            userPositions.length
+        );
+
+        try {
+            await ctx.editMessageText(text, {
+                parse_mode: "Markdown",
+                reply_markup: markup,
+            });
+            await ctx.answerCbQuery("🔄 Refreshed!");
+        } catch (err) {
+            console.error("Refresh failed:", err);
+            await ctx.answerCbQuery("⚠️ Could not refresh.");
+        }
     }
 
     if (data.startsWith("cancel_order:")) {

@@ -97,7 +97,7 @@ export const notifyUsersAboutNewMarkets = async () => {
                           });
 
                     messageParts.push(`${idx}. ${event.title}`);
-                    messageParts.push(`📊 ${price} • ⏰ ${date}\n`);
+                    messageParts.push(`💧 ${price} • 📅 ${date}\n`);
 
                     buttons.push({
                         text: `#${idx}`,

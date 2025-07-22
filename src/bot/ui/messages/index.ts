@@ -132,6 +132,10 @@ export function createPaginationKeyboard(
         paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
     }
 
+    if (!isResolved) {
+        paginationButtons.push(Markup.button.callback("🔄 Refresh", `refresh_portfolio:${index}`));
+    }
+
     const rows = [];
 
     if (!isResolved) {

@@ -29,27 +29,17 @@ export async function handleCancelOpenOrdersCommand(ctx: Context) {
 
 export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: number) {
     const order = orders[offset];
-
     const market = await getMarketByConditionId(order.market);
-    const createdDate = new Date(order.created_at);
-    const createdDateStr = isNaN(createdDate.getTime())
-        ? "N/A"
-        : createdDate.toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-          });
+    const outcomePrices = JSON.parse(market.outcomePrices);
 
     const text = `
 🧾 *Open Order*
 📊 *Market:* ${market?.question}
 📈 *Side:* ${order.side}
 💰 *Price:* $${parseFloat(order.price).toFixed(4)}
+💰 *Current Price:* $${parseFloat(order.side === "YES" ? outcomePrices[0] : outcomePrices[1]).toFixed(4)}
 📦 *Size:* ${parseFloat(order.original_size).toFixed(2)}
 🎯 *Outcome:* ${order.outcome}
-⏱ *Created:* ${createdDateStr}
     `.trim();
 
     const encodedOrderId = encodeMarketId(order.id);
