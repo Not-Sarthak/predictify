@@ -15,6 +15,7 @@ import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
 import { handleViewTradePositions } from "@/bot/callbacks/trade";
 import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
 import { handleAutoTradeMenu } from "@/bot/ui/messages";
+import { handleViewProfileCallback } from "@/bot/callbacks/start";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -33,6 +34,7 @@ bot.command("fund", handleSettingsCommand);
 bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
 bot.command("manage", handleCancelOpenOrdersCommand);
+bot.command("stats", handleViewProfileCallback);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
