@@ -1,3 +1,4 @@
+import { clearUserInputState } from "@/bot/input/state";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { redisClient } from "@/lib/redis";
 import { PolymarketMarketTradeWatcher } from "@/notifier/ws";
@@ -28,6 +29,8 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
     if (price <= 0) {
         return ctx.reply("⚠️ 'Price-Below' must be greater than 0.0", { parse_mode: "HTML" });
     }
+
+    clearUserInputState(userId.toString());
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 

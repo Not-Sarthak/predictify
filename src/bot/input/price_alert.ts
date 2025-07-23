@@ -5,6 +5,7 @@ import { redisClient } from "@/lib/redis";
 import { decodeMarketId } from "@/utils/encoding";
 import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
 import { PolymarketMarketTradeWatcher } from "@/notifier/ws";
+import { clearUserInputState } from "@/bot/input/state";
 
 export async function handleSetMarketPriceAlert(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -35,6 +36,8 @@ export async function handleSetMarketPriceAlert(ctx: Context, textMessage: strin
     if (priceBelow <= 0) {
         return ctx.reply("⚠️ 'Price-Below' must be greater than 0.0", { parse_mode: "HTML" });
     }
+
+    clearUserInputState(userId.toString());
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 
