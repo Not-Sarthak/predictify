@@ -21,6 +21,8 @@ import {
     handleRefreshMarketDetails,
     handleRefreshMarkets,
     handleRefreshTopMarkets,
+    handleShowZeroDTEMarketCategories,
+    handleShowZeroDTEMarketsByCategory,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -218,6 +220,17 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("portfolio_page")) {
         const page = data.split(":")[1];
         return handleTradePagination(ctx, page);
+    }
+
+    if (data === "trade_markets_dte") {
+        return handleShowZeroDTEMarketCategories(ctx);
+    }
+
+    if (data.startsWith("zero_dte_category:")) {
+        const category = data.split(":")[1];
+        const offset = data.split(":")[2];
+
+        return handleShowZeroDTEMarketsByCategory(ctx, category, Number(offset) || 0);
     }
 
     if (data === "trade_position_open") {

@@ -15,7 +15,13 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
+import {
+    CATEGORY_LIST,
+    CHAIN_ID,
+    HOST,
+    MARKET_FILTERS,
+    ZERO_DTE_MARKETS_CATEGORY_LIST,
+} from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -262,11 +268,6 @@ export async function handleViewTopMarketsByCategory(
         )
     );
 
-    const filterButtonRows: InlineKeyboardButton[][] = [];
-    for (let i = 0; i < filterButtons.length; i += 2) {
-        filterButtonRows.push(filterButtons.slice(i, i + 2));
-    }
-
     const paginationButtons = [];
 
     if (offset > 0) {
@@ -294,7 +295,8 @@ export async function handleViewTopMarketsByCategory(
     const marketButtonsLayout = layoutButtons(marketButtons);
 
     const keyboard = Markup.inlineKeyboard([
-        ...filterButtonRows,
+        filterButtons.slice(0, 3),
+        filterButtons.slice(3),
         ...marketButtonsLayout,
         paginationButtons,
         [
@@ -332,6 +334,205 @@ export async function handleViewTopMarketsByCategory(
         reply_markup: keyboard.reply_markup,
     });
 }
+
+export async function handleShowZeroDTEMarketCategories(ctx: Context) {
+    const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
+        Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
+    );
+
+    const keyboardLayout = [];
+    for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
+        keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
+    }
+
+    const keyboard = Markup.inlineKeyboard(keyboardLayout);
+
+    return ctx.reply("⚡ <b>Trending 0DTE Markets:</b>", {
+        parse_mode: "HTML",
+        ...keyboard,
+    });
+}
+
+export async function handleShowZeroDTEMarketsByCategory(
+    ctx: Context,
+    category: string,
+    offset: number = 0
+) {
+    const LIMIT = 8;
+    const filter = "0dte";
+    let message = `⚡ Top 0DTE Markets for **${category.charAt(0).toUpperCase() + category.slice(1)}**\n\n`;
+
+    const markets = await fetchMarkets(category, filter, offset);
+
+    const filteredMarkets = markets.filter((m) => m.volume24hr && m.volume24hr > 0);
+
+    if (filteredMarkets.length === 0) {
+        return ctx.reply("⚠️ No Available 0DTE Markets!");
+    }
+
+    for (let i = 0; i < filteredMarkets.length; i++) {
+        const market = filteredMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVol = formatDollarVolume(market.volume1mo || 0);
+
+        message += `${i + 1}. **${market.title}**
+💧 Volume: ${fVol}
+⌛ Ends: ${fDate}
+
+`;
+    }
+
+    const paginationButtons = [];
+
+    if (offset > 0) {
+        paginationButtons.push(
+            Markup.button.callback("⏮️ Prev", `zero_dte_category:${category}:${offset - LIMIT}`)
+        );
+    }
+
+    if (filteredMarkets.length === LIMIT) {
+        paginationButtons.push(
+            Markup.button.callback("Next ⏭️", `zero_dte_category:${category}:${offset + LIMIT}`)
+        );
+    }
+
+    const marketButtons = filteredMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        ...marketButtonsLayout,
+        paginationButtons,
+        [
+            Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    if (ctx.updateType === "callback_query") {
+        try {
+            await ctx.editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            });
+        } catch (error: any) {
+            if (
+                error?.response?.error_code === 400 &&
+                error?.response?.description?.includes("message is not modified")
+            ) {
+                await ctx.answerCbQuery();
+            } else {
+                console.error("❌ editMessageText Failed:", error);
+                await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
+            }
+        }
+
+        return;
+    }
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+// export async function handleShowZeroDTEMarkets(ctx: Context, offset: number = 0) {
+//     const LIMIT = 8;
+//     let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+
+//     const markets = await fetchMarkets(marketCategory, filter, offset);
+
+//     const filteredMarkets =
+//         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
+
+//     if (filteredMarkets.length === 0) {
+//         return ctx.reply("⚠️ No Available Markets!");
+//     }
+
+//     for (let i = 0; i < filteredMarkets.length; i++) {
+//         const market = filteredMarkets[i];
+//         const fDate = formatDate(market.endDate);
+//         const fVolumne = formatDollarVolume(market.volume1mo || 0);
+
+//         message += `${i + 1}. **${market.title}**
+// 💧 Volume : ${fVolumne}
+// ⌛ Ends: ${fDate}
+
+// `;
+//     }
+
+//     const paginationButtons = [];
+
+//     if (offset > 0) {
+//         paginationButtons.push(
+//             Markup.button.callback(
+//                 "⏮️ Prev",
+//                 `filter_top_market:${marketCategory}:${filter}:${offset - LIMIT}`
+//             )
+//         );
+//     }
+
+//     if (filteredMarkets.length === LIMIT) {
+//         paginationButtons.push(
+//             Markup.button.callback(
+//                 "Next ⏭️",
+//                 `filter_top_market:${marketCategory}:${filter}:${offset + LIMIT}`
+//             )
+//         );
+//     }
+
+//     const marketButtons = filteredMarkets.map((market, idx) =>
+//         Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+//     );
+
+//     const marketButtonsLayout = layoutButtons(marketButtons);
+
+//     const keyboard = Markup.inlineKeyboard([
+//         ...marketButtonsLayout,
+//         paginationButtons,
+//         [
+//             Markup.button.callback(
+//                 "🔄 Refresh",
+//                 `refresh_top_markets:${marketCategory}:${filter}:${offset}`
+//             ),
+//             Markup.button.callback("❌ Close", "close_message"),
+//         ],
+//     ]);
+
+//     if (ctx.updateType === "callback_query") {
+//         try {
+//             await ctx.editMessageText(message, {
+//                 parse_mode: "Markdown",
+//                 reply_markup: keyboard.reply_markup,
+//             });
+//         } catch (error: any) {
+//             if (
+//                 error?.response?.error_code === 400 &&
+//                 error?.response?.description?.includes("message is not modified")
+//             ) {
+//                 await ctx.answerCbQuery();
+//             } else {
+//                 console.error("❌ editMessageText Failed:", error);
+//                 await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
+//             }
+//         }
+
+//         return;
+//     }
+
+//     return ctx.reply(message, {
+//         parse_mode: "Markdown",
+//         reply_markup: keyboard.reply_markup,
+//     });
+// }
+
+// case "0dte":
+//             params.set("end_date_min", now.toISOString());
+//             params.set("end_date_max", tomorrowEnd.toISOString());
+//             params.set("order", "endDate");
+//             break;
 
 export async function handleShowMarkets(ctx: Context, eventId: number) {
     const response = await axios.get(`https://gamma-api.polymarket.com/events?id=${eventId}`);
