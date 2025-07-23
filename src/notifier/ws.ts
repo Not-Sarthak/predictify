@@ -211,7 +211,7 @@ export class PolymarketMarketTradeWatcher {
                 }
 
                 const { response, error } = await buyOrderGTC({
-                    price: this.config.price,
+                    price: this.lastBestAsk,
                     size: this.config.size,
                     orderType: OrderType.GTC,
                     tokenId: this.assetId,
