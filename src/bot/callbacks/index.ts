@@ -638,8 +638,57 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
         });
     }
 
-    if (data.startsWith("take_profit:")) {
-        // const marketId = decodeMarketId(data.split(":")[1]);
+    if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
+        const userId = getUserIdFromCtx(ctx);
+        const action = data.split(":")[0];
+        const marketId = decodeMarketId(data.split(":")[1]);
+
+        const userAddress = await getUserAddressFromId(userId);
+        if (!userAddress) {
+            return ctx.reply("❌ Internal Server Error");
+        }
+
+        const userPositionsByMarkets = await getUserPositionByMarket(userAddress, marketId);
+        if (!userPositionsByMarkets) {
+            return ctx.reply("❌ You need to have an Open Position in this Market");
+        }
+
+        const { size, avgPrice, curPrice, outcome, cashPnl, percentPnl, title, asset } =
+            userPositionsByMarkets;
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            size,
+            tokenId: asset,
+            action,
+            marketId,
+            outcome,
+        });
+
+        setUserInputState(userId.toString(), "tp_sl");
+
+        const isTP = action === "take_profit";
+
+        const message = `<b>🎯 ${isTP ? "Take Profit" : "Stop Loss"} Setup</b>
+
+<b>Market:</b> ${title}
+<b>Outcome:</b> ${outcome}
+<b>Position Size:</b> ${size.toFixed(4)} shares
+<b>Avg Buy Price:</b> $${avgPrice.toFixed(4)}
+<b>Current Price:</b> $${curPrice.toFixed(4)}
+<b>Unrealized PnL:</b> $${cashPnl.toFixed(4)} (${percentPnl.toFixed(2)}%)
+
+<b>🟢 Set your ${isTP ? "Take Profit" : "Stop Loss"}:</b>
+Send a price ${isTP ? "above" : "below"} <b>$${curPrice.toFixed(4)}</b> at which you'd like to ${
+            isTP ? "take profit" : "cut your loss"
+        }.
+
+<b>Example:</b> <code>${isTP ? (curPrice + 0.1).toFixed(2) : (curPrice - 0.1).toFixed(2)}</code>
+
+Once the price crosses your target, we'll alert you and execute your strategy.`;
+
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+        });
     }
 
     if (data.startsWith("stop_loss:")) {

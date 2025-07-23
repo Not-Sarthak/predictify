@@ -2,11 +2,15 @@ import { POLYMARKET_WS_MARKET_URL, POLYMARKET_WS_USER_URL } from "@/shared/const
 import {
     generateOrderFilledMessage,
     generatePriceAlertMessage,
+    generateTPorSLMessage,
     getMarketQuestion,
 } from "@/notifier/utils";
 import { bot } from "@/bot";
 import { db } from "@/lib/supabase";
 import { getUserDetails } from "@/helpers/get-user-details";
+import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
+import { OrderType, Side } from "@polymarket/clob-client";
+import { decryptPrivateKey } from "@/utils/crypto";
 
 type Auth = {
     apiKey: string;
@@ -15,8 +19,8 @@ type Auth = {
 };
 
 type PriceWatchConfig =
-    | { type: "take_profit"; price: number; outcome: string }
-    | { type: "stop_loss"; price: number; outcome: string }
+    | { type: "take_profit"; price: number; outcome: string; size: number }
+    | { type: "stop_loss"; price: number; outcome: string; size: number }
     | { type: "alert_above"; price: number; outcome: string }
     | { type: "alert_below"; price: number; outcome: string };
 
@@ -148,7 +152,12 @@ export class PolymarketMarketTradeWatcher {
 
             if (!isFinite(currentAsk)) return;
 
-            const { type, price, outcome } = this.config;
+            const { type, price } = this.config;
+            let outcome;
+
+            if (type === "alert_above" || type === "alert_below") {
+                outcome = this.config.outcome;
+            }
 
             let shouldTrigger = false;
 
@@ -181,21 +190,57 @@ export class PolymarketMarketTradeWatcher {
                 outcomeSide: outcome,
             };
 
-            await bot.telegram.sendMessage(
-                this.userId,
-                generatePriceAlertMessage({ type, ...basePayload }),
-                { parse_mode: "HTML" }
-            );
-
-            console.log(`[ALERT 🔔] ${type} triggered at $${currentAsk} for user ${this.userId}`);
+            if (type === "alert_above" || type === "alert_below") {
+                try {
+                    await bot.telegram.sendMessage(
+                        this.userId,
+                        generatePriceAlertMessage({ type, ...basePayload }),
+                        { parse_mode: "HTML" }
+                    );
+                } catch (error) {
+                    console.error("Failed to Send ALERT Message: ", error);
+                }
+            }
 
             if (type === "take_profit" || type === "stop_loss") {
-                try {
-                    // await this.config.onExecute?.();
-                    console.log(`[EXEC ✅] onExecute() completed for ${type}`);
-                } catch (err) {
-                    console.error(`[EXEC ❌] Failed to execute onExecute() for ${type}:`, err);
+                const user = await getUserDetails(Number(this.userId));
+
+                if (!user) {
+                    console.error("Error fetching User Details in TP/SL");
+                    return;
                 }
+
+                const { response, error } = await buyOrderGTC({
+                    price: this.config.price,
+                    size: this.config.size,
+                    orderType: OrderType.GTC,
+                    tokenId: this.assetId,
+                    side: Side.SELL,
+                    feeRateBps: 0,
+                    apiCreds: JSON.parse(user.api_credentials),
+                    privateKey: decryptPrivateKey(user.private_key),
+                });
+
+                if (!response || error) {
+                    console.error("ERROR EXECUTING TP/SL LIMIT ORDER: ", error);
+                }
+
+                const question = await getMarketQuestion(this.marketId);
+
+                await bot.telegram.sendMessage(
+                    this.userId,
+                    generateTPorSLMessage({
+                        type,
+                        question: question || "Unknown Market",
+                        thresholdPrice: price,
+                        currentPrice: currentAsk,
+                        outcomeSide: this.config.outcome,
+                        size: this.config.size,
+                    }),
+                    {
+                        parse_mode: "HTML",
+                    }
+                );
             }
 
             this.close();

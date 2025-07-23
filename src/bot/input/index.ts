@@ -12,6 +12,7 @@ import { getUserInputState } from "@/bot/input/state";
 import { redisClient } from "@/lib/redis";
 import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
 import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
+import { handleTakeProfitOrStopLossExecution } from "@/bot/input/price-tp-sl";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -57,6 +58,9 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "set_price_alert":
             await handleSetMarketPriceAlert(ctx, textMessage);
+            break;
+        case "tp_sl":
+            await handleTakeProfitOrStopLossExecution(ctx, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");

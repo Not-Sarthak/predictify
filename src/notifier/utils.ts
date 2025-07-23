@@ -79,6 +79,35 @@ export function generatePriceAlertMessage(params: {
     );
 }
 
+export function generateTPorSLMessage(params: {
+    type: "take_profit" | "stop_loss";
+    question: string;
+    thresholdPrice: number;
+    currentPrice: number;
+    outcomeSide: string;
+    size: number;
+}): string {
+    const { type, question, thresholdPrice, currentPrice, outcomeSide, size } = params;
+
+    const typeTitle =
+        type === "take_profit" ? "✅ <b>Take Profit Executed</b>" : "🛑 <b>Stop Loss Executed</b>";
+
+    const actionLine =
+        type === "take_profit"
+            ? `Target reached. Your position was sold to lock in gains.`
+            : `Threshold breached. Position exited to minimize further loss.`;
+
+    return (
+        `${typeTitle}\n\n` +
+        `<b>Market:</b> ${question}\n` +
+        `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` +
+        `<b>Executed Price:</b> $${currentPrice.toFixed(4)}\n` +
+        `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
+        `<b>Position Size:</b> ${size.toFixed(4)} shares\n\n` +
+        `${actionLine}`
+    );
+}
+
 export async function getMarketQuestion(marketId: string): Promise<string | null> {
     try {
         const res = await fetch(
