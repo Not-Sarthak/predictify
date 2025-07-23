@@ -14,8 +14,6 @@ TODO:
 
 ---
 
-1. Add take profit/stop loss (taking input from user & main execution logic left) (sell orders in take profit/stop loss)
-2. PnL Card
 3. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
 
  <!-- VERY VERY LATER -->
