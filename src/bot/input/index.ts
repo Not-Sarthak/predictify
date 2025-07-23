@@ -6,13 +6,18 @@ import { handleMarketTermTextMessage } from "@/bot/input/market-term";
 import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
 import { handleConfigTextMessage } from "@/bot/input/config-details";
 // import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
-import { handleCloseOpenPosition, handleConfirmOrder } from "@/bot/callbacks/trade";
+import {
+    handleCloseOpenPosition,
+    handleConfirmOrder,
+    handleShowMarkets,
+} from "@/bot/callbacks/trade";
 import { handleWithdrawalInput } from "@/utils/withdrawal/index";
 import { getUserInputState } from "@/bot/input/state";
 import { redisClient } from "@/lib/redis";
 import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
 import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
 import { handleTakeProfitOrStopLossExecution } from "@/bot/input/price-tp-sl";
+import { getEventBySlug } from "@/utils/polymarket/get-markets";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -22,6 +27,14 @@ export async function handleUserTextMessage(ctx: Context) {
     const flow = await getUserInputState(userId.toString());
     if (!flow) {
         return ctx.reply("❌ I didn't understand that. Use the menu.");
+    }
+
+    if (textMessage.startsWith("https://polymarket.com/event/")) {
+        const slug = textMessage.split("/")[4];
+        const eventData = await getEventBySlug(slug);
+        const id = eventData?.marketInfo.id;
+
+        return handleShowMarkets(ctx, id);
     }
 
     switch (flow) {

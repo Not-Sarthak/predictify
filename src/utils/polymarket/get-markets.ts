@@ -110,10 +110,12 @@ export async function fetchMarkets(
     return res.data.data;
 }
 
-// Get Market by Slug
-export async function getMarketBySlug(slug: string) {
+// Get Event by Slug
+export async function getEventBySlug(slug: string) {
     try {
-        const response = await fetch(`https://gamma-api.polymarket.com/markets?slug=${slug}`);
+        const response = await fetch(
+            `https://gamma-api.polymarket.com/events?slug=${encodeURIComponent(slug)}`
+        );
         const markets = await response.json();
 
         if (markets && markets.length > 0) {
