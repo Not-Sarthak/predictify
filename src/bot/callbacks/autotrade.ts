@@ -4,6 +4,12 @@ import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/databas
 import { redisClient } from "@/lib/redis";
 import { db } from "@/lib/supabase";
 import { Context, Markup } from "telegraf";
+import {
+    startWalletMonitoring,
+    stopWalletMonitoring,
+    updateSubscription,
+    getMonitoringStatus,
+} from "@/watcher/copy-trade";
 
 export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
@@ -65,11 +71,21 @@ export async function handleViewWatchedWallets(ctx: Context) {
             });
         }
 
+        // Get user's settings
+        const { data: userData } = await db("Users")
+            .select("watched_wallets, is_copytrading_enabled")
+            .eq("id", Number(userId))
+            .single();
+
         const message =
-            `👁️ *Watched Wallets (${userWallets.length}/3)*\n\n` +
+            `👁️ *Watched Wallets (${userWallets.length}/5)*\n\n` +
             userWallets
-                .map((wallet, index) => `${index + 1}. *${wallet.wallet_address}*`)
-                .join("\n\n");
+                .map((wallet, index) => {
+                    const status = wallet.is_enabled ? "✅" : "❌";
+                    return `${index + 1}. ${status} *${wallet.wallet_address}*`;
+                })
+                .join("\n\n") +
+            `\n\n*Copy Trading:* ${userData?.is_copytrading_enabled ? "✅ Enabled" : "❌ Disabled"}`;
 
         const buttons = [
             [
@@ -129,7 +145,9 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
                 await redisClient.hSet(`user:config_input:${userId}`, "key", "Max");
                 return ctx.reply("🔥 Enter an Amount: ");
             default:
-                await ctx.answerCbQuery("Unknown configuration");
+                if ("answerCbQuery" in ctx) {
+                    await ctx.answerCbQuery("Unknown configuration");
+                }
                 return;
         }
 
@@ -139,7 +157,9 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
             return ctx.reply("⚠️ Error saving config. Please try again");
         }
 
-        await ctx.answerCbQuery(`${configType} set to ${configValue}`);
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery(`${configType} set to ${configValue}`);
+        }
         return ctx.reply(
             `✅ *Configuration Updated*\n\n` +
                 `**${configType}:** ${configValue}\n\n` +
@@ -163,7 +183,8 @@ export async function handleAddNewWalletCallback(ctx: Context) {
 
         if (countError) throw new Error(countError.message, { cause: countError.cause });
 
-        if (count === 3) return ctx.reply(`❌ You have reached your Maximum Wallet Limit`);
+        if (count && count >= 5)
+            return ctx.reply(`❌ You have reached your Maximum Wallet Limit (5 wallets)`);
     } catch (error) {
         console.error("Error fetching user copy wallets details: ", error);
         return ctx.reply(`❌ There was an error fetching your details! Please try again.`, {
@@ -215,4 +236,142 @@ export async function handleDeleteWalletCallback(ctx: Context) {
             }
         );
     }
+}
+
+// New function to handle wallet enable/disable
+export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: string) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Get wallet details
+        const { data: wallet, error } = await db("Copy_Wallets")
+            .select("*")
+            .eq("user_id", Number(userId))
+            .eq("wallet_address", walletAddress)
+            .single();
+
+        if (error || !wallet) {
+            return ctx.answerCbQuery("Wallet not found");
+        }
+
+        // Get user settings
+        const { data: user } = await db("Users")
+            .select("is_copytrading_enabled, config_value")
+            .eq("id", Number(userId))
+            .single();
+
+        const newStatus = !wallet.is_enabled;
+        const positionPercentage = user?.config_value ? parseInt(user.config_value) : 100;
+
+        // Update wallet status in database
+        await db("Copy_Wallets")
+            .update({ is_enabled: newStatus })
+            .eq("user_id", Number(userId))
+            .eq("wallet_address", walletAddress);
+
+        // Update monitoring status and watched_wallets array
+        if (newStatus) {
+            // Get current watched_wallets
+            const { data: currentUser } = await db("Users")
+                .select("watched_wallets")
+                .eq("id", Number(userId))
+                .single();
+
+            const currentWallets = currentUser?.watched_wallets || [];
+            if (!currentWallets.includes(walletAddress)) {
+                currentWallets.push(walletAddress);
+                await db("Users")
+                    .update({ watched_wallets: currentWallets })
+                    .eq("id", Number(userId));
+            }
+
+            // Start monitoring
+            await startWalletMonitoring(
+                walletAddress,
+                Number(userId),
+                user?.is_copytrading_enabled || false,
+                positionPercentage
+            );
+        } else {
+            // Get current watched_wallets and remove this one
+            const { data: currentUser } = await db("Users")
+                .select("watched_wallets")
+                .eq("id", Number(userId))
+                .single();
+
+            const currentWallets = currentUser?.watched_wallets || [];
+            const updatedWallets = currentWallets.filter((w) => w !== walletAddress);
+
+            await db("Users").update({ watched_wallets: updatedWallets }).eq("id", Number(userId));
+
+            // Stop monitoring
+            await stopWalletMonitoring(walletAddress, Number(userId));
+        }
+
+        await ctx.answerCbQuery(
+            newStatus ? "✅ Wallet monitoring enabled" : "❌ Wallet monitoring disabled"
+        );
+
+        // Refresh the view
+        return handleViewWatchedWallets(ctx);
+    } catch (error) {
+        console.error("Error toggling wallet monitoring:", error);
+        return ctx.answerCbQuery("Error updating wallet status");
+    }
+}
+
+// Handle global copy trading toggle
+export async function handleToggleCopyTrading(ctx: Context, enable: boolean) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Update user settings
+        await db("Users").update({ is_copytrading_enabled: enable }).eq("id", Number(userId));
+
+        // Get user's watched wallets and config
+        const { data: user } = await db("Users")
+            .select("watched_wallets, config_value")
+            .eq("id", Number(userId))
+            .single();
+
+        if (user?.watched_wallets && user.watched_wallets.length > 0) {
+            const positionPercentage = user.config_value ? parseInt(user.config_value) : 100;
+
+            // Update monitoring for all watched wallets
+            for (const wallet of user.watched_wallets) {
+                await updateSubscription(wallet, Number(userId), enable, positionPercentage);
+            }
+        }
+
+        await ctx.answerCbQuery(enable ? "✅ Copy trading enabled" : "❌ Copy trading disabled");
+
+        return ctx.reply(
+            enable
+                ? "✅ Copy trading has been enabled. You will now automatically copy trades from your watched wallets."
+                : "❌ Copy trading has been disabled. You will still receive notifications but trades won't be copied.",
+            { parse_mode: "Markdown" }
+        );
+    } catch (error) {
+        console.error("Error toggling copy trading:", error);
+        return ctx.answerCbQuery("Error updating settings");
+    }
+}
+
+// Get monitoring statistics
+export async function handleMonitoringStats(ctx: Context) {
+    const stats = getMonitoringStatus();
+
+    const message =
+        `📊 *Monitoring Statistics*\n\n` +
+        `👁️ Total Wallets Monitored: ${stats.totalWallets}\n` +
+        `👥 Total Subscribers: ${stats.totalSubscribers}\n\n` +
+        `*Active Monitors:*\n` +
+        stats.wallets
+            .map(
+                (w) =>
+                    `• ${w.wallet.slice(0, 6)}...${w.wallet.slice(-4)}: ${w.subscriberCount} users (${w.copyTradingCount} copying)`
+            )
+            .join("\n");
+
+    return ctx.reply(message, { parse_mode: "Markdown" });
 }

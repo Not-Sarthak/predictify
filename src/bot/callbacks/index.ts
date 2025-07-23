@@ -99,9 +99,10 @@ export async function handleCallbackQuery(ctx: Context) {
     const data =
         ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
 
-    // Always answer a callback query.
-    // Works for both valid and invalid incoming data.
-    await ctx.answerCbQuery();
+    // Only answer callback query if it's actually a callback query context
+    if ("answerCbQuery" in ctx && ctx.callbackQuery) {
+        await ctx.answerCbQuery();
+    }
 
     if (!data) return;
 

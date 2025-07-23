@@ -2,7 +2,7 @@ import { env } from "@/config";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { decryptPrivateKey } from "@/utils/crypto";
-import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { marketBuyOrder, marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
 
@@ -127,16 +127,36 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
     try {
         if (!user.is_copytrading_enabled) return;
 
-        const amount = trade.size * trade.price * Number(user.config_value);
+        // trade.size is already adjusted by position percentage in copy-trade.ts
+        // trade.value is also already calculated correctly
+        const amount = trade.value; // This is the USD amount to spend
 
-        await marketBuyOrder({
-            privateKey: decryptPrivateKey(user.private_key),
-            creds: JSON.parse(user.api_credentials),
+        console.log(`Executing trade for user ${userId}:`, {
             tokenId: trade.asset,
             amount,
-            side: trade.side === "BUY" ? Side.BUY : Side.SELL,
-            orderType: OrderType.FOK,
+            side: trade.side,
+            shares: trade.size,
+            price: trade.price,
         });
+
+        if (trade.side === "BUY") {
+            await marketBuyOrder({
+                privateKey: decryptPrivateKey(user.private_key),
+                creds: JSON.parse(user.api_credentials),
+                tokenId: trade.asset,
+                amount, // USD amount to spend
+                side: Side.BUY,
+                orderType: OrderType.FOK,
+            });
+        } else {
+            await marketSellOrder({
+                privateKey: decryptPrivateKey(user.private_key),
+                creds: JSON.parse(user.api_credentials),
+                tokenId: trade.asset,
+                amount: trade.size, // number of shares to sell
+                orderType: OrderType.FOK,
+            });
+        }
 
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
         await redisClient.set(
@@ -145,9 +165,9 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 userId,
                 market: trade.market,
                 side: trade.side,
-                size: trade.size,
+                shares: trade.size,
                 price: trade.price,
-                value: amount,
+                value: trade.value,
                 timestamp: new Date().toISOString(),
             }),
             { EX: 60 * 60 * 24 } // expire in 24 hours
@@ -158,9 +178,9 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             `✅ *CopyTrade Order Executed Successfully!*
 *Market:* ${trade.market}
 *Side:* ${trade.side}
-*Size:* ${trade.size}
-*Price:* ${trade.price}
-*Value:* ${(trade.size * trade.price).toFixed(4)}`
+*Shares:* ${trade.size.toFixed(2)}
+*Price:* ${trade.price.toFixed(4)}
+*Value:* ${trade.value.toFixed(4)} USDC`
         );
     } catch (error) {
         console.error("❌ Error placing market order:", error);
@@ -181,9 +201,9 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             `❌ *CopyTrade Order Execution Failed*
 *Market:* ${trade.market}
 *Side:* ${trade.side}
-*Size:* ${trade.size}
-*Price:* ${trade.price}
-*Value:* ${(trade.size * trade.price).toFixed(4)}
+*Shares:* ${trade.size.toFixed(2)}
+*Price:* ${trade.price.toFixed(4)}
+*Value:* ${trade.value.toFixed(4)} USDC
 
 *Reason:* ${error instanceof Error ? error.message : String(error)}`
         );
