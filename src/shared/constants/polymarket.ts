@@ -16,7 +16,7 @@ export const CATEGORY_LIST = [
     "Politics",
     "Tech",
     "Business",
-    "Art",
+    "Economy",
     "Pop-Culture",
     "Science",
 ] as const;

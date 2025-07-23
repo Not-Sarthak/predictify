@@ -77,6 +77,11 @@ import { CHAIN_ID, HOST } from "@/shared/constants";
 import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 
+/**
+ * TODO:FIX
+ * Change the conditional check to a Switch Statement and move ctx.answerCbQuery() at the end.
+ * So that the button loading animation is done only when info is retrieved by the user.
+ */
 export async function handleCallbackQuery(ctx: Context) {
     const data =
         ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
@@ -90,8 +95,6 @@ export async function handleCallbackQuery(ctx: Context) {
     /**
      * Handle Callbacks based on Data Value
      */
-
-    console.log(data);
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
@@ -613,6 +616,34 @@ export async function handleCallbackQuery(ctx: Context) {
         const offset = parseInt(offsetStr, 10);
 
         return sendPaginatedHistory(ctx, walletAddress, offset);
+    }
+
+    if (data.startsWith("set_price_alert:")) {
+        const userId = getUserIdFromCtx(ctx);
+        const encodedMarketId = data.split(":")[1];
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId: encodedMarketId,
+        });
+
+        setUserInputState(userId.toString(), "set_price_alert");
+
+        const message = `🔔 <b>Set Price Alert for this Market</b>\n
+Enter <b>Price</b> & <b>Side</b> details below:\n
+Format: <code>Price-Above</code>  <code>Price-Below</code>  <code>Yes/No</code>\n
+Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
+
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+        });
+    }
+
+    if (data.startsWith("take_profit:")) {
+        // const marketId = decodeMarketId(data.split(":")[1]);
+    }
+
+    if (data.startsWith("stop_loss:")) {
+        // const marketId = decodeMarketId(data.split(":")[1]);
     }
 
     if (data === "close_message") {

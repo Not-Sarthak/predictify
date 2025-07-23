@@ -458,8 +458,6 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     const yesPrice = outcomes[0];
     const noPrice = outcomes[1];
 
-    console.log(market);
-
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;

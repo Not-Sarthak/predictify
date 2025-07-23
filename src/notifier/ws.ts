@@ -15,10 +15,10 @@ type Auth = {
 };
 
 type PriceWatchConfig =
-    | { type: "take_profit"; price: number; outcome?: string }
-    | { type: "stop_loss"; price: number; outcome?: string }
-    | { type: "alert_above"; price: number; outcome?: string }
-    | { type: "alert_below"; price: number; outcome?: string };
+    | { type: "take_profit"; price: number; outcome: string }
+    | { type: "stop_loss"; price: number; outcome: string }
+    | { type: "alert_above"; price: number; outcome: string }
+    | { type: "alert_below"; price: number; outcome: string };
 
 export class PolymarketUserTradeWatcher {
     private socket: WebSocket;
@@ -105,6 +105,7 @@ export class PolymarketMarketTradeWatcher {
     private marketId: string;
     private config: PriceWatchConfig;
     private hasTriggered: boolean;
+    private lastBestAsk: number = Infinity;
 
     constructor(userId: string, assetId: string, marketId: string, config: PriceWatchConfig) {
         this.userId = userId;
@@ -130,92 +131,76 @@ export class PolymarketMarketTradeWatcher {
             assets_ids: [this.assetId],
         };
         this.socket.send(JSON.stringify(msg));
+        console.log("[START] New Connection: ", msg);
     }
 
     private async onMessage(event: MessageEvent) {
+        if (this.hasTriggered) return;
+
         try {
-            const data = JSON.parse(event.data.toString());
-            if (data.event_type !== "price_change" || data.market !== this.marketId) return;
+            const eventData = JSON.parse(event.data.toString());
+            const data = eventData[0];
 
-            const sellChanges = data.changes.filter((c: any) => c.side === "SELL");
-            const bestAsk = sellChanges.reduce(
-                (min: number, c: any) => Math.min(min, parseFloat(c.price)),
-                Infinity
-            );
+            if (data.event_type !== "book") return;
 
-            if (!isFinite(bestAsk) || this.hasTriggered) return;
+            const asks = data.asks.map((a: any) => parseFloat(a.price)).filter(isFinite);
+            const currentAsk = Math.min(...asks);
+
+            if (!isFinite(currentAsk)) return;
+
+            const { type, price, outcome } = this.config;
+
+            let shouldTrigger = false;
+
+            switch (type) {
+                case "take_profit":
+                    shouldTrigger = this.lastBestAsk < price && currentAsk > price;
+                    break;
+                case "stop_loss":
+                    shouldTrigger = this.lastBestAsk > price && currentAsk < price;
+                    break;
+                case "alert_above":
+                    shouldTrigger = this.lastBestAsk < price && currentAsk > price;
+                    break;
+                case "alert_below":
+                    shouldTrigger = this.lastBestAsk > price && currentAsk < price;
+                    break;
+            }
+
+            this.lastBestAsk = currentAsk;
+
+            if (!shouldTrigger) return;
+
+            this.hasTriggered = true;
 
             const question = await getMarketQuestion(this.marketId);
             const basePayload = {
                 question: question || "Unknown Market",
-                thresholdPrice: this.config.price,
-                currentPrice: bestAsk,
-                outcomeSide: this.config.outcome,
+                thresholdPrice: price,
+                currentPrice: currentAsk,
+                outcomeSide: outcome,
             };
 
-            switch (this.config.type) {
-                case "take_profit":
-                    if (bestAsk >= this.config.price) {
-                        this.hasTriggered = true;
+            await bot.telegram.sendMessage(
+                this.userId,
+                generatePriceAlertMessage({ type, ...basePayload }),
+                { parse_mode: "HTML" }
+            );
 
-                        await bot.telegram.sendMessage(
-                            this.userId,
-                            generatePriceAlertMessage({ type: "take_profit", ...basePayload }),
-                            { parse_mode: "HTML" }
-                        );
+            console.log(`[ALERT 🔔] ${type} triggered at $${currentAsk} for user ${this.userId}`);
 
-                        // await this.config.onExecute();
-                        this.close();
-                    }
-                    break;
-
-                case "stop_loss":
-                    if (bestAsk <= this.config.price) {
-                        this.hasTriggered = true;
-
-                        await bot.telegram.sendMessage(
-                            this.userId,
-                            generatePriceAlertMessage({ type: "stop_loss", ...basePayload }),
-                            { parse_mode: "HTML" }
-                        );
-
-                        // await this.config.onExecute();
-                        this.close();
-                    }
-                    break;
-
-                case "alert_above":
-                    if (bestAsk >= this.config.price) {
-                        this.hasTriggered = true;
-
-                        await bot.telegram.sendMessage(
-                            this.userId,
-                            generatePriceAlertMessage({ type: "alert_above", ...basePayload }),
-                            { parse_mode: "HTML" }
-                        );
-
-                        this.close();
-                    }
-                    break;
-
-                case "alert_below":
-                    if (bestAsk <= this.config.price) {
-                        this.hasTriggered = true;
-
-                        await bot.telegram.sendMessage(
-                            this.userId,
-                            generatePriceAlertMessage({ type: "alert_below", ...basePayload }),
-                            { parse_mode: "HTML" }
-                        );
-
-                        this.close();
-                    }
-                    break;
+            if (type === "take_profit" || type === "stop_loss") {
+                try {
+                    // await this.config.onExecute?.();
+                    console.log(`[EXEC ✅] onExecute() completed for ${type}`);
+                } catch (err) {
+                    console.error(`[EXEC ❌] Failed to execute onExecute() for ${type}:`, err);
+                }
             }
 
-            console.log(`[WS] Price update: $${bestAsk.toFixed(4)} | Market: ${this.marketId}`);
+            this.close();
         } catch (err) {
-            console.error("[WS] Failed to handle price message:", err);
+            console.error("[WS] Failed to handle book message:", err);
         }
     }
 
@@ -231,12 +216,3 @@ export class PolymarketMarketTradeWatcher {
         this.socket.close();
     }
 }
-
-// new PolymarketMarketTradeWatcher(
-//     "",
-//     "64667957397757546515164546892040938377941653520792639389355873870925841226189",
-//     "0x19a84fd0c80bc82212a9f96d9a5b5f983853cf493733c18a20c88a0fd53581ad",
-//     {
-
-//     }
-// );

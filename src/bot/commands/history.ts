@@ -82,7 +82,7 @@ Entry: $${entryPrice.toFixed(4)} • Shares: ${size.toFixed(2)}
         });
 
         const message =
-            `🧾 *Your Trades (${offset + 1}-${offset + formattedTrades.length})*\n` +
+            `🧾 *Your Trades (${offset + 1}-${offset + formattedTrades.length})*\n\n` +
             formattedTrades.join("\n\n");
 
         const navButtons = [];

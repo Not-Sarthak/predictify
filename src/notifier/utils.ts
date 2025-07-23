@@ -68,7 +68,7 @@ export function generatePriceAlertMessage(params: {
         alert_below: "📉 <b>Price Alert (Below)</b>",
     }[type];
 
-    const outcomeLine = outcomeSide ? `<b>Outcome:</b> ${outcomeSide}\n` : "";
+    const outcomeLine = outcomeSide ? `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` : "";
 
     return (
         `${typeLabel}\n\n` +
