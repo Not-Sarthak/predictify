@@ -37,7 +37,7 @@ export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: nu
 📊 *Market:* ${market?.question}
 📈 *Side:* ${order.side}
 💰 *Price:* $${parseFloat(order.price).toFixed(4)}
-💰 *Current Price:* $${parseFloat(order.side === "YES" ? outcomePrices[0] : outcomePrices[1]).toFixed(4)}
+💰 *Current Price:* $${parseFloat(order.outcome === "Yes" ? outcomePrices[0] : outcomePrices[1]).toFixed(4)}
 📦 *Size:* ${parseFloat(order.original_size).toFixed(2)}
 🎯 *Outcome:* ${order.outcome}
     `.trim();

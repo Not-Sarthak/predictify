@@ -67,8 +67,6 @@ export async function fetchMarkets(
     const LIMIT = 8;
     const OFFSET = offset;
 
-    console.log(filter);
-
     let url = "";
     const params = new URLSearchParams({
         limit: LIMIT.toString(),
@@ -83,7 +81,7 @@ export async function fetchMarkets(
     const now = new Date();
     const tomorrowEnd = new Date(now);
     tomorrowEnd.setDate(now.getDate() + 1);
-    tomorrowEnd.setHours(23, 59, 59, 999);
+    tomorrowEnd.setHours(0);
 
     switch (filter) {
         case "volume":

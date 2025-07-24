@@ -15,13 +15,7 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import {
-    CATEGORY_LIST,
-    CHAIN_ID,
-    HOST,
-    MARKET_FILTERS,
-    ZERO_DTE_MARKETS_CATEGORY_LIST,
-} from "@/shared/constants";
+import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -336,24 +330,6 @@ export async function handleViewTopMarketsByCategory(
     });
 }
 
-export async function handleShowZeroDTEMarketCategories(ctx: Context) {
-    const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
-        Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
-    );
-
-    const keyboardLayout = [];
-    for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
-        keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
-    }
-
-    const keyboard = Markup.inlineKeyboard(keyboardLayout);
-
-    return ctx.reply("⚡ <b>Trending 0DTE Markets:</b>", {
-        parse_mode: "HTML",
-        ...keyboard,
-    });
-}
-
 export async function handleShowZeroDTEMarketsByCategory(
     ctx: Context,
     category: string,
@@ -406,37 +382,31 @@ export async function handleShowZeroDTEMarketsByCategory(
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
         paginationButtons,
+        [Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`)],
         [
-            Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`),
+            Markup.button.callback("⬅️ Back", "back_to_zero_dte_categories"),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
 
-    if (ctx.updateType === "callback_query") {
-        try {
-            await ctx.editMessageText(message, {
-                parse_mode: "Markdown",
-                reply_markup: keyboard.reply_markup,
-            });
-        } catch (error: any) {
-            if (
-                error?.response?.error_code === 400 &&
-                error?.response?.description?.includes("message is not modified")
-            ) {
-                await ctx.answerCbQuery();
-            } else {
-                console.error("❌ editMessageText Failed:", error);
-                await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
-            }
+    try {
+        await ctx.editMessageText(message, {
+            parse_mode: "Markdown",
+            reply_markup: keyboard.reply_markup,
+        });
+    } catch (error: any) {
+        if (
+            error?.response?.error_code === 400 &&
+            error?.response?.description?.includes("message is not modified")
+        ) {
+            await ctx.answerCbQuery();
+        } else {
+            console.error("❌ editMessageText Failed:", error);
+            await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
         }
-
-        return;
     }
 
-    return ctx.reply(message, {
-        parse_mode: "Markdown",
-        reply_markup: keyboard.reply_markup,
-    });
+    return;
 }
 
 // export async function handleShowZeroDTEMarkets(ctx: Context, offset: number = 0) {
@@ -1276,7 +1246,7 @@ export async function handleRefreshTopMarkets(
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
         message += `${i + 1}. **${market.title}**
-📊 Volume : ${fVolumne}
+💧 Volume : ${fVolumne}
 ⏰ Ends: ${fDate}
 
 `;

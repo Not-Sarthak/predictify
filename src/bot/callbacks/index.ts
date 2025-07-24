@@ -21,7 +21,6 @@ import {
     handleRefreshMarketDetails,
     handleRefreshMarkets,
     handleRefreshTopMarkets,
-    handleShowZeroDTEMarketCategories,
     handleShowZeroDTEMarketsByCategory,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
@@ -55,6 +54,7 @@ import {
 } from "@/bot/utils/database/toggle-copytrade-status";
 import { formatSinglePositionMessage, getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import {
+    generate0DTEMarketCategoryKeyboard,
     generateAutoTradeMenu,
     generateWelcomeMessage,
     handleAutoTradeMenu,
@@ -223,7 +223,12 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_markets_dte") {
-        return handleShowZeroDTEMarketCategories(ctx);
+        const keyboard = await generate0DTEMarketCategoryKeyboard();
+
+        return ctx.reply("⚡ <b>Trending 0DTE Markets:</b>", {
+            parse_mode: "HTML",
+            ...keyboard,
+        });
     }
 
     if (data.startsWith("zero_dte_category:")) {
@@ -231,6 +236,15 @@ export async function handleCallbackQuery(ctx: Context) {
         const offset = data.split(":")[2];
 
         return handleShowZeroDTEMarketsByCategory(ctx, category, Number(offset) || 0);
+    }
+
+    if (data === "back_to_zero_dte_categories") {
+        const keyboard = await generate0DTEMarketCategoryKeyboard();
+
+        return ctx.editMessageText("⚡ <b>Trending 0DTE Markets:</b>", {
+            parse_mode: "HTML",
+            ...keyboard,
+        });
     }
 
     if (data === "trade_position_open") {
