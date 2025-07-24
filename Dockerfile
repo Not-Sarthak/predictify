@@ -25,6 +25,9 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 
+# Copy Assets
+COPY assets /app/assets
+
 # Copy only needed runtime deps
 COPY --from=builder /app/node_modules ./node_modules
 

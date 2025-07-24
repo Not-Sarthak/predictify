@@ -1038,54 +1038,56 @@ export async function handleCloseOpenPosition(
 
     await ctx.deleteMessage(message_id);
 
-    // Generate PNL card
-    try {
-        const username = ctx.from?.username || ctx.from?.first_name || "User";
-        const closeDate = new Date().toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
+    return ctx.reply("✅ Position closed successfully!");
 
-        // Determine PNL type
-        let pnlType: "positive" | "negative" | "neutral";
-        if (marketDetails.cashPnl > 0) {
-            pnlType = "positive";
-        } else if (marketDetails.cashPnl < 0) {
-            pnlType = "negative";
-        } else {
-            pnlType = "neutral";
-        }
+    // // Generate PNL card
+    // try {
+    //     const username = ctx.from?.username || ctx.from?.first_name || "User";
+    //     const closeDate = new Date().toLocaleDateString("en-US", {
+    //         month: "short",
+    //         day: "numeric",
+    //         year: "numeric",
+    //     });
 
-        const pnlCardData = {
-            username: username,
-            marketTitle: marketDetails.title || marketDetails.slug || "Unknown Market",
-            side: marketDetails.outcome as "YES" | "NO",
-            volume: marketDetails.size.toFixed(2),
-            openDate: closeDate, // Using close date since we don't have open date
-            profitAmount: Math.abs(marketDetails.cashPnl).toFixed(2),
-            entryPercentage: (marketDetails.avgPrice * 100).toFixed(2),
-            exitPercentage: (marketDetails.curPrice * 100).toFixed(2),
-            profitPercentage: marketDetails.percentPnl
-                ? Math.abs(marketDetails.percentPnl).toFixed(2)
-                : undefined,
-            type: pnlType,
-        };
+    //     // Determine PNL type
+    //     let pnlType: "positive" | "negative" | "neutral";
+    //     if (marketDetails.cashPnl > 0) {
+    //         pnlType = "positive";
+    //     } else if (marketDetails.cashPnl < 0) {
+    //         pnlType = "negative";
+    //     } else {
+    //         pnlType = "neutral";
+    //     }
 
-        const pnlCardBuffer = await pnlCardGenerator.generatePNLCard(pnlCardData);
+    //     const pnlCardData = {
+    //         username: username,
+    //         marketTitle: marketDetails.title || marketDetails.slug || "Unknown Market",
+    //         side: marketDetails.outcome as "YES" | "NO",
+    //         volume: marketDetails.size.toFixed(2),
+    //         openDate: closeDate, // Using close date since we don't have open date
+    //         profitAmount: Math.abs(marketDetails.cashPnl).toFixed(2),
+    //         entryPercentage: (marketDetails.avgPrice * 100).toFixed(2),
+    //         exitPercentage: (marketDetails.curPrice * 100).toFixed(2),
+    //         profitPercentage: marketDetails.percentPnl
+    //             ? Math.abs(marketDetails.percentPnl).toFixed(2)
+    //             : undefined,
+    //         type: pnlType,
+    //     };
 
-        await ctx.replyWithPhoto(
-            { source: pnlCardBuffer },
-            {
-                caption: `✅ Position closed successfully!\n\n${pnlType === "positive" ? "💰 Profit" : pnlType === "negative" ? "📉 Loss" : "➖ Break Even"}: $${pnlCardData.profitAmount}`,
-                parse_mode: "Markdown",
-            }
-        );
-    } catch (error) {
-        console.error("Failed to generate PNL card:", error);
-        // Fallback to simple text message
-        ctx.reply("✅ Your position was closed successfully!");
-    }
+    //     const pnlCardBuffer = await pnlCardGenerator.generatePNLCard(pnlCardData);
+
+    //     await ctx.replyWithPhoto(
+    //         { source: pnlCardBuffer },
+    //         {
+    //             caption: `✅ Position closed successfully!\n\n${pnlType === "positive" ? "💰 Profit" : pnlType === "negative" ? "📉 Loss" : "➖ Break Even"}: $${pnlCardData.profitAmount}`,
+    //             parse_mode: "Markdown",
+    //         }
+    //     );
+    // } catch (error) {
+    //     console.error("Failed to generate PNL card:", error);
+    //     // Fallback to simple text message
+    //     ctx.reply("✅ Your position was closed successfully!");
+    // }
 }
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
