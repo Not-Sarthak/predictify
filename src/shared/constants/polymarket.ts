@@ -1,6 +1,8 @@
 import type { ContractConfig } from "@polymarket/clob-client";
 
 export const POLYMARKET_WS_USER_URL = `wss://ws-subscriptions-clob.polymarket.com/ws/user`;
+export const POLYMARKET_WS_MARKET_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market";
+
 export const HOST = "https://clob.polymarket.com";
 export const CHAIN_ID = 137;
 
@@ -14,10 +16,12 @@ export const CATEGORY_LIST = [
     "Politics",
     "Tech",
     "Business",
-    "Art",
+    "Economy",
     "Pop-Culture",
     "Science",
 ] as const;
+
+export const ZERO_DTE_MARKETS_CATEGORY_LIST = ["Bitcoin", "Ethereum", "Solana", "XRP", "Dogecoin"];
 
 export const AMOY_CONTRACTS: ContractConfig = {
     exchange: "0xdFE02Eb6733538f8Ea35D585af8DE5958AD99E40",

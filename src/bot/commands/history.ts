@@ -1,5 +1,6 @@
-import { formatUnixDate, getUserIdFromCtx } from "@/bot/utils";
+import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserDetails } from "@/helpers/get-user-details";
+import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
 import { getUserHistory } from "@/utils/polymarket/get-user-history";
 import { Markup, type Context } from "telegraf";
 
@@ -26,6 +27,7 @@ export async function sendPaginatedHistory(ctx: Context, walletAddress: string, 
 
     try {
         const history = await getUserHistory(walletAddress, offset, PAGE_SIZE);
+        const uniqueConditionIds = [...new Set(history.map((t) => t.conditionId))];
 
         if (msg) {
             await ctx.deleteMessage(msg.message_id);
@@ -38,17 +40,45 @@ export async function sendPaginatedHistory(ctx: Context, walletAddress: string, 
                 : ctx.reply(fallbackMsg);
         }
 
-        const formattedTrades = history.map((trade) => {
-            const side = trade.side === "BUY" ? "🟢 BOUGHT" : "🔴 SOLD";
+        const marketMap = new Map<string, any>();
+        await Promise.all(
+            uniqueConditionIds.map(async (conditionId) => {
+                const market = await getMarketByConditionId(conditionId);
+                marketMap.set(conditionId, market);
+            })
+        );
+
+        // Step 3: Format each trade using cached market data
+        const formattedTrades = history.map((trade, idx) => {
+            const sideEmoji = trade.side === "BUY" ? "🟢" : "🔴";
             const title = trade.title.length > 50 ? trade.title.slice(0, 47) + "…" : trade.title;
-            const amount = Number(trade.size).toFixed(2);
-            const price = Number(trade.price).toFixed(2);
+
+            const size = Number(trade.size);
+            const entryPrice = Number(trade.price);
+            const market = marketMap.get(trade.conditionId);
+            const curPrice = Number(JSON.parse(market.outcomePrices)[trade.outcomeIndex]);
+
+            const invested = size * entryPrice;
+            const cashout = size * curPrice;
+            const pnl = cashout - invested;
+            const pnlPct = (pnl / invested) * 100;
+
+            const investedStr = `$${invested.toFixed(2)}`;
+            const cashoutStr = `$${cashout.toFixed(2)}`;
+            const pnlStr = `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`;
+            const pnlPctStr = `${pnl >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%`;
+
             const polyMarketLink = `https://polymarket.com/market/${trade.slug}`;
             const polygonScanLink = `https://polygonscan.com/tx/${trade.transactionHash}`;
 
-            return `📊 ${title}
-${side} ${amount} shares @ $${price} on ${formatUnixDate(trade.timestamp)}
-🔗 [Polymarket](${polyMarketLink}) | [Polygonscan](${polygonScanLink})`;
+            return `*#${offset + idx + 1} - ${sideEmoji} ${title}*
+
+Entry: $${entryPrice.toFixed(4)} • Shares: ${size.toFixed(2)}
+💸 Invested: ${investedStr} • Cashout: ${cashoutStr}
+📉 P&L: ${pnlStr} (${pnlPctStr})
+
+[Polymarket](${polyMarketLink}) • [Polygonscan](${polygonScanLink})
+---------------------------------------`;
         });
 
         const message =

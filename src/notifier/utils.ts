@@ -52,6 +52,62 @@ export function generateOrderFilledMessage(trade: any, question: string): string
     );
 }
 
+export function generatePriceAlertMessage(params: {
+    type: "take_profit" | "stop_loss" | "alert_above" | "alert_below";
+    question: string;
+    thresholdPrice: number;
+    currentPrice: number;
+    outcomeSide?: string;
+}): string {
+    const { type, question, thresholdPrice, currentPrice, outcomeSide } = params;
+
+    const typeLabel = {
+        take_profit: "✅ <b>Take Profit Triggered!</b>",
+        stop_loss: "🛑 <b>Stop Loss Triggered!</b>",
+        alert_above: "📈 <b>Price Alert (Above)</b>",
+        alert_below: "📉 <b>Price Alert (Below)</b>",
+    }[type];
+
+    const outcomeLine = outcomeSide ? `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` : "";
+
+    return (
+        `${typeLabel}\n\n` +
+        `<b>Market:</b> ${question}\n` +
+        outcomeLine +
+        `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
+        `<b>Current Price:</b> $${currentPrice.toFixed(4)}`
+    );
+}
+
+export function generateTPorSLMessage(params: {
+    type: "take_profit" | "stop_loss";
+    question: string;
+    thresholdPrice: number;
+    currentPrice: number;
+    outcomeSide: string;
+    size: number;
+}): string {
+    const { type, question, thresholdPrice, currentPrice, outcomeSide, size } = params;
+
+    const typeTitle =
+        type === "take_profit" ? "✅ <b>Take Profit Executed</b>" : "🛑 <b>Stop Loss Executed</b>";
+
+    const actionLine =
+        type === "take_profit"
+            ? `Target reached. Your position was sold to lock in gains.`
+            : `Threshold breached. Position exited to minimize further loss.`;
+
+    return (
+        `${typeTitle}\n\n` +
+        `<b>Market:</b> ${question}\n` +
+        `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` +
+        `<b>Executed Price:</b> $${currentPrice.toFixed(4)}\n` +
+        `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
+        `<b>Position Size:</b> ${size.toFixed(4)} shares\n\n` +
+        `${actionLine}`
+    );
+}
+
 export async function getMarketQuestion(marketId: string): Promise<string | null> {
     try {
         const res = await fetch(

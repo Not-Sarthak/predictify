@@ -29,7 +29,10 @@ export const SUBSCRIPTIONS_MENU_BUTTONS = [
 ];
 
 export const TRADE_MENU_BUTTONS = [
-    [Markup.button.callback("🔎 Top Markets", "trade_top_markets_view")],
+    [
+        Markup.button.callback("🔎 Top Markets", "trade_top_markets_view"),
+        Markup.button.callback("⏰ 0DTE", "trade_markets_dte"),
+    ],
     [
         Markup.button.callback("⚡ Open Position", "trade_position_open"),
         Markup.button.callback("🌂 Close Position", "trade_position_close"),

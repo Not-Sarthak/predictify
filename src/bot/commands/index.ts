@@ -39,4 +39,8 @@ export const botCommands: BotCommand[] = [
         command: "manage",
         description: "Manage your Open Limit Orders",
     },
+    {
+        command: "stats",
+        description: "View your Trading Stats",
+    },
 ];

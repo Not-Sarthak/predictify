@@ -15,7 +15,13 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
+import {
+    CATEGORY_LIST,
+    CHAIN_ID,
+    HOST,
+    MARKET_FILTERS,
+    ZERO_DTE_MARKETS_CATEGORY_LIST,
+} from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -29,12 +35,15 @@ import axios from "axios";
 import { db } from "@/lib/supabase";
 import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
-import { OrderType } from "@polymarket/clob-client";
+import { ClobClient, OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
+import { createLegacyWallet } from "@/utils";
+import { ethers } from "ethers";
+import { pnlCardGenerator } from "@/utils/pnl-card-generator";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -246,7 +255,7 @@ export async function handleViewTopMarketsByCategory(
 
         message += `${i + 1}. **${market.title}**
 💧 Volume : ${fVolumne}
-⏰ Ends: ${fDate}
+⌛ Ends: ${fDate}
 
 `;
     }
@@ -327,6 +336,205 @@ export async function handleViewTopMarketsByCategory(
     });
 }
 
+export async function handleShowZeroDTEMarketCategories(ctx: Context) {
+    const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
+        Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
+    );
+
+    const keyboardLayout = [];
+    for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
+        keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
+    }
+
+    const keyboard = Markup.inlineKeyboard(keyboardLayout);
+
+    return ctx.reply("⚡ <b>Trending 0DTE Markets:</b>", {
+        parse_mode: "HTML",
+        ...keyboard,
+    });
+}
+
+export async function handleShowZeroDTEMarketsByCategory(
+    ctx: Context,
+    category: string,
+    offset: number = 0
+) {
+    const LIMIT = 8;
+    const filter = "0dte";
+    let message = `⚡ Top 0DTE Markets for **${category.charAt(0).toUpperCase() + category.slice(1)}**\n\n`;
+
+    const markets = await fetchMarkets(category, filter, offset);
+
+    const filteredMarkets = markets.filter((m) => m.volume24hr && m.volume24hr > 0);
+
+    if (filteredMarkets.length === 0) {
+        return ctx.reply("⚠️ No Available 0DTE Markets!");
+    }
+
+    for (let i = 0; i < filteredMarkets.length; i++) {
+        const market = filteredMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVol = formatDollarVolume(market.volume1mo || 0);
+
+        message += `${i + 1}. **${market.title}**
+💧 Volume: ${fVol}
+⌛ Ends: ${fDate}
+
+`;
+    }
+
+    const paginationButtons = [];
+
+    if (offset > 0) {
+        paginationButtons.push(
+            Markup.button.callback("⏮️ Prev", `zero_dte_category:${category}:${offset - LIMIT}`)
+        );
+    }
+
+    if (filteredMarkets.length === LIMIT) {
+        paginationButtons.push(
+            Markup.button.callback("Next ⏭️", `zero_dte_category:${category}:${offset + LIMIT}`)
+        );
+    }
+
+    const marketButtons = filteredMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        ...marketButtonsLayout,
+        paginationButtons,
+        [
+            Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    if (ctx.updateType === "callback_query") {
+        try {
+            await ctx.editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            });
+        } catch (error: any) {
+            if (
+                error?.response?.error_code === 400 &&
+                error?.response?.description?.includes("message is not modified")
+            ) {
+                await ctx.answerCbQuery();
+            } else {
+                console.error("❌ editMessageText Failed:", error);
+                await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
+            }
+        }
+
+        return;
+    }
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+// export async function handleShowZeroDTEMarkets(ctx: Context, offset: number = 0) {
+//     const LIMIT = 8;
+//     let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+
+//     const markets = await fetchMarkets(marketCategory, filter, offset);
+
+//     const filteredMarkets =
+//         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
+
+//     if (filteredMarkets.length === 0) {
+//         return ctx.reply("⚠️ No Available Markets!");
+//     }
+
+//     for (let i = 0; i < filteredMarkets.length; i++) {
+//         const market = filteredMarkets[i];
+//         const fDate = formatDate(market.endDate);
+//         const fVolumne = formatDollarVolume(market.volume1mo || 0);
+
+//         message += `${i + 1}. **${market.title}**
+// 💧 Volume : ${fVolumne}
+// ⌛ Ends: ${fDate}
+
+// `;
+//     }
+
+//     const paginationButtons = [];
+
+//     if (offset > 0) {
+//         paginationButtons.push(
+//             Markup.button.callback(
+//                 "⏮️ Prev",
+//                 `filter_top_market:${marketCategory}:${filter}:${offset - LIMIT}`
+//             )
+//         );
+//     }
+
+//     if (filteredMarkets.length === LIMIT) {
+//         paginationButtons.push(
+//             Markup.button.callback(
+//                 "Next ⏭️",
+//                 `filter_top_market:${marketCategory}:${filter}:${offset + LIMIT}`
+//             )
+//         );
+//     }
+
+//     const marketButtons = filteredMarkets.map((market, idx) =>
+//         Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+//     );
+
+//     const marketButtonsLayout = layoutButtons(marketButtons);
+
+//     const keyboard = Markup.inlineKeyboard([
+//         ...marketButtonsLayout,
+//         paginationButtons,
+//         [
+//             Markup.button.callback(
+//                 "🔄 Refresh",
+//                 `refresh_top_markets:${marketCategory}:${filter}:${offset}`
+//             ),
+//             Markup.button.callback("❌ Close", "close_message"),
+//         ],
+//     ]);
+
+//     if (ctx.updateType === "callback_query") {
+//         try {
+//             await ctx.editMessageText(message, {
+//                 parse_mode: "Markdown",
+//                 reply_markup: keyboard.reply_markup,
+//             });
+//         } catch (error: any) {
+//             if (
+//                 error?.response?.error_code === 400 &&
+//                 error?.response?.description?.includes("message is not modified")
+//             ) {
+//                 await ctx.answerCbQuery();
+//             } else {
+//                 console.error("❌ editMessageText Failed:", error);
+//                 await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
+//             }
+//         }
+
+//         return;
+//     }
+
+//     return ctx.reply(message, {
+//         parse_mode: "Markdown",
+//         reply_markup: keyboard.reply_markup,
+//     });
+// }
+
+// case "0dte":
+//             params.set("end_date_min", now.toISOString());
+//             params.set("end_date_max", tomorrowEnd.toISOString());
+//             params.set("order", "endDate");
+//             break;
+
 export async function handleShowMarkets(ctx: Context, eventId: number) {
     const response = await axios.get(`https://gamma-api.polymarket.com/events?id=${eventId}`);
     const data = response.data[0];
@@ -377,6 +585,20 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
                 Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
                 Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
             ],
+            // [
+            //     Markup.button.callback(
+            //         "🔔 Set Price Alert",
+            //         `set_price_alert:${encodeMarketId(market.conditionId)}`
+            //     ),
+            //     Markup.button.callback(
+            //         "💰 Take Profit",
+            //         `take_profit:${encodeMarketId(market.conditionId)}`
+            //     ),
+            //     Markup.button.callback(
+            //         "🛑 Stop Loss",
+            //         `stop_loss:${encodeMarketId(market.conditionId)}`
+            //     ),
+            // ],
             [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
             [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
             [Markup.button.callback("❌ Close", "close_message")],
@@ -450,6 +672,20 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
+        // [
+        //     Markup.button.callback(
+        //         "🔔 Set Price Alert",
+        //         `set_price_alert:${encodeMarketId(market.conditionId)}`
+        //     ),
+        //     Markup.button.callback(
+        //         "💰 Take Profit",
+        //         `take_profit:${encodeMarketId(market.conditionId)}`
+        //     ),
+        //     Markup.button.callback(
+        //         "🛑 Stop Loss",
+        //         `stop_loss:${encodeMarketId(market.conditionId)}`
+        //     ),
+        // ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
@@ -493,7 +729,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
-    message += `📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
+    message += `\n\n📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
 
     if (market.lastTradePrice) {
         message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
@@ -508,6 +744,20 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
+        // [
+        //     Markup.button.callback(
+        //         "🔔 Set Price Alert",
+        //         `set_price_alert:${encodeMarketId(market.conditionId)}`
+        //     ),
+        //     Markup.button.callback(
+        //         "💰 Take Profit",
+        //         `take_profit:${encodeMarketId(market.conditionId)}`
+        //     ),
+        //     Markup.button.callback(
+        //         "🛑 Stop Loss",
+        //         `stop_loss:${encodeMarketId(market.conditionId)}`
+        //     ),
+        // ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
@@ -787,7 +1037,57 @@ export async function handleCloseOpenPosition(
         .eq("id", userId);
 
     await ctx.deleteMessage(message_id);
-    ctx.reply("✅ Your position was closed successfully!");
+
+    return ctx.reply("✅ Position closed successfully!");
+
+    // // Generate PNL card
+    // try {
+    //     const username = ctx.from?.username || ctx.from?.first_name || "User";
+    //     const closeDate = new Date().toLocaleDateString("en-US", {
+    //         month: "short",
+    //         day: "numeric",
+    //         year: "numeric",
+    //     });
+
+    //     // Determine PNL type
+    //     let pnlType: "positive" | "negative" | "neutral";
+    //     if (marketDetails.cashPnl > 0) {
+    //         pnlType = "positive";
+    //     } else if (marketDetails.cashPnl < 0) {
+    //         pnlType = "negative";
+    //     } else {
+    //         pnlType = "neutral";
+    //     }
+
+    //     const pnlCardData = {
+    //         username: username,
+    //         marketTitle: marketDetails.title || marketDetails.slug || "Unknown Market",
+    //         side: marketDetails.outcome as "YES" | "NO",
+    //         volume: marketDetails.size.toFixed(2),
+    //         openDate: closeDate, // Using close date since we don't have open date
+    //         profitAmount: Math.abs(marketDetails.cashPnl).toFixed(2),
+    //         entryPercentage: (marketDetails.avgPrice * 100).toFixed(2),
+    //         exitPercentage: (marketDetails.curPrice * 100).toFixed(2),
+    //         profitPercentage: marketDetails.percentPnl
+    //             ? Math.abs(marketDetails.percentPnl).toFixed(2)
+    //             : undefined,
+    //         type: pnlType,
+    //     };
+
+    //     const pnlCardBuffer = await pnlCardGenerator.generatePNLCard(pnlCardData);
+
+    //     await ctx.replyWithPhoto(
+    //         { source: pnlCardBuffer },
+    //         {
+    //             caption: `✅ Position closed successfully!\n\n${pnlType === "positive" ? "💰 Profit" : pnlType === "negative" ? "📉 Loss" : "➖ Break Even"}: $${pnlCardData.profitAmount}`,
+    //             parse_mode: "Markdown",
+    //         }
+    //     );
+    // } catch (error) {
+    //     console.error("Failed to generate PNL card:", error);
+    //     // Fallback to simple text message
+    //     ctx.reply("✅ Your position was closed successfully!");
+    // }
 }
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
@@ -906,12 +1206,24 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
 
     const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
 
+    const legacyWallet = createLegacyWallet(new ethers.Wallet(decryptPrivateKey(user.private_key)));
+    const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, api_creds);
+
+    const order = await clobClient.getOrder(orderId);
+
     try {
         const response = await cancelOrder({
             privateKey: decryptPrivateKey(user.private_key),
             creds: api_creds,
             orderIds: [orderId],
         });
+
+        await db("Users")
+            .update({
+                locked_balance:
+                    user.locked_balance - Number(order.original_size) * Number(order.price),
+            })
+            .eq("id", userId);
 
         if (response.canceled.length > 0) {
             return ctx.reply("✅ Order Successfully Cancelled!");

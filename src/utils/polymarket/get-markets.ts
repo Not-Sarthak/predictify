@@ -10,6 +10,7 @@ interface Market {
     ticker: string;
     slug: string;
     title: string;
+    question: string;
     description: string;
     resolutionSource: string;
     startDate: string;
@@ -66,6 +67,8 @@ export async function fetchMarkets(
     const LIMIT = 8;
     const OFFSET = offset;
 
+    console.log(filter);
+
     let url = "";
     const params = new URLSearchParams({
         limit: LIMIT.toString(),
@@ -77,12 +80,14 @@ export async function fetchMarkets(
         ascending: "false",
     });
 
+    const now = new Date();
+    const tomorrowEnd = new Date(now);
+    tomorrowEnd.setDate(now.getDate() + 1);
+    tomorrowEnd.setHours(23, 59, 59, 999);
+
     switch (filter) {
         case "volume":
             params.set("order", "volume1mo");
-            break;
-        case "liquidity":
-            params.set("order", "liquidity");
             break;
         case "newest":
             params.set("order", "startDate");
@@ -90,12 +95,10 @@ export async function fetchMarkets(
         case "ending":
             params.set("order", "endDate");
             break;
-        case "competitive":
-            params.set("order", "competitive");
-            break;
-        case "trending":
-            params.delete("order");
-            params.set("limit", "10");
+        case "0dte":
+            params.set("end_date_min", now.toISOString());
+            params.set("end_date_max", tomorrowEnd.toISOString());
+            params.set("order", "endDate");
             break;
         default:
             params.set("order", "volume1mo");
@@ -104,29 +107,15 @@ export async function fetchMarkets(
     url = `${BASE_URL}?${params.toString()}`;
 
     const res = await axios.get(url);
-    let markets: Market[] = res.data.data;
-
-    if (filter === "trending") {
-        markets = markets
-            .filter(
-                (market) =>
-                    market.active === true &&
-                    market.closed === false &&
-                    new Date(market.endDate) > new Date() &&
-                    market.volume24hr >= 10000 &&
-                    market.liquidity >= 1000 &&
-                    market.competitive >= 0.5
-            )
-            .slice(0, LIMIT);
-    }
-
-    return markets;
+    return res.data.data;
 }
 
-// Get Market by Slug
-export async function getMarketBySlug(slug: string) {
+// Get Event by Slug
+export async function getEventBySlug(slug: string) {
     try {
-        const response = await fetch(`https://gamma-api.polymarket.com/markets?slug=${slug}`);
+        const response = await fetch(
+            `https://gamma-api.polymarket.com/events?slug=${encodeURIComponent(slug)}`
+        );
         const markets = await response.json();
 
         if (markets && markets.length > 0) {
@@ -244,7 +233,7 @@ export async function getMarketById(marketId: string) {
     }
 }
 
-export async function getMarketByConditionId(conditionId: string): Promise<Market | null> {
+export async function getMarketByConditionId(conditionId: string) {
     try {
         const response = await fetch(
             `https://gamma-api.polymarket.com/markets?condition_ids=${conditionId}`

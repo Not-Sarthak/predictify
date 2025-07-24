@@ -21,6 +21,8 @@ import {
     handleRefreshMarketDetails,
     handleRefreshMarkets,
     handleRefreshTopMarkets,
+    handleShowZeroDTEMarketCategories,
+    handleShowZeroDTEMarketsByCategory,
 } from "./trade";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
@@ -51,7 +53,7 @@ import {
     handleToggleCopyTradeStatus,
     handleToggleWalletCopyTradeStatus,
 } from "@/bot/utils/database/toggle-copytrade-status";
-import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
+import { formatSinglePositionMessage, getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
 import {
     generateAutoTradeMenu,
     generateWelcomeMessage,
@@ -59,11 +61,14 @@ import {
 } from "@/bot/ui/messages";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { decodeMarketId } from "@/utils/encoding";
 import { setUserInputState } from "@/bot/input/state";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
+import {
+    handleCancelOpenOrdersCommand,
+    sendPaginatedOrder,
+} from "@/bot/commands/manage-limit-orders";
 import { getUserDetails } from "@/helpers/get-user-details";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { createLegacyWallet } from "@/utils";
@@ -72,7 +77,13 @@ import { ethers } from "ethers";
 import { ClobClient } from "@polymarket/clob-client";
 import { CHAIN_ID, HOST } from "@/shared/constants";
 import { sendPaginatedHistory } from "@/bot/commands/history";
+import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 
+/**
+ * TODO:FIX
+ * Change the conditional check to a Switch Statement and move ctx.answerCbQuery() at the end.
+ * So that the button loading animation is done only when info is retrieved by the user.
+ */
 export async function handleCallbackQuery(ctx: Context) {
     const data =
         ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
@@ -211,6 +222,17 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleTradePagination(ctx, page);
     }
 
+    if (data === "trade_markets_dte") {
+        return handleShowZeroDTEMarketCategories(ctx);
+    }
+
+    if (data.startsWith("zero_dte_category:")) {
+        const category = data.split(":")[1];
+        const offset = data.split(":")[2];
+
+        return handleShowZeroDTEMarketsByCategory(ctx, category, Number(offset) || 0);
+    }
+
     if (data === "trade_position_open") {
         return handleManageTradePositionsCallback(ctx, "open");
     }
@@ -289,7 +311,7 @@ export async function handleCallbackQuery(ctx: Context) {
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
                 `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100 none\`\n\n` +
+                `**Example:** \`0.65 100\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
                 `Note: Amount / Price should be minimum 10`,
@@ -348,7 +370,7 @@ export async function handleCallbackQuery(ctx: Context) {
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
                 `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100 none\`\n\n` +
+                `**Example:** \`0.65 100\`\n\n` +
                 `• **Price:** The Limit Price You Want to Pay\n` +
                 `• **Amount:** The USD amount you want to spend at this limit price\n` +
                 `Note: Amount / Price should be minimum 10`,
@@ -485,16 +507,22 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
         }
 
-        const balance = await getUserWrappedUSDCBalance(existingUser.wallet_address);
-        const solBalance = existingUser.solana_address
-            ? await getSOLBalance(existingUser.solana_address)
-            : 0;
+        const [balance, user, solBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(existingUser.wallet_address),
+            getUserDetails(userId),
+            getSOLBalance(existingUser.solana_address!),
+        ]);
+
+        if (!user) {
+            return ctx.reply("❌ Internal Server Error");
+        }
 
         const message = generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
-            solBalance
+            solBalance,
+            user?.locked_balance
         );
 
         return ctx.editMessageText(message, {
@@ -505,6 +533,70 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "view_cancel_order_menu") {
         return handleCancelOpenOrdersCommand(ctx);
+    }
+
+    if (data.startsWith("orders:")) {
+        const [, _, offsetStr] = data.split(":");
+        const offset = parseInt(offsetStr, 10);
+        const userId = getUserIdFromCtx(ctx);
+        const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+        const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
+
+        if (!unmatchedOrders || unmatchedOrders.length === 0) {
+            return ctx
+                .editMessageText("✅ No unmatched open orders found.")
+                .catch(() => ctx.reply("✅ No unmatched open orders found."));
+        }
+
+        return sendPaginatedOrder(ctx, unmatchedOrders, offset);
+    }
+
+    if (data.startsWith("refresh_order:")) {
+        const offset = parseInt(data.split(":")[1], 10);
+        const userId = getUserIdFromCtx(ctx);
+        const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
+        const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
+        if (!unmatchedOrders || unmatchedOrders.length === 0) {
+            return ctx.editMessageText("✅ No unmatched open orders found.");
+        }
+        return sendPaginatedOrder(ctx, unmatchedOrders, offset);
+    }
+
+    if (data.startsWith("refresh_portfolio:")) {
+        const index = parseInt(data.split(":")[1], 10);
+        const userId = getUserIdFromCtx(ctx);
+        const userAddress = await getUserAddressFromId(userId);
+
+        if (!userAddress) {
+            return ctx.answerCbQuery("⚠️ No linked wallet.");
+        }
+
+        const userPositions = await getUserPosition({ user: userAddress });
+
+        if (!userPositions || userPositions.length === 0) {
+            return ctx.editMessageText("✅ No open positions found.");
+        }
+
+        if (index >= userPositions.length) {
+            return ctx.answerCbQuery("⚠️ Invalid index.");
+        }
+
+        const { text, markup } = formatSinglePositionMessage(
+            userPositions[index],
+            index,
+            userPositions.length
+        );
+
+        try {
+            await ctx.editMessageText(text, {
+                parse_mode: "Markdown",
+                reply_markup: markup,
+            });
+            await ctx.answerCbQuery("🔄 Refreshed!");
+        } catch (err) {
+            console.error("Refresh failed:", err);
+            await ctx.answerCbQuery("⚠️ Could not refresh.");
+        }
     }
 
     if (data.startsWith("cancel_order:")) {
@@ -537,6 +629,83 @@ export async function handleCallbackQuery(ctx: Context) {
         const offset = parseInt(offsetStr, 10);
 
         return sendPaginatedHistory(ctx, walletAddress, offset);
+    }
+
+    if (data.startsWith("set_price_alert:")) {
+        const userId = getUserIdFromCtx(ctx);
+        const encodedMarketId = data.split(":")[1];
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            marketId: encodedMarketId,
+        });
+
+        setUserInputState(userId.toString(), "set_price_alert");
+
+        const message = `🔔 <b>Set Price Alert for this Market</b>\n
+Enter <b>Price</b> & <b>Side</b> details below:\n
+Format: <code>Price-Above</code>  <code>Price-Below</code>  <code>Yes/No</code>\n
+Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
+
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+        });
+    }
+
+    if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
+        const userId = getUserIdFromCtx(ctx);
+        const action = data.split(":")[0];
+        const marketId = decodeMarketId(data.split(":")[1]);
+
+        const userAddress = await getUserAddressFromId(userId);
+        if (!userAddress) {
+            return ctx.reply("❌ Internal Server Error");
+        }
+
+        const userPositionsByMarkets = await getUserPositionByMarket(userAddress, marketId);
+        if (!userPositionsByMarkets) {
+            return ctx.reply("❌ You need to have an Open Position in this Market");
+        }
+
+        const { size, avgPrice, curPrice, outcome, cashPnl, percentPnl, title, asset } =
+            userPositionsByMarkets;
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            size,
+            tokenId: asset,
+            action,
+            marketId,
+            outcome,
+        });
+
+        setUserInputState(userId.toString(), "tp_sl");
+
+        const isTP = action === "take_profit";
+
+        const message = `<b>🎯 ${isTP ? "Take Profit" : "Stop Loss"} Setup</b>
+
+<b>Market:</b> ${title}
+<b>Outcome:</b> ${outcome}
+<b>Position Size:</b> ${size.toFixed(4)} shares
+<b>Avg Buy Price:</b> $${avgPrice.toFixed(4)}
+<b>Current Price:</b> $${curPrice.toFixed(4)}
+<b>Unrealized PnL:</b> $${cashPnl.toFixed(4)} (${percentPnl.toFixed(2)}%)
+
+<b>🟢 Set your ${isTP ? "Take Profit" : "Stop Loss"}:</b>
+Send a price ${isTP ? "above" : "below"} <b>$${curPrice.toFixed(4)}</b> at which you'd like to ${
+            isTP ? "take profit" : "cut your loss"
+        }.
+
+<b>Example:</b> <code>${isTP ? (curPrice + 0.1).toFixed(2) : (curPrice - 0.1).toFixed(2)}</code>
+
+Once the price crosses your target, we'll alert you and execute your strategy.`;
+
+        return ctx.reply(message, {
+            parse_mode: "HTML",
+        });
+    }
+
+    if (data.startsWith("stop_loss:")) {
+        // const marketId = decodeMarketId(data.split(":")[1]);
     }
 
     if (data === "close_message") {
