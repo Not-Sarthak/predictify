@@ -79,9 +79,7 @@ export async function fetchMarkets(
     });
 
     const now = new Date();
-    const tomorrowEnd = new Date(now);
-    tomorrowEnd.setDate(now.getDate() + 1);
-    tomorrowEnd.setHours(0);
+    const endOfWindow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     switch (filter) {
         case "volume":
@@ -95,8 +93,8 @@ export async function fetchMarkets(
             break;
         case "0dte":
             params.set("end_date_min", now.toISOString());
-            params.set("end_date_max", tomorrowEnd.toISOString());
-            params.set("order", "endDate");
+            params.set("end_date_max", endOfWindow.toISOString());
+            params.set("order", "volume24hr");
             break;
         default:
             params.set("order", "volume1mo");
