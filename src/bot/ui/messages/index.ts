@@ -7,6 +7,7 @@ import {
 } from "@/bot/utils";
 import type { InlineKeyboardMarkup } from "telegraf/types";
 import { encodeMarketId } from "@/utils/encoding";
+import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "@/shared/constants";
 
 export const generateWelcomeMessage = (
     evm_address: string,
@@ -171,4 +172,19 @@ export async function handleAutoTradeMenu(ctx: Context) {
     //     parse_mode: "Markdown",
     //     reply_markup: replyMarkup,
     // });
+}
+
+export async function generate0DTEMarketCategoryKeyboard() {
+    const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
+        Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
+    );
+
+    const keyboardLayout = [];
+    for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
+        keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
+    }
+
+    const keyboard = Markup.inlineKeyboard(keyboardLayout);
+
+    return keyboard;
 }
