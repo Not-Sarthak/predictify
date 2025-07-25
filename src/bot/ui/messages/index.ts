@@ -27,6 +27,7 @@ Your wallet’s live. Let’s degen.
 
 💰 Your Balances
 • Total Balance: $${usdcBalance}
+• Available Balance: $${Number(usdcBalance) - lockedBalance}
 • SOL: ${solBalance} SOL
 • Locked Balance: $${lockedBalance}
 

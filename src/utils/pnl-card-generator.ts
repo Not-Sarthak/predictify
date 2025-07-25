@@ -148,7 +148,7 @@ export class PNLCardGenerator {
             if (usernameMatch) {
                 processed = processed.replace(
                     usernameMatch[0],
-                    '<!-- TG USERNAME -->\n<text x="116" y="84" font-family="Space Grotesk" font-size="40" fill="#FFFFFF" font-weight="500">{{username}}</text>'
+                    '<!-- TG USERNAME -->\n<text x="120" y="81" font-family="Space Grotesk" font-size="32" fill="#FFFFFF" font-weight="500">{{username}}</text>'
                 );
             }
 
@@ -165,7 +165,7 @@ export class PNLCardGenerator {
             if (marketTitleNegMatch) {
                 processed = processed.replace(
                     marketTitleNegMatch[0],
-                    '<!-- MARKET TITLE TEXT -->\n<text x="39" y="176" font-family="Space Grotesk" font-size="24" fill="#FFFFFF" font-weight="500">{{marketTitle}}</text>'
+                    '<!-- MARKET TITLE TEXT -->\n<text x="86" y="210" font-family="Space Grotesk" font-size="20" fill="#FFFFFF" font-weight="500">{{marketTitle}}</text>'
                 );
             }
 
@@ -176,7 +176,7 @@ export class PNLCardGenerator {
             if (sideNegMatch) {
                 processed = processed.replace(
                     sideNegMatch[0],
-                    '<!-- SIDE - YES/NO -->\n<text x="39" y="239" font-family="Space Grotesk" font-size="26" fill="#FFFFFF" font-weight="500">{{side}}</text>'
+                    '<!-- SIDE - YES/NO -->\n<text x="86" y="258" font-family="Space Grotesk" font-size="24" fill="#FFFFFF" font-weight="500">{{side}}</text>'
                 );
             }
 
@@ -187,7 +187,7 @@ export class PNLCardGenerator {
             if (volumeNegMatch) {
                 processed = processed.replace(
                     volumeNegMatch[0],
-                    '<!-- VOLUME NUM -->\n<text x="204" y="239" font-family="Space Grotesk" font-size="26" fill="#A1B4C5">${{volume}}</text>'
+                    '<!-- VOLUME NUM -->\n<text x="247" y="258" font-family="Space Grotesk" font-size="24" fill="#A1B4C5">${{volume}}</text>'
                 );
             }
 
@@ -196,7 +196,7 @@ export class PNLCardGenerator {
             if (dateNegMatch) {
                 processed = processed.replace(
                     dateNegMatch[0],
-                    '<!-- DATE -->\n<text x="378" y="239" font-family="Space Grotesk" font-size="26" fill="#A1B4C5">{{openDate}}</text>'
+                    '<!-- DATE -->\n<text x="422" y="258" font-family="Space Grotesk" font-size="24" fill="#A1B4C5">{{openDate}}</text>'
                 );
             }
 
@@ -205,7 +205,7 @@ export class PNLCardGenerator {
             if (pnlMatch) {
                 processed = processed.replace(
                     pnlMatch[0],
-                    '<!-- PnL -->\n<text x="270" y="347" font-family="Space Grotesk" font-size="64" fill="#FF7272" font-weight="700" text-anchor="middle">-${{profitAmount}}</text>'
+                    '<!-- PnL -->\n<text x="440" y="380" font-family="Space Grotesk" font-size="56" fill="#FF7272" font-weight="700" text-anchor="middle">-${{profitAmount}}</text>'
                 );
             }
 
@@ -216,7 +216,7 @@ export class PNLCardGenerator {
             if (entryNegMatch) {
                 processed = processed.replace(
                     entryNegMatch[0],
-                    '<!-- ENTRY NUM -->\n<text x="39" y="433" font-family="Space Grotesk" font-size="32" fill="#FFFFFF">{{entryPercentage}}%</text>'
+                    '<!-- ENTRY NUM -->\n<text x="130" y="494" font-family="Space Grotesk" font-size="28" fill="#FFFFFF">{{entryPercentage}}%</text>'
                 );
             }
 
@@ -227,7 +227,7 @@ export class PNLCardGenerator {
             if (exitNegMatch) {
                 processed = processed.replace(
                     exitNegMatch[0],
-                    '<!-- EXIT NUM -->\n<text x="250" y="433" font-family="Space Grotesk" font-size="32" fill="#FFFFFF" text-anchor="middle">{{exitPercentage}}%</text>'
+                    '<!-- EXIT NUM -->\n<text x="440" y="494" font-family="Space Grotesk" font-size="28" fill="#FFFFFF" text-anchor="middle">{{exitPercentage}}%</text>'
                 );
             }
 
@@ -238,7 +238,7 @@ export class PNLCardGenerator {
             if (diffMatch) {
                 processed = processed.replace(
                     diffMatch[0],
-                    '<!-- ENTRY - EXIT -->\n<text x="462" y="433" font-family="Space Grotesk" font-size="32" fill="#FF7272" text-anchor="end">(-{{profitPercentage}}%)</text>'
+                    '<!-- ENTRY - EXIT -->\n<text x="750" y="494" font-family="Space Grotesk" font-size="28" fill="#FF7272" text-anchor="end">(-{{profitPercentage}}%)</text>'
                 );
             }
         }
