@@ -555,20 +555,20 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
                 Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
                 Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
             ],
-            // [
-            //     Markup.button.callback(
-            //         "🔔 Set Price Alert",
-            //         `set_price_alert:${encodeMarketId(market.conditionId)}`
-            //     ),
-            //     Markup.button.callback(
-            //         "💰 Take Profit",
-            //         `take_profit:${encodeMarketId(market.conditionId)}`
-            //     ),
-            //     Markup.button.callback(
-            //         "🛑 Stop Loss",
-            //         `stop_loss:${encodeMarketId(market.conditionId)}`
-            //     ),
-            // ],
+            [
+                Markup.button.callback(
+                    "🔔 Set Price Alert",
+                    `set_price_alert:${encodeMarketId(market.conditionId)}`
+                ),
+                Markup.button.callback(
+                    "💰 Take Profit",
+                    `take_profit:${encodeMarketId(market.conditionId)}`
+                ),
+                Markup.button.callback(
+                    "🛑 Stop Loss",
+                    `stop_loss:${encodeMarketId(market.conditionId)}`
+                ),
+            ],
             [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
             [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
             [Markup.button.callback("❌ Close", "close_message")],
@@ -642,20 +642,20 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
-        // [
-        //     Markup.button.callback(
-        //         "🔔 Set Price Alert",
-        //         `set_price_alert:${encodeMarketId(market.conditionId)}`
-        //     ),
-        //     Markup.button.callback(
-        //         "💰 Take Profit",
-        //         `take_profit:${encodeMarketId(market.conditionId)}`
-        //     ),
-        //     Markup.button.callback(
-        //         "🛑 Stop Loss",
-        //         `stop_loss:${encodeMarketId(market.conditionId)}`
-        //     ),
-        // ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "💰 Take Profit",
+                `take_profit:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "🛑 Stop Loss",
+                `stop_loss:${encodeMarketId(market.conditionId)}`
+            ),
+        ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
@@ -714,20 +714,20 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
-        // [
-        //     Markup.button.callback(
-        //         "🔔 Set Price Alert",
-        //         `set_price_alert:${encodeMarketId(market.conditionId)}`
-        //     ),
-        //     Markup.button.callback(
-        //         "💰 Take Profit",
-        //         `take_profit:${encodeMarketId(market.conditionId)}`
-        //     ),
-        //     Markup.button.callback(
-        //         "🛑 Stop Loss",
-        //         `stop_loss:${encodeMarketId(market.conditionId)}`
-        //     ),
-        // ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "💰 Take Profit",
+                `take_profit:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback(
+                "🛑 Stop Loss",
+                `stop_loss:${encodeMarketId(market.conditionId)}`
+            ),
+        ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
