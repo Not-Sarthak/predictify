@@ -11,6 +11,7 @@ import {
     padButtonText,
     formatOrderBook,
     formatSinglePositionMessage,
+    getUsernameFromCtx,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
@@ -21,6 +22,7 @@ import {
     fetchMarkets,
     getMarketByConditionId,
     getMarketById,
+    getMarketOrderBook,
 } from "@/utils/polymarket/get-markets";
 import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
@@ -37,7 +39,8 @@ import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
 import { createLegacyWallet } from "@/utils";
 import { ethers } from "ethers";
-import { pnlCardGenerator } from "@/utils/pnl-card-generator";
+import { generateCard } from "@/utils/pnl-card-generator";
+// import { pnlCardGenerator } from "@/utils/pnl-card-generator";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -83,7 +86,9 @@ export async function handleCloseTradePositions(ctx: Context) {
     const userPositions = await getUserPosition({ user: userAddress });
 
     if (userPositions.length === 0) {
-        return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
+        return ctx
+            .reply("⚠️ No Open Positions From Your Account. Please Try Again!")
+            .then(() => ctx.answerCbQuery());
     }
 
     const conditionIds = userPositions.map((position) => position.conditionId);
@@ -127,7 +132,9 @@ export async function handleViewTradePositions(ctx: Context) {
     const userPositions = await getUserPosition({ user: userAddress });
 
     if (userPositions.length === 0) {
-        return ctx.reply("⚠️ No Open Positions From Your Account.").then(() => ctx.answerCbQuery());
+        return ctx
+            .reply("⚠️ No Open Positions From Your Account. Please Try Again!")
+            .then(() => ctx.answerCbQuery());
     }
 
     const { text, markup } = formatSinglePositionMessage(userPositions[0], 0, userPositions.length);
@@ -955,109 +962,113 @@ export async function handleCloseOpenPosition(
 ) {
     const userId = getUserIdFromCtx(ctx);
     const user = await getUserDetails(userId);
-    if (!user) {
-        return ctx.reply("⚠️ Internal Server Error. Please try again later.");
-    }
+
+    // TODO: LET'S SEE
+    // const userPhotos = await ctx.telegram.getUserProfilePhotos(userId);
+
+    if (!user) return ctx.reply("⚠️ Internal Server Error. Please try again later.");
 
     const { message_id } = await ctx.reply("⌛ Closing your position...");
 
     const decodedConditionId = decodeMarketId(conditionId);
-
-    const [userDataResponse, marketDetails] = await Promise.all([
+    const [userDataResponse, userMarketDetails, marketDetails] = await Promise.all([
         getUserByIdFromDb(userId),
         getUserPositionByMarket(user.wallet_address, decodedConditionId),
+        getMarketByConditionId(decodedConditionId),
     ]);
 
     const { data, error } = userDataResponse;
-
     if (error || !data) {
-        ctx.deleteMessage(message_id);
+        await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ Internal Server Error. Please try again later.");
     }
 
-    if (!marketDetails) {
-        ctx.deleteMessage(message_id);
+    if (!userMarketDetails) {
+        await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ Market not found.");
     }
 
-    const { error: sellError } = await marketSellOrder({
+    let pnlType: "Positive" | "Negative" | "Neutral";
+
+    const username = getUsernameFromCtx(ctx);
+    const marketTitle = userMarketDetails.title;
+    const side = userMarketDetails.outcome as "Yes" | "No";
+    const volume = Math.floor(Number(marketDetails.volume)).toLocaleString("en-US");
+
+    const closeDate = new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+
+    if (userMarketDetails.cashPnl > 0) pnlType = "Positive";
+    else if (userMarketDetails.cashPnl < 0) pnlType = "Negative";
+    else pnlType = "Neutral";
+
+    const rawProfitAmount = parseFloat(Math.abs(userMarketDetails.cashPnl).toFixed(2));
+    const formattedProfitAmount = rawProfitAmount.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+    const entryPercentage = parseFloat((userMarketDetails.avgPrice * 100).toFixed(2));
+    const exitPercentage = parseFloat((userMarketDetails.curPrice * 100).toFixed(2));
+
+    const pnlDbFetchPromise = db("Users").select("total_pnl").eq("id", userId).single();
+    const pnlCardPromise = generateCard(
+        pnlType,
+        username,
+        marketTitle,
+        side,
+        volume,
+        closeDate,
+        rawProfitAmount,
+        entryPercentage,
+        exitPercentage
+    );
+
+    const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
-        tokenId: marketDetails.asset,
-        amount: amountToSell || marketDetails.size,
+        tokenId: userMarketDetails.asset,
+        amount: amountToSell || userMarketDetails.size,
         orderType: OrderType.FOK,
     });
 
-    if (sellError) {
+    if (sellOrder.error) {
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
 
-    const { data: pnlData, error: userDataError } = await db("Users")
-        .select("total_pnl")
-        .eq("id", userId)
-        .single();
+    const [pnlCardBuffer, { data: pnlData, error: pnlDbErr }] = await Promise.all([
+        pnlCardPromise,
+        pnlDbFetchPromise,
+    ]);
 
-    if (userDataError || !pnlData) {
+    if (pnlDbErr || !pnlData) {
+        console.error("❌ Error fetching PnL data:", pnlDbErr);
         ctx.reply("❌ Error updating your PnL details");
+    } else {
+        await db("Users")
+            .update({
+                total_pnl: (pnlData?.total_pnl || 0) + userMarketDetails.cashPnl,
+            })
+            .eq("id", userId);
     }
 
-    await db("Users")
-        .update({ total_pnl: pnlData?.total_pnl || 0 + marketDetails.cashPnl })
-        .eq("id", userId);
-
     await ctx.deleteMessage(message_id);
-
-    return ctx.reply("✅ Position closed successfully!");
-
-    // // Generate PNL card
-    // try {
-    //     const username = ctx.from?.username || ctx.from?.first_name || "User";
-    //     const closeDate = new Date().toLocaleDateString("en-US", {
-    //         month: "short",
-    //         day: "numeric",
-    //         year: "numeric",
-    //     });
-
-    //     // Determine PNL type
-    //     let pnlType: "positive" | "negative" | "neutral";
-    //     if (marketDetails.cashPnl > 0) {
-    //         pnlType = "positive";
-    //     } else if (marketDetails.cashPnl < 0) {
-    //         pnlType = "negative";
-    //     } else {
-    //         pnlType = "neutral";
-    //     }
-
-    //     const pnlCardData = {
-    //         username: username,
-    //         marketTitle: marketDetails.title || marketDetails.slug || "Unknown Market",
-    //         side: marketDetails.outcome as "YES" | "NO",
-    //         volume: marketDetails.size.toFixed(2),
-    //         openDate: closeDate, // Using close date since we don't have open date
-    //         profitAmount: Math.abs(marketDetails.cashPnl).toFixed(2),
-    //         entryPercentage: (marketDetails.avgPrice * 100).toFixed(2),
-    //         exitPercentage: (marketDetails.curPrice * 100).toFixed(2),
-    //         profitPercentage: marketDetails.percentPnl
-    //             ? Math.abs(marketDetails.percentPnl).toFixed(2)
-    //             : undefined,
-    //         type: pnlType,
-    //     };
-
-    //     const pnlCardBuffer = await pnlCardGenerator.generatePNLCard(pnlCardData);
-
-    //     await ctx.replyWithPhoto(
-    //         { source: pnlCardBuffer },
-    //         {
-    //             caption: `✅ Position closed successfully!\n\n${pnlType === "positive" ? "💰 Profit" : pnlType === "negative" ? "📉 Loss" : "➖ Break Even"}: $${pnlCardData.profitAmount}`,
-    //             parse_mode: "Markdown",
-    //         }
-    //     );
-    // } catch (error) {
-    //     console.error("Failed to generate PNL card:", error);
-    //     // Fallback to simple text message
-    //     ctx.reply("✅ Your position was closed successfully!");
-    // }
+    await ctx.replyWithPhoto(
+        { source: pnlCardBuffer },
+        {
+            caption: `✅ Position closed successfully!\n\n${
+                pnlType === "Positive"
+                    ? "💰 Profit"
+                    : pnlType === "Negative"
+                      ? "📉 Loss"
+                      : "➖ Break Even"
+            }: $${formattedProfitAmount}`,
+            parse_mode: "Markdown",
+        }
+    );
 }
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
@@ -1075,9 +1086,36 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
     const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const clobTokenIds = JSON.parse(market.clobTokenIds);
     const endDate = market.endDate || market.events?.[0]?.endDate;
 
-    const pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+    const user = await getUserDetails(userId);
+    if (!user) {
+        return ctx.reply("⚠️ Internal Server Error. Please try again later.");
+    }
+
+    let pricePerShare = side === "YES" ? outcomes[0] : outcomes[1];
+
+    try {
+        const orderBookData = await getMarketOrderBook({
+            tokenId: [clobTokenIds[0], clobTokenIds[1]],
+            privateKey: decryptPrivateKey(user.private_key),
+            creds: JSON.parse(user.api_credentials),
+        });
+
+        const orderBook = side === "YES" ? orderBookData.yesResponse : orderBookData.noResponse;
+
+        const topAsks = orderBook.asks.slice(0, 3);
+
+        if (topAsks.length > 0) {
+            const avgPrice =
+                topAsks.reduce((sum: any, ask: any) => sum + parseFloat(ask.price), 0) /
+                topAsks.length;
+            pricePerShare = avgPrice;
+        }
+    } catch (error) {
+        console.error("Error fetching orderbook, using market price:", error);
+    }
 
     let message = "";
     let shares = 0;
@@ -1101,13 +1139,13 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
 🎯 *Market Order - ${side}*
 💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare}
+📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
 
 🚀 *Will execute immediately* at market price
 
 *Estimated Fill:*
 • Shares: ${shares.toFixed(4)}
-• Execution Price: $${pricePerShare}
+• Execution Price: $${pricePerShare.toFixed(4)}
 • Total Cost: $${amount.toFixed(2)}
 • Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
 
@@ -1145,11 +1183,11 @@ Press *Confirm* to place the order or *Cancel*.
 
 🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
 💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare}
+📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
 
 ${
     isExecutableNow
-        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare.toFixed(4)})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
         : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
 }
 

@@ -20,3 +20,12 @@ TODO:
 
 5. Tag Bot and Give Info
 6. Twitter Bot
+
+Manav:
+
+- Below Track my Order Take Profit and Stop Loss and in Portfolio as well
+- TP & SL Conditions and Edit TP SL
+
+Sarthak:
+
+- Add to Watchlist feature
