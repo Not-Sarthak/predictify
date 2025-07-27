@@ -11,6 +11,7 @@ import {
     padButtonText,
     formatOrderBook,
     formatSinglePositionMessage,
+    getUsernameFromCtx,
 } from "@/bot/utils";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
@@ -38,7 +39,8 @@ import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
 import { createLegacyWallet } from "@/utils";
 import { ethers } from "ethers";
-import { pnlCardGenerator } from "@/utils/pnl-card-generator";
+import { generateCard } from "@/utils/pnl-card-generator";
+// import { pnlCardGenerator } from "@/utils/pnl-card-generator";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -960,106 +962,113 @@ export async function handleCloseOpenPosition(
 ) {
     const userId = getUserIdFromCtx(ctx);
     const user = await getUserDetails(userId);
-    if (!user) {
-        return ctx.reply("⚠️ Internal Server Error. Please try again later.");
-    }
+
+    // TODO: LET'S SEE
+    // const userPhotos = await ctx.telegram.getUserProfilePhotos(userId);
+
+    if (!user) return ctx.reply("⚠️ Internal Server Error. Please try again later.");
 
     const { message_id } = await ctx.reply("⌛ Closing your position...");
 
     const decodedConditionId = decodeMarketId(conditionId);
-
-    const [userDataResponse, marketDetails] = await Promise.all([
+    const [userDataResponse, userMarketDetails, marketDetails] = await Promise.all([
         getUserByIdFromDb(userId),
         getUserPositionByMarket(user.wallet_address, decodedConditionId),
+        getMarketByConditionId(decodedConditionId),
     ]);
 
     const { data, error } = userDataResponse;
-
     if (error || !data) {
-        ctx.deleteMessage(message_id);
+        await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ Internal Server Error. Please try again later.");
     }
 
-    if (!marketDetails) {
-        ctx.deleteMessage(message_id);
+    if (!userMarketDetails) {
+        await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ Market not found.");
     }
 
-    const { error: sellError } = await marketSellOrder({
+    let pnlType: "Positive" | "Negative" | "Neutral";
+
+    const username = getUsernameFromCtx(ctx);
+    const marketTitle = userMarketDetails.title;
+    const side = userMarketDetails.outcome as "Yes" | "No";
+    const volume = Math.floor(Number(marketDetails.volume)).toLocaleString("en-US");
+
+    const closeDate = new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+
+    if (userMarketDetails.cashPnl > 0) pnlType = "Positive";
+    else if (userMarketDetails.cashPnl < 0) pnlType = "Negative";
+    else pnlType = "Neutral";
+
+    const rawProfitAmount = parseFloat(Math.abs(userMarketDetails.cashPnl).toFixed(2));
+    const formattedProfitAmount = rawProfitAmount.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+    const entryPercentage = parseFloat((userMarketDetails.avgPrice * 100).toFixed(2));
+    const exitPercentage = parseFloat((userMarketDetails.curPrice * 100).toFixed(2));
+
+    const pnlDbFetchPromise = db("Users").select("total_pnl").eq("id", userId).single();
+    const pnlCardPromise = generateCard(
+        pnlType,
+        username,
+        marketTitle,
+        side,
+        volume,
+        closeDate,
+        rawProfitAmount,
+        entryPercentage,
+        exitPercentage
+    );
+
+    const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
-        tokenId: marketDetails.asset,
-        amount: amountToSell || marketDetails.size,
+        tokenId: userMarketDetails.asset,
+        amount: amountToSell || userMarketDetails.size,
         orderType: OrderType.FOK,
     });
 
-    if (sellError) {
+    if (sellOrder.error) {
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
 
-    const { data: pnlData, error: userDataError } = await db("Users")
-        .select("total_pnl")
-        .eq("id", userId)
-        .single();
+    const [pnlCardBuffer, { data: pnlData, error: pnlDbErr }] = await Promise.all([
+        pnlCardPromise,
+        pnlDbFetchPromise,
+    ]);
 
-    if (userDataError || !pnlData) {
+    if (pnlDbErr || !pnlData) {
+        console.error("❌ Error fetching PnL data:", pnlDbErr);
         ctx.reply("❌ Error updating your PnL details");
+    } else {
+        await db("Users")
+            .update({
+                total_pnl: (pnlData?.total_pnl || 0) + userMarketDetails.cashPnl,
+            })
+            .eq("id", userId);
     }
-
-    await db("Users")
-        .update({ total_pnl: pnlData?.total_pnl || 0 + marketDetails.cashPnl })
-        .eq("id", userId);
 
     await ctx.deleteMessage(message_id);
-
-    // Generate PNL card
-    try {
-        const username = ctx.from?.username || ctx.from?.first_name || "User";
-        const closeDate = new Date().toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-
-        // Determine PNL type
-        let pnlType: "positive" | "negative" | "neutral";
-        if (marketDetails.cashPnl > 0) {
-            pnlType = "positive";
-        } else if (marketDetails.cashPnl < 0) {
-            pnlType = "negative";
-        } else {
-            pnlType = "neutral";
+    await ctx.replyWithPhoto(
+        { source: pnlCardBuffer },
+        {
+            caption: `✅ Position closed successfully!\n\n${
+                pnlType === "Positive"
+                    ? "💰 Profit"
+                    : pnlType === "Negative"
+                      ? "📉 Loss"
+                      : "➖ Break Even"
+            }: $${formattedProfitAmount}`,
+            parse_mode: "Markdown",
         }
-
-        const pnlCardData = {
-            username: username,
-            marketTitle: marketDetails.title || marketDetails.slug || "Unknown Market",
-            side: marketDetails.outcome as "YES" | "NO",
-            volume: marketDetails.size.toFixed(2),
-            openDate: closeDate, // Using close date since we don't have open date
-            profitAmount: Math.abs(marketDetails.cashPnl).toFixed(2),
-            entryPercentage: (marketDetails.avgPrice * 100).toFixed(2),
-            exitPercentage: (marketDetails.curPrice * 100).toFixed(2),
-            profitPercentage: marketDetails.percentPnl
-                ? Math.abs(marketDetails.percentPnl).toFixed(2)
-                : undefined,
-            type: pnlType,
-        };
-
-        const pnlCardBuffer = await pnlCardGenerator.generatePNLCard(pnlCardData);
-
-        await ctx.replyWithPhoto(
-            { source: pnlCardBuffer },
-            {
-                caption: `✅ Position closed successfully!\n\n${pnlType === "positive" ? "💰 Profit" : pnlType === "negative" ? "📉 Loss" : "➖ Break Even"}: $${pnlCardData.profitAmount}`,
-                parse_mode: "Markdown",
-            }
-        );
-    } catch (error) {
-        console.error("Failed to generate PNL card:", error);
-        await ctx.reply("✅ Your position was closed successfully!");
-    }
+    );
 }
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
@@ -1077,6 +1086,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
     const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const clobTokenIds = JSON.parse(market.clobTokenIds);
     const endDate = market.endDate || market.events?.[0]?.endDate;
 
     const user = await getUserDetails(userId);
@@ -1088,7 +1098,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
     try {
         const orderBookData = await getMarketOrderBook({
-            tokenId: [market.tokens[0].tokenId, market.tokens[1].tokenId],
+            tokenId: [clobTokenIds[0], clobTokenIds[1]],
             privateKey: decryptPrivateKey(user.private_key),
             creds: JSON.parse(user.api_credentials),
         });

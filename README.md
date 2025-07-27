@@ -22,9 +22,10 @@ TODO:
 6. Twitter Bot
 
 Manav:
-- Below Track my Order Take Profit and Stop Loss adn in Portfolio as well
+
+- Below Track my Order Take Profit and Stop Loss and in Portfolio as well
 - TP & SL Conditions and Edit TP SL
-- PnL
 
 Sarthak:
+
 - Add to Watchlist feature
