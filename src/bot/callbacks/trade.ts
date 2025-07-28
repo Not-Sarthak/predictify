@@ -37,8 +37,7 @@ import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
-import { generateCard } from "@/utils/pnl-card-generator";
-// import { pnlCardGenerator } from "@/utils/pnl-card-generator";
+import { generatePnlCard } from "@/utils/card-generator";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1012,7 +1011,7 @@ export async function handleCloseOpenPosition(
     const exitPercentage = parseFloat((userMarketDetails.curPrice * 100).toFixed(2));
 
     const pnlDbFetchPromise = db("Users").select("total_pnl").eq("id", userId).single();
-    const pnlCardPromise = generateCard(
+    const pnlCardPromise = generatePnlCard(
         pnlType,
         username,
         marketTitle,
