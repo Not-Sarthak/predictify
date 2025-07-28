@@ -11,6 +11,7 @@ export default function PnlCard({
     entryNumber,
     exitNumber,
     patternToShow,
+    showUsername,
 }: {
     backgroundImage: string;
     logoImage: string;
@@ -24,6 +25,7 @@ export default function PnlCard({
     entryNumber: number;
     exitNumber: number;
     patternToShow: string;
+    showUsername: boolean;
 }) {
     const { predictionWordColor, predictionBgColor } =
         prediction === "Yes"
@@ -124,33 +126,37 @@ export default function PnlCard({
                             alignItems: "center",
                         }}
                     >
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                            }}
-                        >
+                        {showUsername ? (
                             <div
                                 style={{
                                     display: "flex",
-                                    width: "4rem",
-                                    height: "4rem",
-                                    backgroundColor: "#1c1917",
-                                    borderRadius: "9999px",
-                                }}
-                            />
-                            <div
-                                style={{
-                                    color: "#ffffff",
-                                    fontSize: "36px",
-                                    fontWeight: 300,
-                                    fontFamily: "'Space Grotesk', sans-serif",
+                                    alignItems: "center",
+                                    gap: "0.75rem",
                                 }}
                             >
-                                {username}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        width: "4rem",
+                                        height: "4rem",
+                                        backgroundColor: "#1c1917",
+                                        borderRadius: "9999px",
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        color: "#ffffff",
+                                        fontSize: "36px",
+                                        fontWeight: 300,
+                                        fontFamily: "'Space Grotesk', sans-serif",
+                                    }}
+                                >
+                                    {username}
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div style={{ width: "230px" }} />
+                        )}
 
                         <div
                             style={{

@@ -36,7 +36,8 @@ export async function generateCard(
     date: string,
     pnl: number,
     entryPercentage: number,
-    exitPercentage: number
+    exitPercentage: number,
+    showUsername: boolean
 ) {
     let backgroundImage: string = "";
     let patternToShow: string = "";
@@ -67,6 +68,7 @@ export async function generateCard(
                 entryNumber: entryPercentage,
                 exitNumber: exitPercentage,
                 patternToShow,
+                showUsername,
             }),
             {
                 width: 1280,

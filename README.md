@@ -25,7 +25,7 @@ Manav:
 
 - Below Track my Order Take Profit and Stop Loss and in Portfolio as well
 - TP & SL Conditions and Edit TP SL
-- Option to Hide Username in PnL Card
+- Option to Hide Username in PnL Card (Adding Buttons & Handling Callbacks Left)
 - Show Card when Order is Placed (show confirm order details in it) (Alt Card)
 - Send Limit Orders Notification when Order Placed
 

@@ -1021,7 +1021,8 @@ export async function handleCloseOpenPosition(
         closeDate,
         rawProfitAmount,
         entryPercentage,
-        exitPercentage
+        exitPercentage,
+        user.show_username_in_cards
     );
 
     const sellOrder = await marketSellOrder({
