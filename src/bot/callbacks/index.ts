@@ -78,6 +78,7 @@ import { ClobClient } from "@polymarket/clob-client";
 import { CHAIN_ID, HOST } from "@/shared/constants";
 import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
+import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 
 /**
  * TODO:FIX
@@ -521,10 +522,11 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
         }
 
-        const [balance, user, solBalance] = await Promise.all([
+        const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(existingUser.wallet_address),
             getUserDetails(userId),
             getSOLBalance(existingUser.solana_address!),
+            getLockedBalance(userId),
         ]);
 
         if (!user) {
@@ -536,7 +538,7 @@ export async function handleCallbackQuery(ctx: Context) {
             existingUser.solana_address || "N/A",
             balance.toString(),
             solBalance,
-            user?.locked_balance
+            lockedBalance
         );
 
         return ctx.editMessageText(message, {

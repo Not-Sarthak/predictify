@@ -6,7 +6,6 @@ import {
     getMarketQuestion,
 } from "@/notifier/utils";
 import { bot } from "@/bot";
-import { db } from "@/lib/supabase";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
@@ -66,18 +65,11 @@ export class PolymarketUserTradeWatcher {
                 message.event_type === "trade" &&
                 message.market === this.marketId
             ) {
-                const userDetails = await getUserDetails(Number(this.userId));
                 const question = await getMarketQuestion(this.marketId);
-
-                const amount = Number(message.price) * Number(message.size);
                 const txtMessage = generateOrderFilledMessage(message, question!);
 
                 await bot.telegram.sendMessage(this.userId, txtMessage, {
                     parse_mode: "Markdown",
-                });
-
-                await db("Users").update({
-                    locked_balance: userDetails?.locked_balance || 0 - amount,
                 });
 
                 this.socket.close();

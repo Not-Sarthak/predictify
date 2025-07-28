@@ -16,7 +16,7 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
+import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -31,14 +31,12 @@ import axios from "axios";
 import { db } from "@/lib/supabase";
 import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
 import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
-import { ClobClient, OrderType } from "@polymarket/clob-client";
+import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
-import { createLegacyWallet } from "@/utils";
-import { ethers } from "ethers";
 import { generateCard } from "@/utils/pnl-card-generator";
 // import { pnlCardGenerator } from "@/utils/pnl-card-generator";
 
@@ -1214,24 +1212,12 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
 
     const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
 
-    const legacyWallet = createLegacyWallet(new ethers.Wallet(decryptPrivateKey(user.private_key)));
-    const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, api_creds);
-
-    const order = await clobClient.getOrder(orderId);
-
     try {
         const response = await cancelOrder({
             privateKey: decryptPrivateKey(user.private_key),
             creds: api_creds,
             orderIds: [orderId],
         });
-
-        await db("Users")
-            .update({
-                locked_balance:
-                    user.locked_balance - Number(order.original_size) * Number(order.price),
-            })
-            .eq("id", userId);
 
         if (response.canceled.length > 0) {
             return ctx.reply("✅ Order Successfully Cancelled!");

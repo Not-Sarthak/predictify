@@ -23,6 +23,7 @@ import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-ma
 import { PolymarketUserTradeWatcher } from "@/notifier/ws";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
+import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -62,13 +63,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     let executionPrice = 0;
     let shares = 0;
 
-    const userBalance = await getUserWrappedUSDCBalance(userDetails.wallet_address);
+    const [userBalance, lockedBalance] = await Promise.all([
+        getUserWrappedUSDCBalance(userDetails.wallet_address),
+        getLockedBalance(userId),
+    ]);
 
     if (orderType === "fok") {
         const amount = Number(textMessage.trim());
         isMinimumAmount = amount >= 10;
 
-        if (amount > userBalance - userDetails.locked_balance) {
+        if (amount > userBalance - lockedBalance) {
             return ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -80,7 +84,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const [_1, amountStr, _] = textMessage.trim().split(/\s+/);
         const amount = Number(amountStr);
 
-        if (amount > userBalance - userDetails.locked_balance) {
+        if (amount > userBalance - lockedBalance) {
             return ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -111,13 +115,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 if (response.not_canceled.length > 0) {
                     return ctx.reply("❌ There was an Error.");
                 }
-
-                const amount =
-                    Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1]);
-
-                await db("Users").update({
-                    locked_balance: userDetails?.locked_balance || 0 - amount,
-                });
             }
 
             const [priceStr, amountStr, _] = textMessage.trim().split(/\s+/);
@@ -143,12 +140,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             if (!tokenId) {
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
-
-            await db("Users")
-                .update({
-                    locked_balance: userDetails.locked_balance + amount,
-                })
-                .eq("id", userId);
 
             orderResponse = await buyOrderGTC({
                 size: shares,

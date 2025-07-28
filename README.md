@@ -28,7 +28,6 @@ Manav:
 - Option to Hide Username in PnL Card
 - Show Card when Order is Placed (show confirm order details in it) (Alt Card)
 - Send Limit Orders Notification when Order Placed
-- Fix: Bug where it doesn't release locked funds on db (experiment with idea shared with sarthak, if latency too much don't apply that)
 
 Sarthak:
 
