@@ -46,7 +46,7 @@ import {
     handleBridgeStatus,
 } from "@/utils/debridge/functions/bridge-handler";
 import { redisClient } from "@/lib/redis";
-import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { CLOSE_BUTTON, MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
 import {
     handleToggleCopyTradeStatus,
@@ -79,6 +79,7 @@ import { CHAIN_ID, HOST } from "@/shared/constants";
 import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
+import { db } from "@/lib/supabase";
 
 /**
  * TODO:FIX
@@ -720,8 +721,35 @@ Once the price crosses your target, we'll alert you and execute your strategy.`;
         });
     }
 
-    if (data.startsWith("stop_loss:")) {
-        // const marketId = decodeMarketId(data.split(":")[1]);
+    if (data.startsWith("toggle_show_username")) {
+        const toggleTo = data.split(":")[1] === "1";
+        const userId = getUserIdFromCtx(ctx);
+
+        const { error } = await db("Users")
+            .update({ show_username_in_cards: toggleTo })
+            .eq("id", userId);
+
+        if (error) {
+            return ctx.reply("❌ Internal Server Error. Failed to Update your preferences.");
+        }
+
+        const toggleButtonTitle = toggleTo
+            ? "❌ Hide Username (PnL Cards)"
+            : "✅ Show Username (PnL Cards)";
+
+        const toggleButtonCallbackData = toggleTo
+            ? "toggle_show_username:0"
+            : "toggle_show_username:1";
+
+        ctx.reply(`✅ Your Username will be ${toggleTo ? "*Shown*" : "*Hidden*"}`, {
+            parse_mode: "Markdown",
+        });
+        return ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard([
+                [Markup.button.callback(toggleButtonTitle, toggleButtonCallbackData)],
+                [CLOSE_BUTTON],
+            ]).reply_markup
+        );
     }
 
     if (data === "close_message") {
