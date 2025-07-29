@@ -414,7 +414,7 @@ export async function handleCallbackQuery(ctx: Context) {
         );
     }
 
-    // Handle sell percentage callbacks
+    // Handle Sell Percentage Callbacks
     if (
         data.startsWith("sell_50_") ||
         data.startsWith("sell_100_") ||
@@ -473,6 +473,18 @@ export async function handleCallbackQuery(ctx: Context) {
 
         await ctx.answerCbQuery(`Processing ${sellType}% sell order...`);
         return handleCloseOpenPosition(ctx, conditionId, amountToSell);
+    }
+
+    if (data.startsWith("redeem_position_")) {
+        const conditionId = data.replace("redeem_position_", "");
+        const { handleRedeemPosition } = await import("./redeem");
+        return handleRedeemPosition(ctx, conditionId);
+    }
+
+    if (data.startsWith("confirm_redeem_")) {
+        const conditionId = data.replace("confirm_redeem_", "");
+        const { handleConfirmRedeem } = await import("./redeem");
+        return handleConfirmRedeem(ctx, conditionId);
     }
 
     if (data.startsWith("delete_copy_wallet:")) {
@@ -751,6 +763,41 @@ Once the price crosses your target, we'll alert you and execute your strategy.`;
                 [CLOSE_BUTTON],
             ]).reply_markup
         );
+    }
+
+    if (data.startsWith("ts:")) {
+        const shareKey = data.substring(3);
+        const shareDataStr = await redisClient.get(shareKey);
+
+        if (!shareDataStr) {
+            await ctx.answerCbQuery("❌ Share link expired");
+            return ctx.editMessageReplyMarkup(Markup.inlineKeyboard([[CLOSE_BUTTON]]).reply_markup);
+        }
+
+        const shareData = JSON.parse(shareDataStr);
+
+        const { marketTitle, side, pnl, pnlType, entryPrice, exitPrice } = shareData;
+        const emoji = pnlType === "Positive" ? "🚀" : pnlType === "Negative" ? "📉" : "➖";
+        const pnlText =
+            pnlType === "Positive" ? `+$${pnl}` : pnlType === "Negative" ? `-$${pnl}` : `$${pnl}`;
+
+        const tweetText = encodeURIComponent(
+            `${emoji} Just closed my ${side} position on "${marketTitle}"!\n\n` +
+                `Entry: ${entryPrice}%\n` +
+                `Exit: ${exitPrice}%\n` +
+                `PnL: ${pnlText}\n\n` +
+                `Trading on @Polymarket via @PredictifyBot 🎯`
+        );
+
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+
+        const shareKeyboard = Markup.inlineKeyboard([
+            [Markup.button.url("🐦 Open X", twitterUrl)],
+            [CLOSE_BUTTON],
+        ]);
+
+        await ctx.answerCbQuery("✅ Opening X..");
+        return ctx.editMessageReplyMarkup(shareKeyboard.reply_markup);
     }
 
     if (data === "close_message") {

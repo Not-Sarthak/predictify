@@ -83,9 +83,10 @@ export async function handleCloseTradePositions(ctx: Context) {
     const userPositions = await getUserPosition({ user: userAddress });
 
     if (userPositions.length === 0) {
-        return ctx
-            .reply("⚠️ No Open Positions From Your Account. Please Try Again!")
-            .then(() => ctx.answerCbQuery());
+        if (ctx.callbackQuery) {
+            await ctx.answerCbQuery();
+        }
+        return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
     const conditionIds = userPositions.map((position) => position.conditionId);
@@ -983,6 +984,25 @@ export async function handleCloseOpenPosition(
     }
 
     await ctx.deleteMessage(message_id);
+
+    const shareKey = `share:${userId}:${Date.now()}`;
+    await redisClient.set(
+        shareKey,
+        JSON.stringify({
+            marketTitle,
+            side,
+            pnl: rawProfitAmount,
+            pnlType,
+            entryPrice: entryPercentage,
+            exitPrice: exitPercentage,
+        }),
+        { EX: 3600 }
+    );
+
+    const shareButton = Markup.inlineKeyboard([
+        [Markup.button.callback("🐦 Share on X", `ts:${shareKey}`)],
+    ]);
+
     await ctx.replyWithPhoto(
         { source: pnlCardBuffer },
         {
@@ -994,6 +1014,7 @@ export async function handleCloseOpenPosition(
                       : "➖ Break Even"
             }: $${formattedProfitAmount}`,
             parse_mode: "Markdown",
+            ...shareButton,
         }
     );
 }

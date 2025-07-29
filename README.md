@@ -24,9 +24,9 @@ TODO:
 Manav:
 
 - TP & SL Conditions and Edit TP SL
+- Make Market Titles Clickable instead of button (on click opens the market details)
+- Add Edit Price Alerts Edit Buttons in Subscriptions Menu
 
 Sarthak:
 
 - Add to Watchlist feature
-- Make Market Titles Clickable instead of button (on click opens the market details)
-  Add Edit Price Alerts Edit Buttons in Subscriptions Menu
