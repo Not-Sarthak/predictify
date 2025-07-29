@@ -552,6 +552,33 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
+
+        // Check if market is in watchlist
+        let watchlistButton;
+        if (userId) {
+            const { data: user } = await db("Users")
+                .select("market_watchlist")
+                .eq("id", Number(userId))
+                .single();
+
+            const isInWatchlist =
+                user?.market_watchlist?.some(
+                    (item: any) =>
+                        item.marketId === market.id || item.conditionId === market.conditionId
+                ) || false;
+            watchlistButton = isInWatchlist
+                ? Markup.button.callback(
+                      "💔 Remove from Watchlist",
+                      `remove_watchlist:${market.id}`
+                  )
+                : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+        } else {
+            watchlistButton = Markup.button.callback(
+                "❤️ Add to My Watchlist",
+                `add_watchlist:${market.id}`
+            );
+        }
+
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -575,7 +602,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
                     `stop_loss:${encodeMarketId(market.conditionId)}`
                 ),
             ],
-            [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+            [watchlistButton],
             [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
             [Markup.button.callback("❌ Close", "close_message")],
         ]);
@@ -624,10 +651,10 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
 
     let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
 
-    const userId = ctx.from?.id?.toString();
+    const userId = ctx.from?.id;
     if (userId) {
         const tokenIds = JSON.parse(market.clobTokenIds);
-        const orderBookData = await formatOrderBook(tokenIds, userId);
+        const orderBookData = await formatOrderBook(tokenIds, userId.toString());
         message += orderBookData;
         message += `----------------------------------\n\n`;
     }
@@ -639,6 +666,29 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
+
+    // Check if market is in watchlist
+    let watchlistButton;
+    if (userId) {
+        const { data: user } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        const isInWatchlist =
+            user?.market_watchlist?.some(
+                (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
+            ) || false;
+        watchlistButton = isInWatchlist
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+    } else {
+        watchlistButton = Markup.button.callback(
+            "❤️ Add to My Watchlist",
+            `add_watchlist:${market.id}`
+        );
+    }
+
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -662,7 +712,7 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
                 `stop_loss:${encodeMarketId(market.conditionId)}`
             ),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [watchlistButton],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
@@ -711,6 +761,30 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
     }
 
+    // Check if market is in watchlist
+    const userId = ctx.from?.id;
+    let watchlistButton;
+    if (userId) {
+        const { data: user } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        const isInWatchlist =
+            user?.market_watchlist?.some(
+                (item: any) =>
+                    item.marketId === market.id || item.conditionId === market.conditionId
+            ) || false;
+        watchlistButton = isInWatchlist
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+    } else {
+        watchlistButton = Markup.button.callback(
+            "❤️ Add to My Watchlist",
+            `add_watchlist:${market.id}`
+        );
+    }
+
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -734,7 +808,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
                 `stop_loss:${encodeMarketId(market.conditionId)}`
             ),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [watchlistButton],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),

@@ -8,6 +8,7 @@ import {
     handleStartCommand,
     handleSubscriptionsCommand,
     handleTradeCommand,
+    handleWatchlistCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "@/bot/callbacks";
@@ -35,6 +36,7 @@ bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
 bot.command("manage", handleCancelOpenOrdersCommand);
 bot.command("stats", handleViewProfileCallback);
+bot.command("watchlist", handleWatchlistCommand);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
