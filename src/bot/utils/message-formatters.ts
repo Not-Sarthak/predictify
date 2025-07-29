@@ -196,7 +196,6 @@ export function formatSinglePositionMessage(
         initialValue,
         currentValue,
         endDate,
-        redeemable,
     } = position;
 
     const isProfit = cashPnl >= 0;
@@ -220,9 +219,7 @@ export function formatSinglePositionMessage(
           })
         : null;
 
-    const statusLine = redeemable
-        ? `✅ *Market Resolved*`
-        : `${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
+    const statusLine = `${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
 
     const expiresLine = expiryDateFormatted ? `📆 *Expires:* ${expiryDateFormatted}` : "";
 
@@ -237,7 +234,7 @@ ${statusLine}
 💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
     `.trim();
 
-    const markup = createPaginationKeyboard(conditionId, index, total, redeemable);
+    const markup = createPaginationKeyboard(conditionId, index, total);
 
     return { text, markup };
 }

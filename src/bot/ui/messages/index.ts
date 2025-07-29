@@ -119,12 +119,7 @@ export const generateAutoTradeMenu = async (
     return { message: statusMessage, replyMarkup: markup };
 };
 
-export function createPaginationKeyboard(
-    conditionId: string,
-    index: number,
-    total: number,
-    isResolved: boolean
-) {
+export function createPaginationKeyboard(conditionId: string, index: number, total: number) {
     const paginationButtons = [];
 
     if (index > 0) {
@@ -134,33 +129,29 @@ export function createPaginationKeyboard(
         paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
     }
 
-    if (!isResolved) {
-        paginationButtons.push(Markup.button.callback("🔄 Refresh", `refresh_portfolio:${index}`));
-    }
+    paginationButtons.push(Markup.button.callback("🔄 Refresh", `refresh_portfolio:${index}`));
 
-    const rows = [];
-
-    if (!isResolved) {
-        rows.push([
+    const rows = [
+        [
             Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
             Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
             Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
-        ]);
-        rows.push([
+        ],
+        [
             Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
             Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
-        ]);
-    } else {
-        rows.push([
+        ],
+        [
             Markup.button.callback(
-                "💰 Redeem Position",
-                `redeem_position_${encodeMarketId(conditionId)}`
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(conditionId)}`
             ),
-        ]);
-    }
-
-    rows.push(paginationButtons);
-    rows.push([CLOSE_BUTTON]);
+            Markup.button.callback("💰 Take Profit", `take_profit:${encodeMarketId(conditionId)}`),
+            Markup.button.callback("🛑 Stop Loss", `stop_loss:${encodeMarketId(conditionId)}`),
+        ],
+        paginationButtons,
+        [CLOSE_BUTTON],
+    ];
 
     return Markup.inlineKeyboard(rows).reply_markup;
 }

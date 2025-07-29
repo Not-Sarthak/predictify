@@ -128,15 +128,17 @@ export async function handleViewTradePositions(ctx: Context) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
-    if (userPositions.length === 0) {
-        if (ctx.callbackQuery) {
-            await ctx.answerCbQuery();
-        }
+    if (filteredUserPositions.length === 0) {
         return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
-    const { text, markup } = formatSinglePositionMessage(userPositions[0], 0, userPositions.length);
+    const { text, markup } = formatSinglePositionMessage(
+        filteredUserPositions[0],
+        0,
+        filteredUserPositions.length
+    );
 
     await ctx.reply(text, {
         parse_mode: "Markdown",
@@ -153,13 +155,18 @@ export async function handleTradePagination(ctx: Context, page: string) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     const pageIndex = parseInt(page);
-    const position = userPositions[pageIndex];
+    const position = filteredUserPositions[pageIndex];
 
     if (!position) return ctx.answerCbQuery("Page not found");
 
-    const { text, markup } = formatSinglePositionMessage(position, pageIndex, userPositions.length);
+    const { text, markup } = formatSinglePositionMessage(
+        position,
+        pageIndex,
+        filteredUserPositions.length
+    );
 
     return ctx.editMessageText(text, {
         parse_mode: "Markdown",
@@ -698,6 +705,7 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
+        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
@@ -794,6 +802,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
+        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",

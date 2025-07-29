@@ -604,19 +604,20 @@ export async function handleCallbackQuery(ctx: Context) {
         }
 
         const userPositions = await getUserPosition({ user: userAddress });
+        const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
-        if (!userPositions || userPositions.length === 0) {
+        if (!filteredUserPositions || filteredUserPositions.length === 0) {
             return ctx.editMessageText("✅ No open positions found.");
         }
 
-        if (index >= userPositions.length) {
+        if (index >= filteredUserPositions.length) {
             return ctx.answerCbQuery("⚠️ Invalid index.");
         }
 
         const { text, markup } = formatSinglePositionMessage(
-            userPositions[index],
+            filteredUserPositions[index],
             index,
-            userPositions.length
+            filteredUserPositions.length
         );
 
         try {
@@ -695,7 +696,7 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
 
         const userPositionsByMarkets = await getUserPositionByMarket(userAddress, marketId);
         if (!userPositionsByMarkets) {
-            return ctx.reply("❌ You need to have an Open Position in this Market");
+            return ctx.reply("❌ You don't have an open Position in this Market");
         }
 
         const { size, avgPrice, curPrice, outcome, cashPnl, percentPnl, title, asset } =
