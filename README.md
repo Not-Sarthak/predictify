@@ -23,13 +23,10 @@ TODO:
 
 Manav:
 
-- Below Track my Order Take Profit and Stop Loss and in Portfolio as well
 - TP & SL Conditions and Edit TP SL
+- Make Market Titles Clickable instead of button (on click opens the market details)
+- Add Edit Price Alerts Edit Buttons in Subscriptions Menu
 
 Sarthak:
 
-- Add Redeem Button for Markes which are resolved in Portfolio
-- Share on Twitter Button (after closing a position)
 - Add to Watchlist feature
-- Make Market Titles Clickable instead of button (on click opens the market details)
-  Add Edit Price Alerts Edit Buttons in Subscriptions Menu

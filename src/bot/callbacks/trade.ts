@@ -83,9 +83,10 @@ export async function handleCloseTradePositions(ctx: Context) {
     const userPositions = await getUserPosition({ user: userAddress });
 
     if (userPositions.length === 0) {
-        return ctx
-            .reply("⚠️ No Open Positions From Your Account. Please Try Again!")
-            .then(() => ctx.answerCbQuery());
+        if (ctx.callbackQuery) {
+            await ctx.answerCbQuery();
+        }
+        return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
     const conditionIds = userPositions.map((position) => position.conditionId);
@@ -127,14 +128,17 @@ export async function handleViewTradePositions(ctx: Context) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
-    if (userPositions.length === 0) {
-        return ctx
-            .reply("⚠️ No Open Positions From Your Account. Please Try Again!")
-            .then(() => ctx.answerCbQuery());
+    if (filteredUserPositions.length === 0) {
+        return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
-    const { text, markup } = formatSinglePositionMessage(userPositions[0], 0, userPositions.length);
+    const { text, markup } = formatSinglePositionMessage(
+        filteredUserPositions[0],
+        0,
+        filteredUserPositions.length
+    );
 
     await ctx.reply(text, {
         parse_mode: "Markdown",
@@ -151,13 +155,18 @@ export async function handleTradePagination(ctx: Context, page: string) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     const pageIndex = parseInt(page);
-    const position = userPositions[pageIndex];
+    const position = filteredUserPositions[pageIndex];
 
     if (!position) return ctx.answerCbQuery("Page not found");
 
-    const { text, markup } = formatSinglePositionMessage(position, pageIndex, userPositions.length);
+    const { text, markup } = formatSinglePositionMessage(
+        position,
+        pageIndex,
+        filteredUserPositions.length
+    );
 
     return ctx.editMessageText(text, {
         parse_mode: "Markdown",
@@ -533,57 +542,6 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 
     let message = `📊 **${escapeMarkdown(title)}**\n\n`;
 
-    if (markets.length === 1) {
-        const market = markets[0];
-        const outcomes: number[] = JSON.parse(market.outcomePrices);
-        const yesPrice = outcomes[0];
-        const noPrice = outcomes[1];
-
-        const userId = ctx.from?.id?.toString();
-        if (userId) {
-            const tokenIds = JSON.parse(market.clobTokenIds);
-            const orderBookData = await formatOrderBook(tokenIds, userId);
-            message += orderBookData;
-            message += `----------------------------------\n\n`;
-        }
-
-        message += `💹 **Prices**
-• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
-• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
-        const keyboard = Markup.inlineKeyboard([
-            [
-                Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-                Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
-            ],
-            [
-                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
-            ],
-            [
-                Markup.button.callback(
-                    "🔔 Set Price Alert",
-                    `set_price_alert:${encodeMarketId(market.conditionId)}`
-                ),
-                Markup.button.callback(
-                    "💰 Take Profit",
-                    `take_profit:${encodeMarketId(market.conditionId)}`
-                ),
-                Markup.button.callback(
-                    "🛑 Stop Loss",
-                    `stop_loss:${encodeMarketId(market.conditionId)}`
-                ),
-            ],
-            [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
-            [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
-            [Markup.button.callback("❌ Close", "close_message")],
-        ]);
-
-        return ctx.reply(message, {
-            parse_mode: "Markdown",
-            reply_markup: keyboard.reply_markup,
-        });
-    }
-
     message += `🎯 **${markets.length} Markets Available**\n\n`;
 
     const marketButtons = [];
@@ -646,20 +604,6 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
-        [
-            Markup.button.callback(
-                "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "💰 Take Profit",
-                `take_profit:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "🛑 Stop Loss",
-                `stop_loss:${encodeMarketId(market.conditionId)}`
-            ),
-        ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
@@ -717,20 +661,6 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
-        ],
-        [
-            Markup.button.callback(
-                "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "💰 Take Profit",
-                `take_profit:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "🛑 Stop Loss",
-                `stop_loss:${encodeMarketId(market.conditionId)}`
-            ),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
@@ -1054,6 +984,25 @@ export async function handleCloseOpenPosition(
     }
 
     await ctx.deleteMessage(message_id);
+
+    const shareKey = `share:${userId}:${Date.now()}`;
+    await redisClient.set(
+        shareKey,
+        JSON.stringify({
+            marketTitle,
+            side,
+            pnl: rawProfitAmount,
+            pnlType,
+            entryPrice: entryPercentage,
+            exitPrice: exitPercentage,
+        }),
+        { EX: 3600 }
+    );
+
+    const shareButton = Markup.inlineKeyboard([
+        [Markup.button.callback("🐦 Share on X", `ts:${shareKey}`)],
+    ]);
+
     await ctx.replyWithPhoto(
         { source: pnlCardBuffer },
         {
@@ -1065,6 +1014,7 @@ export async function handleCloseOpenPosition(
                       : "➖ Break Even"
             }: $${formattedProfitAmount}`,
             parse_mode: "Markdown",
+            ...shareButton,
         }
     );
 }

@@ -25,6 +25,7 @@ import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 import { generatePositionCard } from "@/utils/card-generator";
+import { encodeMarketId } from "@/utils/encoding";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -334,7 +335,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 day: "numeric",
                 year: "numeric",
             });
-            const toWin = (amount / currentPrice) * 1;
+            const toWin = amount / currentPrice;
             const odds = currentPrice * 100;
 
             const imgBuffer = await generatePositionCard(
@@ -359,7 +360,21 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     {
                         parse_mode: "HTML",
                         reply_markup: Markup.inlineKeyboard([
-                            Markup.button.callback("📊 Track My Order", button_callback_data),
+                            [Markup.button.callback("📊 Track My Order", button_callback_data)],
+                            [
+                                Markup.button.callback(
+                                    "🔔 Set Price Alert",
+                                    `set_price_alert:${encodeMarketId(market.conditionId)}`
+                                ),
+                                Markup.button.callback(
+                                    "💰 Take Profit",
+                                    `take_profit:${encodeMarketId(market.conditionId)}`
+                                ),
+                                Markup.button.callback(
+                                    "🛑 Stop Loss",
+                                    `stop_loss:${encodeMarketId(market.conditionId)}`
+                                ),
+                            ],
                         ]).reply_markup,
                     }
                 ),
