@@ -14,7 +14,7 @@ import {
 import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
 import { ethers } from "ethers";
 import { decryptPrivateKey } from "@/utils/crypto";
-import { getUserIdFromCtx } from "@/bot/utils";
+import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "@/shared/constants/misc";
@@ -23,6 +23,8 @@ import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-ma
 import { PolymarketUserTradeWatcher } from "@/notifier/ws";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
+import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
+import { generatePositionCard } from "@/utils/card-generator";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -48,6 +50,8 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         return ctx.reply("⚠️ Error fetching market details! Please try again later.");
     }
 
+    const username = getUsernameFromCtx(ctx);
+
     await clearUserInputState(userId.toString());
     await redisClient.del(`user:order_context:${userId}`);
 
@@ -62,13 +66,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
     let executionPrice = 0;
     let shares = 0;
 
-    const userBalance = await getUserWrappedUSDCBalance(userDetails.wallet_address);
+    const [userBalance, lockedBalance] = await Promise.all([
+        getUserWrappedUSDCBalance(userDetails.wallet_address),
+        getLockedBalance(userId),
+    ]);
 
     if (orderType === "fok") {
         const amount = Number(textMessage.trim());
         isMinimumAmount = amount >= 10;
 
-        if (amount > userBalance - userDetails.locked_balance) {
+        if (amount > userBalance - lockedBalance) {
             return ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -80,7 +87,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const [_1, amountStr, _] = textMessage.trim().split(/\s+/);
         const amount = Number(amountStr);
 
-        if (amount > userBalance - userDetails.locked_balance) {
+        if (amount > userBalance - lockedBalance) {
             return ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -111,13 +118,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 if (response.not_canceled.length > 0) {
                     return ctx.reply("❌ There was an Error.");
                 }
-
-                const amount =
-                    Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1]);
-
-                await db("Users").update({
-                    locked_balance: userDetails?.locked_balance || 0 - amount,
-                });
             }
 
             const [priceStr, amountStr, _] = textMessage.trim().split(/\s+/);
@@ -143,12 +143,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             if (!tokenId) {
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
-
-            await db("Users")
-                .update({
-                    locked_balance: userDetails.locked_balance + amount,
-                })
-                .eq("id", userId);
 
             orderResponse = await buyOrderGTC({
                 size: shares,
@@ -324,24 +318,53 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 );
             }
 
-            await ctx.telegram.editMessageText(
-                ctx.chat!.id,
-                sentMessage.message_id,
-                undefined,
-                orderPlacedMessage,
-                {
-                    parse_mode: "HTML",
-                    reply_markup: Markup.inlineKeyboard([
-                        Markup.button.callback("📊 Track My Order", button_callback_data),
-                    ]).reply_markup,
-                }
-            );
-            await redisClient.rPush(`user:order_ids:${userId}`, orderId);
-
             const amount =
                 orderType === "gtc"
                     ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
                     : Number(textMessage.trim());
+
+            const currentPrice =
+                side === "YES"
+                    ? JSON.parse(market.outcomePrices)[0]
+                    : JSON.parse(market.outcomePrices)[1];
+
+            const volume = Math.floor(Number(market.volume)).toLocaleString("en-US");
+            const closeDate = new Date().toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+            });
+            const toWin = (amount / currentPrice) * 1;
+            const odds = currentPrice * 100;
+
+            const imgBuffer = await generatePositionCard(
+                username,
+                market.question,
+                side,
+                volume,
+                closeDate,
+                toWin,
+                odds,
+                amount,
+                userDetails.show_username_in_cards
+            );
+
+            await Promise.all([
+                ctx.replyWithPhoto({ source: imgBuffer }),
+                ctx.telegram.editMessageText(
+                    ctx.chat!.id,
+                    sentMessage.message_id,
+                    undefined,
+                    orderPlacedMessage,
+                    {
+                        parse_mode: "HTML",
+                        reply_markup: Markup.inlineKeyboard([
+                            Markup.button.callback("📊 Track My Order", button_callback_data),
+                        ]).reply_markup,
+                    }
+                ),
+                redisClient.rPush(`user:order_ids:${userId}`, orderId),
+            ]);
 
             if (orderType === "gtc") {
                 await db("Users")

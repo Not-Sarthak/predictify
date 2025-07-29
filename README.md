@@ -28,4 +28,8 @@ Manav:
 
 Sarthak:
 
+- Add Redeem Button for Markes which are resolved in Portfolio
+- Share on Twitter Button (after closing a position)
 - Add to Watchlist feature
+- Make Market Titles Clickable instead of button (on click opens the market details)
+  Add Edit Price Alerts Edit Buttons in Subscriptions Menu

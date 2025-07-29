@@ -8,6 +8,80 @@ export type Database = {
     };
     public: {
         Tables: {
+            Auto_Trade: {
+                Row: {
+                    copied_price: number | null;
+                    copied_size: number | null;
+                    copied_trade_hash: string | null;
+                    created_at: string;
+                    error_message: string | null;
+                    executed_at: string | null;
+                    id: string;
+                    market_id: string;
+                    market_title: string;
+                    original_price: number;
+                    original_size: number;
+                    original_timestamp: string;
+                    original_trade_hash: string;
+                    outcome: string;
+                    position_percentage: number;
+                    side: string;
+                    status: string;
+                    user_id: number;
+                    watched_wallet: string;
+                };
+                Insert: {
+                    copied_price?: number | null;
+                    copied_size?: number | null;
+                    copied_trade_hash?: string | null;
+                    created_at?: string;
+                    error_message?: string | null;
+                    executed_at?: string | null;
+                    id?: string;
+                    market_id: string;
+                    market_title: string;
+                    original_price: number;
+                    original_size: number;
+                    original_timestamp: string;
+                    original_trade_hash: string;
+                    outcome: string;
+                    position_percentage: number;
+                    side: string;
+                    status?: string;
+                    user_id: number;
+                    watched_wallet: string;
+                };
+                Update: {
+                    copied_price?: number | null;
+                    copied_size?: number | null;
+                    copied_trade_hash?: string | null;
+                    created_at?: string;
+                    error_message?: string | null;
+                    executed_at?: string | null;
+                    id?: string;
+                    market_id?: string;
+                    market_title?: string;
+                    original_price?: number;
+                    original_size?: number;
+                    original_timestamp?: string;
+                    original_trade_hash?: string;
+                    outcome?: string;
+                    position_percentage?: number;
+                    side?: string;
+                    status?: string;
+                    user_id?: number;
+                    watched_wallet?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "Auto_Trade_user_id_fkey";
+                        columns: ["user_id"];
+                        isOneToOne: false;
+                        referencedRelation: "Users";
+                        referencedColumns: ["id"];
+                    },
+                ];
+            };
             Copy_Wallets: {
                 Row: {
                     created_at: string;
@@ -53,11 +127,11 @@ export type Database = {
                     fees_total: number;
                     id: number;
                     is_copytrading_enabled: boolean;
-                    locked_balance: number;
                     number_of_referrals: number | null;
                     private_key: string;
                     referral_code: string | null;
                     referred_code: string | null;
+                    show_username_in_cards: boolean;
                     solana_address: string | null;
                     solana_private_key: string | null;
                     telegram_username: string;
@@ -66,6 +140,7 @@ export type Database = {
                     total_volume: number;
                     treasury_wallet_address: string | null;
                     wallet_address: string;
+                    watched_wallets: string[] | null;
                 };
                 Insert: {
                     amount_deposited?: number;
@@ -76,11 +151,11 @@ export type Database = {
                     fees_total?: number;
                     id: number;
                     is_copytrading_enabled?: boolean;
-                    locked_balance?: number;
                     number_of_referrals?: number | null;
                     private_key: string;
                     referral_code?: string | null;
                     referred_code?: string | null;
+                    show_username_in_cards?: boolean;
                     solana_address?: string | null;
                     solana_private_key?: string | null;
                     telegram_username: string;
@@ -89,6 +164,7 @@ export type Database = {
                     total_volume?: number;
                     treasury_wallet_address?: string | null;
                     wallet_address: string;
+                    watched_wallets?: string[] | null;
                 };
                 Update: {
                     amount_deposited?: number;
@@ -99,11 +175,11 @@ export type Database = {
                     fees_total?: number;
                     id?: number;
                     is_copytrading_enabled?: boolean;
-                    locked_balance?: number;
                     number_of_referrals?: number | null;
                     private_key?: string;
                     referral_code?: string | null;
                     referred_code?: string | null;
+                    show_username_in_cards?: boolean;
                     solana_address?: string | null;
                     solana_private_key?: string | null;
                     telegram_username?: string;
@@ -112,6 +188,7 @@ export type Database = {
                     total_volume?: number;
                     treasury_wallet_address?: string | null;
                     wallet_address?: string;
+                    watched_wallets?: string[] | null;
                 };
                 Relationships: [];
             };

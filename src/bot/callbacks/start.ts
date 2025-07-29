@@ -67,8 +67,19 @@ ${emoji} <b>Lifetime PnL:</b> ${total_pnl.toFixed(3)} USDC
 <a href="https://polymarket.com/profile/${wallet_address.toString()}">🔗 View on Polymarket</a>
 `;
 
+    const toggleButtonTitle = userData.show_username_in_cards
+        ? "❌ Hide Username (PnL Cards)"
+        : "✅ Show Username (PnL Cards)";
+
+    const toggleButtonCallbackData = userData.show_username_in_cards
+        ? "toggle_show_username:0"
+        : "toggle_show_username:1";
+
     return ctx.reply(message, {
         parse_mode: "HTML",
-        reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback(toggleButtonTitle, toggleButtonCallbackData)],
+            [CLOSE_BUTTON],
+        ]).reply_markup,
     });
 }

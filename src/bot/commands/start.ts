@@ -12,6 +12,7 @@ import { encryptPrivateKey } from "@/utils/crypto";
 import { db } from "@/lib/supabase";
 import { generateRandomString } from "@/utils/encoding";
 import { getUserDetails } from "@/helpers/get-user-details";
+import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 
 export async function handleStartCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -23,10 +24,11 @@ export async function handleStartCommand(ctx: Context) {
     }
 
     if (existingUser) {
-        const [balance, user, solBalance] = await Promise.all([
+        const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(existingUser.wallet_address),
             getUserDetails(userId),
             getSOLBalance(existingUser.solana_address!),
+            getLockedBalance(userId),
         ]);
 
         if (!user) {
@@ -38,7 +40,7 @@ export async function handleStartCommand(ctx: Context) {
             existingUser.solana_address || "N/A",
             balance.toString(),
             solBalance,
-            user?.locked_balance
+            lockedBalance
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
@@ -89,10 +91,11 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }
 
-        const [balance, user, solBalance] = await Promise.all([
+        const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(address),
             getUserDetails(userId),
             getSOLBalance(solanaAddress),
+            getLockedBalance(userId),
         ]);
 
         if (!user) {
@@ -104,7 +107,7 @@ export async function handleStartCommand(ctx: Context) {
             solanaAddress || "N/A",
             balance.toString(),
             solBalance,
-            user?.locked_balance
+            lockedBalance
         );
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
