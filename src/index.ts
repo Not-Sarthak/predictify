@@ -36,7 +36,7 @@ async function main() {
             },
         },
         () => {
-            console.log("Bot Server listening...");
+            console.log("Bot Server Listening...");
         }
     );
 }

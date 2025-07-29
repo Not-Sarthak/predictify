@@ -150,6 +150,13 @@ export function createPaginationKeyboard(
             Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
             Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
         ]);
+    } else {
+        rows.push([
+            Markup.button.callback(
+                "💰 Redeem Position",
+                `redeem_position_${encodeMarketId(conditionId)}`
+            ),
+        ]);
     }
 
     rows.push(paginationButtons);
