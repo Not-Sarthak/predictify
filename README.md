@@ -26,3 +26,13 @@ Manav:
 - TP & SL Conditions and Edit TP SL
 - Make Market Titles Clickable instead of button (on click opens the market details)
 - Add Edit Price Alerts Edit Buttons in Subscriptions Menu
+
+
+execution price similar to pnl
+tp sl ux 
+share on x in position card
+edge case in tp sl after sell 50%
+dont show pnl card in limit order place and limit sell
+position card / in portfolio section
+if manually closed, then remove limit orders as well of that particular market
+strategy 1 -> take notes from scalper
