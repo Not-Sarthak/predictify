@@ -20,7 +20,7 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             EXCHANGE_ADDRESS
         );
 
-        const amountInUnits = ethers.parseUnits(amount, 6);
+        const amountInUnits = ethers.parseUnits(Number(amount).toFixed(2), 6);
 
         if (currentAllowance < amountInUnits) {
             const allowanceAmount = ethers.parseUnits(amount, 6); // 1M USDC allowance

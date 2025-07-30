@@ -6,8 +6,11 @@ import {
 } from "@/bot/ui/buttons";
 import { formatActiveSubscriptionsMessage, getUserIdFromCtx } from "@/bot/utils";
 import { redisClient } from "@/lib/redis";
+import { getMarketQuestion } from "@/notifier/utils";
 import { CATEGORY_LIST } from "@/shared/constants";
+import { shortHashKey } from "@/utils/crypto";
 import { Markup, type Context } from "telegraf";
+import type { InlineKeyboardButton } from "telegraf/types";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(
@@ -94,6 +97,66 @@ export async function handleCustomCategoryInput(ctx: Context, textMessage: strin
         .exec();
 
     return ctx.reply(`📬 You'll Now Receive Alerts for: ${textMessage}`);
+}
+
+export async function handleShowCurrentPriceAlerts(ctx: Context, pageIndex = 0, isEdit = false) {
+    const userId = getUserIdFromCtx(ctx);
+    const key = `user:price_alerts:${userId}`;
+    const alertsRaw = await redisClient.hGetAll(key);
+
+    const alertEntries = Object.entries(alertsRaw);
+    const total = alertEntries.length;
+
+    if (total === 0) {
+        return isEdit
+            ? ctx.editMessageText("📭 No active price alerts found.")
+            : ctx.reply("📭 No active price alerts found.");
+    }
+
+    if (pageIndex >= total) pageIndex = total - 1;
+    if (pageIndex < 0) pageIndex = 0;
+
+    const [fieldKey, configStr] = alertEntries[pageIndex];
+    const config = JSON.parse(configStr);
+
+    const marketTitle = await getMarketQuestion(config.marketId);
+    const shortKey = shortHashKey(fieldKey);
+
+    // Store reverse mapping for edit/delete handlers
+    await redisClient.hSet(`user:price_alert_keys:${userId}`, shortKey, fieldKey);
+
+    const message = `🔔 <b>Price Alert (${pageIndex + 1}/${total})</b>
+
+<b>Market:</b> ${marketTitle}
+<b>Outcome:</b> ${config.outcome.toUpperCase()}
+<b>Type:</b> ${config.type.replace("_", " ").toUpperCase()}
+<b>Trigger Price:</b> ${config.price}
+
+You will be notified when this condition is met.`;
+
+    const buttons: InlineKeyboardButton[][] = [];
+    const navButtons: InlineKeyboardButton[] = [];
+
+    if (pageIndex > 0) {
+        navButtons.push({ text: "⬅ Prev", callback_data: `alert_nav:${pageIndex - 1}` });
+    }
+    if (pageIndex < total - 1) {
+        navButtons.push({ text: "Next ➡", callback_data: `alert_nav:${pageIndex + 1}` });
+    }
+
+    buttons.push([
+        { text: "✏️ Edit Alert", callback_data: `alert_edit:${shortKey}` },
+        { text: "🗑️ Delete Alert", callback_data: `alert_delete:${shortKey}` },
+    ]);
+
+    buttons.push(navButtons);
+    buttons.push([CLOSE_BUTTON]);
+
+    const sendOrEdit = isEdit ? ctx.editMessageText.bind(ctx) : ctx.reply.bind(ctx);
+    await sendOrEdit(message, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: buttons },
+    });
 }
 
 async function handleCustomCategory(ctx: Context) {

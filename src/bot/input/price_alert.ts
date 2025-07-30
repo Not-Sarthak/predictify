@@ -4,7 +4,11 @@ import { getUserIdFromCtx } from "@/bot/utils";
 import { redisClient } from "@/lib/redis";
 import { decodeMarketId } from "@/utils/encoding";
 import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
-import { PolymarketMarketTradeWatcher } from "@/notifier/ws";
+import {
+    startPriceAlertWatcher,
+    storePriceAlertInRedis,
+    type PriceWatchConfig,
+} from "@/notifier/ws";
 import { clearUserInputState } from "@/bot/input/state";
 
 export async function handleSetMarketPriceAlert(ctx: Context, textMessage: string) {
@@ -49,17 +53,24 @@ export async function handleSetMarketPriceAlert(ctx: Context, textMessage: strin
 
     const assetId = side === "yes" ? clobTokenIds[0] : clobTokenIds[1];
 
-    new PolymarketMarketTradeWatcher(userId.toString(), assetId, decodedMarketId, {
+    const alertAboveConfig: PriceWatchConfig = {
         type: "alert_above",
         price: priceAbove,
-        outcome: "yes",
-    });
+        outcome: side,
+    };
 
-    new PolymarketMarketTradeWatcher(userId.toString(), assetId, decodedMarketId, {
+    const alertBelowConfig: PriceWatchConfig = {
         type: "alert_below",
         price: priceBelow,
-        outcome: "yes",
-    });
+        outcome: side,
+    };
+
+    await storePriceAlertInRedis(userId.toString(), alertAboveConfig, decodedMarketId, assetId);
+    await storePriceAlertInRedis(userId.toString(), alertBelowConfig, decodedMarketId, assetId);
+
+    // Start Watchers
+    startPriceAlertWatcher(userId.toString(), decodedMarketId, assetId, alertAboveConfig);
+    startPriceAlertWatcher(userId.toString(), decodedMarketId, assetId, alertBelowConfig);
 
     return ctx.reply(
         `🔔 <b>Price Alerts Set Successfully!</b>
