@@ -35,3 +35,7 @@ export const decodePrivateKey = (decryptedKey: string) => {
     const secretKey = bs58.decode(decryptedKey);
     return Keypair.fromSecretKey(secretKey);
 };
+
+export function shortHashKey(fullKey: string): string {
+    return crypto.createHash("md5").update(fullKey).digest("hex").slice(0, 24);
+}

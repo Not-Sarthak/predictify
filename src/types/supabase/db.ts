@@ -127,7 +127,7 @@ export type Database = {
                     fees_total: number;
                     id: number;
                     is_copytrading_enabled: boolean;
-                    market_watchlist: string[] | null;
+                    market_watchlist: Json | null;
                     number_of_referrals: number | null;
                     private_key: string;
                     referral_code: string | null;
@@ -152,7 +152,7 @@ export type Database = {
                     fees_total?: number;
                     id: number;
                     is_copytrading_enabled?: boolean;
-                    market_watchlist?: string[] | null;
+                    market_watchlist?: Json | null;
                     number_of_referrals?: number | null;
                     private_key: string;
                     referral_code?: string | null;
@@ -177,7 +177,7 @@ export type Database = {
                     fees_total?: number;
                     id?: number;
                     is_copytrading_enabled?: boolean;
-                    market_watchlist?: string[] | null;
+                    market_watchlist?: Json | null;
                     number_of_referrals?: number | null;
                     private_key?: string;
                     referral_code?: string | null;

@@ -27,7 +27,11 @@ import { getMarketById } from "@/utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "@/bot/utils";
 import { encodeMarketId } from "@/utils/encoding";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
-import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
+import {
+    handleSubscriptionMenuCallbacks,
+    handleSubscriptionManagement,
+    handleShowCurrentPriceAlerts,
+} from "./subscriptions";
 import {
     handleAddNewWalletCallback,
     handleDeleteWalletCallback,
@@ -83,6 +87,8 @@ import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 import { db } from "@/lib/supabase";
+import { stopPriceAlertWatcher } from "@/notifier/ws";
+import { getMarketQuestion } from "@/notifier/utils";
 
 /**
  * TODO:FIX
@@ -116,6 +122,59 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("subscribe:")) {
         const [, isSubscribe, category] = data.split(":");
         return handleSubscriptionManagement(ctx, isSubscribe, category);
+    }
+
+    if (data === "edit_price_alerts") {
+        return handleShowCurrentPriceAlerts(ctx);
+    }
+
+    if (data.startsWith("alert_nav:")) {
+        const page = parseInt(data.split(":")[1]);
+        await ctx.answerCbQuery();
+        return handleShowCurrentPriceAlerts(ctx, page, true);
+    }
+
+    if (data.startsWith("alert_delete:")) {
+        const shortKey = data.split(":")[1];
+        const userId = getUserIdFromCtx(ctx);
+
+        const fullFieldKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
+        if (!fullFieldKey) {
+            return ctx.answerCbQuery("❌ Alert not found.");
+        }
+
+        const [marketId, , direction] = fullFieldKey.split(":");
+        await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
+        await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
+        stopPriceAlertWatcher(userId.toString(), marketId, direction as "above" | "below");
+
+        await ctx.answerCbQuery("✅ Alert deleted");
+        return handleShowCurrentPriceAlerts(ctx, 0, true);
+    }
+
+    if (data.startsWith("alert_edit:")) {
+        const shortKey = data.split(":")[1];
+        const userId = getUserIdFromCtx(ctx);
+
+        const fullKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
+        const configStr = await redisClient.hGet(`user:price_alerts:${userId}`, fullKey as string);
+        if (!fullKey || !configStr) {
+            return ctx.answerCbQuery("❌ Alert not found.");
+        }
+
+        const config = JSON.parse(configStr);
+        const marketTitle = await getMarketQuestion(config.marketId);
+
+        await redisClient.hSet(`user:edit_price_alert:${userId}`, shortKey, configStr);
+        await setUserInputState(userId.toString(), "edit_price_alert");
+
+        return ctx.reply(
+            `✏️ <b>Edit Price Alert</b>\n\n` +
+                `<b>Market:</b> ${marketTitle}\n` +
+                `<b>Current Trigger:</b> ${config.price}\n\n` +
+                `Please send a new price for this alert (between 0 and 1).`,
+            { parse_mode: "HTML" }
+        );
     }
 
     if (data.startsWith("close_position:")) {
@@ -872,6 +931,7 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
         const currentWatchlist = user.market_watchlist || [];
 
         // Check if already in watchlist by conditionId
+        //@ts-expect-error Some should be allowed
         const isAlreadyInWatchlist = currentWatchlist.some(
             (item: any) => item.conditionId === market.conditionId
         );
@@ -882,6 +942,7 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
         }
 
         // Check limit
+        //@ts-expect-error Length exists
         if (currentWatchlist.length >= 20) {
             await ctx.answerCbQuery("❌ Watchlist full (20 max)");
             return;
@@ -899,6 +960,7 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
         };
 
         // Add to watchlist
+        //@ts-expect-error Ignore here, because of the above reasons
         const updatedWatchlist = [...currentWatchlist, marketToStore];
 
         const { error: updateError } = await db("Users")
@@ -961,6 +1023,7 @@ async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
         const currentWatchlist = user.market_watchlist || [];
 
         // Remove from watchlist by marketId
+        //@ts-expect-error Filter should be allowed
         const updatedWatchlist = currentWatchlist.filter((item: any) => item.marketId !== marketId);
 
         const { error: updateError } = await db("Users")

@@ -10,6 +10,7 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "@/utils/crypto";
+import { redisClient } from "@/lib/redis";
 
 type Auth = {
     apiKey: string;
@@ -17,11 +18,15 @@ type Auth = {
     passphrase: string;
 };
 
-type PriceWatchConfig =
+export type PriceWatchConfig =
     | { type: "take_profit"; price: number; outcome: string; size: number }
     | { type: "stop_loss"; price: number; outcome: string; size: number }
     | { type: "alert_above"; price: number; outcome: string }
     | { type: "alert_below"; price: number; outcome: string };
+
+type WatcherKey = `${string}:${string}:${"above" | "below"}`; // userId:marketId:direction
+
+const watchers = new Map<WatcherKey, PolymarketMarketTradeWatcher>();
 
 export class PolymarketUserTradeWatcher {
     private socket: WebSocket;
@@ -251,5 +256,64 @@ export class PolymarketMarketTradeWatcher {
 
     public close() {
         this.socket.close();
+    }
+}
+
+export async function storePriceAlertInRedis(
+    userId: string,
+    config: PriceWatchConfig,
+    marketId: string,
+    assetId: string
+) {
+    const direction = config.type === "alert_above" ? "above" : "below";
+    const fullField = `${marketId}:${assetId}:${direction}`;
+    const redisFieldKey = `user:price_alerts:${userId}`;
+    const alertData = JSON.stringify({ ...config, marketId, assetId });
+
+    await redisClient.hSet(redisFieldKey, fullField, alertData);
+}
+
+export function startPriceAlertWatcher(
+    userId: string,
+    marketId: string,
+    assetId: string,
+    config: PriceWatchConfig
+) {
+    const key: WatcherKey = `${userId}:${marketId}:${config.type === "alert_above" ? "above" : "below"}`;
+
+    const existing = watchers.get(key);
+    if (existing) {
+        existing.close(); // stop previous watcher
+    }
+
+    const watcher = new PolymarketMarketTradeWatcher(userId, assetId, marketId, config);
+    watchers.set(key, watcher);
+}
+
+export function stopPriceAlertWatcher(
+    userId: string,
+    marketId: string,
+    direction: "above" | "below"
+) {
+    const key: WatcherKey = `${userId}:${marketId}:${direction}`;
+    const watcher = watchers.get(key);
+
+    if (watcher) {
+        watcher.close();
+        watchers.delete(key);
+    }
+}
+
+export async function restoreWatchersFromRedis() {
+    const keys = await redisClient.keys("user:price_alerts:*");
+
+    for (const key of keys) {
+        const userId = key.split(":")[2];
+        const alerts = await redisClient.hGetAll(key);
+
+        for (const [_, configStr] of Object.entries(alerts)) {
+            const config = JSON.parse(configStr);
+            startPriceAlertWatcher(userId, config.marketId, config.assetId, config);
+        }
     }
 }
