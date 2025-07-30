@@ -24,15 +24,15 @@ TODO:
 Manav:
 
 - TP & SL Conditions and Edit TP SL
-- Make Market Titles Clickable instead of button (on click opens the market details)
-- Add Edit Price Alerts Edit Buttons in Subscriptions Menu
+- tp sl and price alert ux (both take once price and it automatically decides price_above/price_below or take_profit/stop_loss depending on the current price)
+- dont show pnl card when limit order is not matched
+- show pnl card when limit order is matched w/ notif
+- if manually closed, then remove limit orders as well of that particular market
+- edge case in tp sl after sell 50% (close the prev tp/sl order and place new one at new available amount)
 
+Sarthak:
 
-execution price similar to pnl
-tp sl ux 
-share on x in position card
-edge case in tp sl after sell 50%
-dont show pnl card in limit order place and limit sell
-position card / in portfolio section
-if manually closed, then remove limit orders as well of that particular market
-strategy 1 -> take notes from scalper
+- fix execution price (show similar to pnl)
+- share on x in position card
+- strategy 1 -> take notes from scalper
+- position card / in portfolio section
