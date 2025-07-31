@@ -11,6 +11,9 @@ import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { redisClient } from "@/lib/redis";
+import { generatePnlCard } from "@/utils/card-generator";
+import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
+import { capitalize } from "@/utils";
 
 type Auth = {
     apiKey: string;
@@ -32,12 +35,15 @@ export class PolymarketUserTradeWatcher {
     private socket: WebSocket;
     private userId: string;
     private marketId: string;
+    private fetchMarket: (id: string) => Promise<any>;
     private auth: Auth;
 
     constructor(userId: string, auth: Auth, marketId: string) {
         this.userId = userId;
         this.marketId = marketId;
         this.auth = auth;
+
+        this.fetchMarket = marketId.startsWith("0x") ? getMarketByConditionId : getMarketById;
 
         this.socket = new WebSocket(POLYMARKET_WS_USER_URL);
         this.registerHandlers();
@@ -70,9 +76,49 @@ export class PolymarketUserTradeWatcher {
                 message.event_type === "trade" &&
                 message.market === this.marketId
             ) {
-                const question = await getMarketQuestion(this.marketId);
-                const txtMessage = generateOrderFilledMessage(message, question!);
+                const user = await getUserDetails(Number(this.userId));
+                const market = await getMarketByConditionId(message.market);
 
+                if (!user || !market) {
+                    console.log("Error sending Limit Order Placed Message");
+                    return;
+                }
+
+                let pnlType: "Positive" | "Negative" | "Neutral";
+
+                const marketTitle = market.question || market.title;
+                const side = capitalize(message.outcome.toLowerCase()) as "Yes" | "No";
+                const volume = Math.floor(Number(market.volume)).toLocaleString("en-US");
+
+                const closeDate = new Date().toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                });
+
+                if (market.cashPnl > 0) pnlType = "Positive";
+                else if (market.cashPnl < 0) pnlType = "Negative";
+                else pnlType = "Neutral";
+
+                const rawProfitAmount = parseFloat(Math.abs(market.cashPnl).toFixed(2));
+                const entryPercentage = parseFloat((market.avgPrice * 100).toFixed(2));
+                const exitPercentage = parseFloat((market.curPrice * 100).toFixed(2));
+
+                const txtMessage = generateOrderFilledMessage(message, market.question);
+                const imgBuffer = await generatePnlCard(
+                    pnlType,
+                    user.telegram_username,
+                    marketTitle,
+                    side,
+                    volume,
+                    closeDate,
+                    rawProfitAmount,
+                    entryPercentage,
+                    exitPercentage,
+                    user.show_username_in_cards
+                );
+
+                await bot.telegram.sendPhoto(this.userId, { source: imgBuffer });
                 await bot.telegram.sendMessage(this.userId, txtMessage, {
                     parse_mode: "Markdown",
                 });
