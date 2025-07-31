@@ -134,7 +134,8 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
-    const { text, markup } = formatSinglePositionMessage(
+    const { text, markup } = await formatSinglePositionMessage(
+        userId.toString(),
         filteredUserPositions[0],
         0,
         filteredUserPositions.length
@@ -162,7 +163,8 @@ export async function handleTradePagination(ctx: Context, page: string) {
 
     if (!position) return ctx.answerCbQuery("Page not found");
 
-    const { text, markup } = formatSinglePositionMessage(
+    const { text, markup } = await formatSinglePositionMessage(
+        userId.toString(),
         position,
         pageIndex,
         filteredUserPositions.length
@@ -629,20 +631,7 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
-        [
-            Markup.button.callback(
-                "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "💰 Take Profit",
-                `take_profit:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "🛑 Stop Loss",
-                `stop_loss:${encodeMarketId(market.conditionId)}`
-            ),
-        ],
+        [Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`)],
         [watchlistButton],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [

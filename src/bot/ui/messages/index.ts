@@ -119,7 +119,12 @@ export const generateAutoTradeMenu = async (
     return { message: statusMessage, replyMarkup: markup };
 };
 
-export function createPaginationKeyboard(conditionId: string, index: number, total: number) {
+export function createPaginationKeyboard(
+    conditionId: string,
+    index: number,
+    total: number,
+    hasTpSlWatcher: boolean
+) {
     const paginationButtons = [];
 
     if (index > 0) {
@@ -146,8 +151,17 @@ export function createPaginationKeyboard(conditionId: string, index: number, tot
                 "🔔 Set Price Alert",
                 `set_price_alert:${encodeMarketId(conditionId)}`
             ),
-            Markup.button.callback("💰 Take Profit", `take_profit:${encodeMarketId(conditionId)}`),
-            Markup.button.callback("🛑 Stop Loss", `stop_loss:${encodeMarketId(conditionId)}`),
+        ],
+        [
+            Markup.button.callback("💰 Manage TP/SL", `tp_sl:${encodeMarketId(conditionId)}`),
+            ...(hasTpSlWatcher
+                ? [
+                      Markup.button.callback(
+                          "❌ Stop TP/SL",
+                          `stop_tp_sl:${encodeMarketId(conditionId)}`
+                      ),
+                  ]
+                : []),
         ],
         paginationButtons,
         [CLOSE_BUTTON],

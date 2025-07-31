@@ -53,7 +53,7 @@ export function generateOrderFilledMessage(trade: any, question: string): string
 }
 
 export function generatePriceAlertMessage(params: {
-    type: "take_profit" | "stop_loss" | "alert_above" | "alert_below";
+    type: "take_profit" | "stop_loss" | "alert";
     question: string;
     thresholdPrice: number;
     currentPrice: number;
@@ -64,8 +64,7 @@ export function generatePriceAlertMessage(params: {
     const typeLabel = {
         take_profit: "✅ <b>Take Profit Triggered!</b>",
         stop_loss: "🛑 <b>Stop Loss Triggered!</b>",
-        alert_above: "📈 <b>Price Alert (Above)</b>",
-        alert_below: "📉 <b>Price Alert (Below)</b>",
+        alert: "📈 <b>Price Alert </b>",
     }[type];
 
     const outcomeLine = outcomeSide ? `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` : "";
@@ -80,22 +79,22 @@ export function generatePriceAlertMessage(params: {
 }
 
 export function generateTPorSLMessage(params: {
-    type: "take_profit" | "stop_loss";
     question: string;
     thresholdPrice: number;
     currentPrice: number;
     outcomeSide: string;
     size: number;
 }): string {
-    const { type, question, thresholdPrice, currentPrice, outcomeSide, size } = params;
+    const { thresholdPrice, currentPrice, question, outcomeSide, size } = params;
 
-    const typeTitle =
-        type === "take_profit" ? "✅ <b>Take Profit Executed</b>" : "🛑 <b>Stop Loss Executed</b>";
+    const isTakeProfit = currentPrice > thresholdPrice;
+    const typeTitle = isTakeProfit
+        ? "✅ <b>Take Profit Executed</b>"
+        : "🛑 <b>Stop Loss Executed</b>";
 
-    const actionLine =
-        type === "take_profit"
-            ? `Target reached. Your position was sold to lock in gains.`
-            : `Threshold breached. Position exited to minimize further loss.`;
+    const actionLine = isTakeProfit
+        ? `Target reached. Your position was sold to lock in gains.`
+        : `Threshold breached. Position exited to minimize further loss.`;
 
     return (
         `${typeTitle}\n\n` +

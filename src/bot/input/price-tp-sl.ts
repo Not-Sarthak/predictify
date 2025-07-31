@@ -1,7 +1,7 @@
 import { clearUserInputState } from "@/bot/input/state";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { redisClient } from "@/lib/redis";
-import { PolymarketMarketTradeWatcher } from "@/notifier/ws";
+import { startTpSlWatcher, storeTpSlWatcherInRedis, type PriceWatchConfig } from "@/notifier/ws";
 import type { Context } from "telegraf";
 
 export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMessage: string) {
@@ -22,29 +22,30 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
         });
     }
 
-    if (price >= 1) {
-        return ctx.reply("⚠️ 'Price-Above' must be less than 1.0", { parse_mode: "HTML" });
-    }
-
-    if (price <= 0) {
-        return ctx.reply("⚠️ 'Price-Below' must be greater than 0.0", { parse_mode: "HTML" });
+    if (price <= 0 || price >= 1) {
+        return ctx.reply("⚠️ Price must be between 0.0 and 1.0", {
+            parse_mode: "HTML",
+        });
     }
 
     clearUserInputState(userId.toString());
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 
-    const { size, tokenId, action, marketId, outcome } = orderContext;
+    const { size, tokenId, marketId, outcome } = orderContext;
 
-    new PolymarketMarketTradeWatcher(userId.toString(), tokenId, marketId, {
-        type: action as "take_profit" | "stop_loss",
+    const config: PriceWatchConfig = {
+        type: "tp_sl",
         price,
         size: Number(size),
         outcome,
-    });
+    };
+
+    await storeTpSlWatcherInRedis(userId.toString(), config, marketId, tokenId);
+    startTpSlWatcher(userId.toString(), marketId, tokenId, config);
 
     await ctx.reply(
-        `✅ <b>${action === "take_profit" ? "Take Profit" : "Stop Loss"} Set Successfully!</b>
+        `✅ <b>TP/SL Set Successfully!</b>
 
 <b>Side:</b> ${outcome?.toUpperCase()}
 <b>Trigger Price:</b> <code>$${price.toFixed(4)}</code>

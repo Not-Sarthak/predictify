@@ -23,8 +23,6 @@ TODO:
 
 Manav:
 
-- TP & SL Conditions and Edit TP SL
-- tp sl and price alert ux (both take once price and it automatically decides price_above/price_below or take_profit/stop_loss depending on the current price)
 - if manually closed, then remove limit orders as well of that particular market
 - edge case in tp sl after sell 50% (close the prev tp/sl order and place new one at new available amount)
 

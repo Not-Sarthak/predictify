@@ -87,7 +87,7 @@ import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 import { db } from "@/lib/supabase";
-import { stopPriceAlertWatcher } from "@/notifier/ws";
+import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "@/notifier/ws";
 import { getMarketQuestion } from "@/notifier/utils";
 
 /**
@@ -143,10 +143,10 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.answerCbQuery("❌ Alert not found.");
         }
 
-        const [marketId, , direction] = fullFieldKey.split(":");
+        const [marketId, ,] = fullFieldKey.split(":");
         await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
         await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-        stopPriceAlertWatcher(userId.toString(), marketId, direction as "above" | "below");
+        stopPriceAlertWatcher(userId.toString(), marketId);
 
         await ctx.answerCbQuery("✅ Alert deleted");
         return handleShowCurrentPriceAlerts(ctx, 0, true);
@@ -673,7 +673,8 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.answerCbQuery("⚠️ Invalid index.");
         }
 
-        const { text, markup } = formatSinglePositionMessage(
+        const { text, markup } = await formatSinglePositionMessage(
+            userId.toString(),
             filteredUserPositions[index],
             index,
             filteredUserPositions.length
@@ -735,15 +736,15 @@ export async function handleCallbackQuery(ctx: Context) {
 
         const message = `🔔 <b>Set Price Alert for this Market</b>\n
 Enter <b>Price</b> & <b>Side</b> details below:\n
-Format: <code>Price-Above</code>  <code>Price-Below</code>  <code>Yes/No</code>\n
-Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
+Format: <code>Price</code> <code>Yes/No</code>\n
+Example: <code>0.7</code> <code>No</code>`;
 
         return ctx.reply(message, {
             parse_mode: "HTML",
         });
     }
 
-    if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
+    if (data.startsWith("tp_sl:")) {
         const userId = getUserIdFromCtx(ctx);
         const action = data.split(":")[0];
         const marketId = decodeMarketId(data.split(":")[1]);
@@ -771,9 +772,7 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
 
         setUserInputState(userId.toString(), "tp_sl");
 
-        const isTP = action === "take_profit";
-
-        const message = `<b>🎯 ${isTP ? "Take Profit" : "Stop Loss"} Setup</b>
+        const message = `<b>🎯 Take Profit/Stop Loss Setup</b>
 
 <b>Market:</b> ${title}
 <b>Outcome:</b> ${outcome}
@@ -782,18 +781,25 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
 <b>Current Price:</b> $${curPrice.toFixed(4)}
 <b>Unrealized PnL:</b> $${cashPnl.toFixed(4)} (${percentPnl.toFixed(2)}%)
 
-<b>🟢 Set your ${isTP ? "Take Profit" : "Stop Loss"}:</b>
-Send a price ${isTP ? "above" : "below"} <b>$${curPrice.toFixed(4)}</b> at which you'd like to ${
-            isTP ? "take profit" : "cut your loss"
-        }.
+<b>🟢 Set your Take Profit/Stop Loss:</b>
+Send a price <b>$${curPrice.toFixed(4)}</b> at which you'd like to <b>Take Profits</b> OR <b>Cut your Losses</b>
 
-<b>Example:</b> <code>${isTP ? (curPrice + 0.1).toFixed(2) : (curPrice - 0.1).toFixed(2)}</code>
+<b>Example:</b> <code>0.69</code>
 
 Once the price crosses your target, we'll alert you and execute your strategy.`;
 
         return ctx.reply(message, {
             parse_mode: "HTML",
         });
+    }
+
+    if (data.startsWith("stop_tp_sl:")) {
+        const userId = getUserIdFromCtx(ctx).toString();
+        const marketId = decodeMarketId(data.split(":")[1]);
+
+        await stopAllTpSlWatchers(userId, marketId);
+
+        return ctx.reply("✅ TP/SL Stopped for the Current Market.");
     }
 
     if (data.startsWith("toggle_show_username")) {
@@ -1157,16 +1163,8 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
                 "🔔 Set Price Alert",
                 `set_price_alert:${encodeMarketId(market.conditionId)}`
             ),
-            Markup.button.callback(
-                "💰 Take Profit",
-                `take_profit:${encodeMarketId(market.conditionId)}`
-            ),
-            Markup.button.callback(
-                "🛑 Stop Loss",
-                `stop_loss:${encodeMarketId(market.conditionId)}`
-            ),
+            Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`),
         ],
-        // Always show Remove from Watchlist when accessed from watchlist
         [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [

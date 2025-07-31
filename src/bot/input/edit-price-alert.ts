@@ -27,12 +27,8 @@ export async function handleEditPriceAlert(ctx: Context, textMessage: string) {
         });
     }
 
-    if (price >= 1) {
-        return ctx.reply("⚠️ 'Price-Above' must be less than 1.0", { parse_mode: "HTML" });
-    }
-
-    if (price <= 0) {
-        return ctx.reply("⚠️ 'Price-Below' must be greater than 0.0", { parse_mode: "HTML" });
+    if (price <= 0 || price >= 1) {
+        return ctx.reply("⚠️ Price must be between 0.0 and 1.0", { parse_mode: "HTML" });
     }
 
     clearUserInputState(userId.toString());
@@ -58,11 +54,7 @@ export async function handleEditPriceAlert(ctx: Context, textMessage: string) {
     // Delete old alert
     await redisClient.hDel(`user:price_alerts:${userId}`, fullKey);
     await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-    stopPriceAlertWatcher(
-        userId.toString(),
-        oldConfig.marketId,
-        oldConfig.type === "alert_above" ? "above" : "below"
-    );
+    stopPriceAlertWatcher(userId.toString(), oldConfig.marketId);
 
     // Save new alert
     await storePriceAlertInRedis(
@@ -77,7 +69,6 @@ export async function handleEditPriceAlert(ctx: Context, textMessage: string) {
     await ctx.reply(
         `✅ <b>Alert Updated</b>\n\n` +
             `<b>Market:</b> ${marketTitle}\n` +
-            `<b>Type:</b> ${newConfig.type.replace("_", " ").toUpperCase()}\n` +
             `<b>New Trigger Price:</b> ${price}\n` +
             `<b>Outcome:</b> ${newConfig.outcome.toUpperCase()}`,
         { parse_mode: "HTML" }

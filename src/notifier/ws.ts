@@ -12,7 +12,7 @@ import { OrderType, Side } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { redisClient } from "@/lib/redis";
 import { generatePnlCard } from "@/utils/card-generator";
-import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
+import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
 import { capitalize } from "@/utils";
 
 type Auth = {
@@ -22,12 +22,10 @@ type Auth = {
 };
 
 export type PriceWatchConfig =
-    | { type: "take_profit"; price: number; outcome: string; size: number }
-    | { type: "stop_loss"; price: number; outcome: string; size: number }
-    | { type: "alert_above"; price: number; outcome: string }
-    | { type: "alert_below"; price: number; outcome: string };
+    | { type: "tp_sl"; price: number; outcome: string; size: number }
+    | { type: "alert"; price: number; outcome: string };
 
-type WatcherKey = `${string}:${string}:${"above" | "below"}`; // userId:marketId:direction
+type WatcherKey = `${string}:${string}`; // userId:marketId:direction
 
 const watchers = new Map<WatcherKey, PolymarketMarketTradeWatcher>();
 
@@ -35,15 +33,12 @@ export class PolymarketUserTradeWatcher {
     private socket: WebSocket;
     private userId: string;
     private marketId: string;
-    private fetchMarket: (id: string) => Promise<any>;
     private auth: Auth;
 
     constructor(userId: string, auth: Auth, marketId: string) {
         this.userId = userId;
         this.marketId = marketId;
         this.auth = auth;
-
-        this.fetchMarket = marketId.startsWith("0x") ? getMarketByConditionId : getMarketById;
 
         this.socket = new WebSocket(POLYMARKET_WS_USER_URL);
         this.registerHandlers();
@@ -196,27 +191,18 @@ export class PolymarketMarketTradeWatcher {
             if (!isFinite(currentAsk)) return;
 
             const { type, price } = this.config;
-            let outcome;
-
-            if (type === "alert_above" || type === "alert_below") {
-                outcome = this.config.outcome;
-            }
-
             let shouldTrigger = false;
 
-            switch (type) {
-                case "take_profit":
-                    shouldTrigger = this.lastBestAsk < price && currentAsk > price;
-                    break;
-                case "stop_loss":
-                    shouldTrigger = this.lastBestAsk > price && currentAsk < price;
-                    break;
-                case "alert_above":
-                    shouldTrigger = this.lastBestAsk < price && currentAsk > price;
-                    break;
-                case "alert_below":
-                    shouldTrigger = this.lastBestAsk > price && currentAsk < price;
-                    break;
+            if (type === "alert") {
+                shouldTrigger =
+                    (this.lastBestAsk < price && currentAsk >= price) ||
+                    (this.lastBestAsk > price && currentAsk <= price);
+            }
+
+            if (type === "tp_sl") {
+                shouldTrigger =
+                    (this.lastBestAsk < price && currentAsk > price) || // take-profit
+                    (this.lastBestAsk > price && currentAsk < price); // stop-loss
             }
 
             this.lastBestAsk = currentAsk;
@@ -230,10 +216,10 @@ export class PolymarketMarketTradeWatcher {
                 question: question || "Unknown Market",
                 thresholdPrice: price,
                 currentPrice: currentAsk,
-                outcomeSide: outcome,
+                outcomeSide: this.config.outcome,
             };
 
-            if (type === "alert_above" || type === "alert_below") {
+            if (type === "alert") {
                 try {
                     await bot.telegram.sendMessage(
                         this.userId,
@@ -245,9 +231,8 @@ export class PolymarketMarketTradeWatcher {
                 }
             }
 
-            if (type === "take_profit" || type === "stop_loss") {
+            if (type === "tp_sl") {
                 const user = await getUserDetails(Number(this.userId));
-
                 if (!user) {
                     console.error("Error fetching User Details in TP/SL");
                     return;
@@ -268,21 +253,16 @@ export class PolymarketMarketTradeWatcher {
                     console.error("ERROR EXECUTING TP/SL LIMIT ORDER: ", error);
                 }
 
-                const question = await getMarketQuestion(this.marketId);
-
                 await bot.telegram.sendMessage(
                     this.userId,
                     generateTPorSLMessage({
-                        type,
                         question: question || "Unknown Market",
                         thresholdPrice: price,
                         currentPrice: currentAsk,
                         outcomeSide: this.config.outcome,
                         size: this.config.size,
                     }),
-                    {
-                        parse_mode: "HTML",
-                    }
+                    { parse_mode: "HTML" }
                 );
             }
 
@@ -311,8 +291,7 @@ export async function storePriceAlertInRedis(
     marketId: string,
     assetId: string
 ) {
-    const direction = config.type === "alert_above" ? "above" : "below";
-    const fullField = `${marketId}:${assetId}:${direction}`;
+    const fullField = `${marketId}:${assetId}`;
     const redisFieldKey = `user:price_alerts:${userId}`;
     const alertData = JSON.stringify({ ...config, marketId, assetId });
 
@@ -325,7 +304,7 @@ export function startPriceAlertWatcher(
     assetId: string,
     config: PriceWatchConfig
 ) {
-    const key: WatcherKey = `${userId}:${marketId}:${config.type === "alert_above" ? "above" : "below"}`;
+    const key: WatcherKey = `${userId}:${marketId}`;
 
     const existing = watchers.get(key);
     if (existing) {
@@ -336,12 +315,8 @@ export function startPriceAlertWatcher(
     watchers.set(key, watcher);
 }
 
-export function stopPriceAlertWatcher(
-    userId: string,
-    marketId: string,
-    direction: "above" | "below"
-) {
-    const key: WatcherKey = `${userId}:${marketId}:${direction}`;
+export function stopPriceAlertWatcher(userId: string, marketId: string) {
+    const key: WatcherKey = `${userId}:${marketId}`;
     const watcher = watchers.get(key);
 
     if (watcher) {
@@ -360,6 +335,76 @@ export async function restoreWatchersFromRedis() {
         for (const [_, configStr] of Object.entries(alerts)) {
             const config = JSON.parse(configStr);
             startPriceAlertWatcher(userId, config.marketId, config.assetId, config);
+        }
+    }
+}
+
+export async function storeTpSlWatcherInRedis(
+    userId: string,
+    config: PriceWatchConfig,
+    marketId: string,
+    assetId: string
+) {
+    const fullField = `${marketId}:${assetId}`;
+    const redisFieldKey = `user:tp_sl_watchers:${userId}`;
+    const data = JSON.stringify({ ...config, marketId, assetId });
+
+    await redisClient.hSet(redisFieldKey, fullField, data);
+}
+
+export function startTpSlWatcher(
+    userId: string,
+    marketId: string,
+    assetId: string,
+    config: PriceWatchConfig
+) {
+    const key: WatcherKey = `${userId}:${marketId}`;
+
+    const existing = watchers.get(key);
+    if (existing) {
+        existing.close();
+    }
+
+    const watcher = new PolymarketMarketTradeWatcher(userId, assetId, marketId, config);
+    watchers.set(key, watcher);
+}
+
+export function stopTpSlWatcher(userId: string, marketId: string) {
+    const key: WatcherKey = `${userId}:${marketId}`;
+    const watcher = watchers.get(key);
+
+    if (watcher) {
+        watcher.close();
+        watchers.delete(key);
+    }
+}
+
+export async function restoreTpSlWatchersFromRedis() {
+    const keys = await redisClient.keys("user:tp_sl_watchers:*");
+
+    for (const key of keys) {
+        const userId = key.split(":")[2];
+        const entries = await redisClient.hGetAll(key);
+
+        for (const [_, configStr] of Object.entries(entries)) {
+            const config = JSON.parse(configStr);
+            startTpSlWatcher(userId, config.marketId, config.assetId, config);
+        }
+    }
+}
+
+export async function stopAllTpSlWatchers(userId: string, marketId: string) {
+    const tpSlKey = `user:tp_sl_watchers:${userId}`;
+
+    // Fetch all TP/SL entries for the user
+    const tpSlEntries = await redisClient.hGetAll(tpSlKey);
+
+    for (const [field, _] of Object.entries(tpSlEntries)) {
+        const [storedMarketId] = field.split(":");
+
+        if (storedMarketId === marketId) {
+            await redisClient.hDel(tpSlKey, field);
+            stopTpSlWatcher(userId, marketId);
         }
     }
 }
