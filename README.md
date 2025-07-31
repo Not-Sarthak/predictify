@@ -21,12 +21,9 @@ TODO:
 5. Tag Bot and Give Info
 6. Twitter Bot
 
-Manav:
-
-- TP & SL Conditions and Edit TP SL
-- Make Market Titles Clickable instead of button (on click opens the market details)
-- Add Edit Price Alerts Edit Buttons in Subscriptions Menu
-
 Sarthak:
 
-- Add to Watchlist feature
+- fix execution price (show similar to pnl)
+- share on x in position card
+- strategy 1 -> take notes from scalper
+- position card / in portfolio section

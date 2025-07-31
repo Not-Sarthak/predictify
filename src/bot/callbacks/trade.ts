@@ -38,6 +38,12 @@ import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
 import { generatePnlCard } from "@/utils/card-generator";
+import {
+    startTpSlWatcher,
+    stopAllTpSlWatchers,
+    storeTpSlWatcherInRedis,
+    type PriceWatchConfig,
+} from "@/notifier/ws";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -134,7 +140,8 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
-    const { text, markup } = formatSinglePositionMessage(
+    const { text, markup } = await formatSinglePositionMessage(
+        userId.toString(),
         filteredUserPositions[0],
         0,
         filteredUserPositions.length
@@ -162,7 +169,8 @@ export async function handleTradePagination(ctx: Context, page: string) {
 
     if (!position) return ctx.answerCbQuery("Page not found");
 
-    const { text, markup } = formatSinglePositionMessage(
+    const { text, markup } = await formatSinglePositionMessage(
+        userId.toString(),
         position,
         pageIndex,
         filteredUserPositions.length
@@ -580,10 +588,10 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
 
     let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
 
-    const userId = ctx.from?.id?.toString();
+    const userId = ctx.from?.id;
     if (userId) {
         const tokenIds = JSON.parse(market.clobTokenIds);
-        const orderBookData = await formatOrderBook(tokenIds, userId);
+        const orderBookData = await formatOrderBook(tokenIds, userId.toString());
         message += orderBookData;
         message += `----------------------------------\n\n`;
     }
@@ -595,6 +603,30 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
+
+    // Check if market is in watchlist
+    let watchlistButton;
+    if (userId) {
+        const { data: user } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        const isInWatchlist =
+            //@ts-expect-error Some should be allowed
+            user?.market_watchlist?.some(
+                (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
+            ) || false;
+        watchlistButton = isInWatchlist
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+    } else {
+        watchlistButton = Markup.button.callback(
+            "❤️ Add to My Watchlist",
+            `add_watchlist:${market.id}`
+        );
+    }
+
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -605,6 +637,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`)],
+        [watchlistButton],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
@@ -653,6 +687,31 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
     }
 
+    // Check if market is in watchlist
+    const userId = ctx.from?.id;
+    let watchlistButton;
+    if (userId) {
+        const { data: user } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        const isInWatchlist =
+            //@ts-expect-error Some should be allowed
+            user?.market_watchlist?.some(
+                (item: any) =>
+                    item.marketId === market.id || item.conditionId === market.conditionId
+            ) || false;
+        watchlistButton = isInWatchlist
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+    } else {
+        watchlistButton = Markup.button.callback(
+            "❤️ Add to My Watchlist",
+            `add_watchlist:${market.id}`
+        );
+    }
+
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
@@ -663,6 +722,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [watchlistButton],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),
@@ -966,6 +1026,50 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
+    const { sellType, originalSize } = orderContext;
+
+    let updatedConfig: PriceWatchConfig | null = null;
+
+    if (sellType === "50" || sellType === "custom") {
+        const remaining =
+            sellType === "custom" && originalSize
+                ? Number(originalSize) - (amountToSell || 0)
+                : Number(orderContext.remainingSize);
+
+        if (!isNaN(remaining) && remaining > 0) {
+            const oldWatcher = await redisClient.hGet(
+                `user:tp_sl_watchers:${userId}`,
+                `${decodedConditionId}:${userMarketDetails.asset}`
+            );
+
+            if (oldWatcher) {
+                const oldConfig = JSON.parse(oldWatcher);
+                updatedConfig = { ...oldConfig, size: remaining };
+            }
+        }
+    }
+
+    await stopAllTpSlWatchers(userId.toString(), conditionId);
+
+    if (updatedConfig) {
+        await storeTpSlWatcherInRedis(
+            userId.toString(),
+            updatedConfig,
+            decodedConditionId,
+            userMarketDetails.asset
+        );
+
+        startTpSlWatcher(
+            userId.toString(),
+            decodedConditionId,
+            userMarketDetails.asset,
+            updatedConfig
+        );
+    }
+
+    await redisClient.del(`user:order_context:${userId}`);
 
     const [pnlCardBuffer, { data: pnlData, error: pnlDbErr }] = await Promise.all([
         pnlCardPromise,

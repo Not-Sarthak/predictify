@@ -4,6 +4,7 @@ export * from "./settings";
 export * from "./start";
 export * from "./subscriptions";
 export * from "./trade";
+export * from "./watchlist";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -42,5 +43,9 @@ export const botCommands: BotCommand[] = [
     {
         command: "stats",
         description: "View your Trading Stats",
+    },
+    {
+        command: "watchlist",
+        description: "View your favorite markets watchlist",
     },
 ];

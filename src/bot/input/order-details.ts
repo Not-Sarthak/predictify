@@ -338,48 +338,41 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             const toWin = amount / currentPrice;
             const odds = currentPrice * 100;
 
-            const imgBuffer = await generatePositionCard(
-                username,
-                market.question,
-                side,
-                volume,
-                closeDate,
-                toWin,
-                odds,
-                amount,
-                userDetails.show_username_in_cards
+            await ctx.telegram.editMessageText(
+                ctx.chat!.id,
+                sentMessage.message_id,
+                undefined,
+                orderPlacedMessage,
+                {
+                    parse_mode: "HTML",
+                    reply_markup: Markup.inlineKeyboard([
+                        [Markup.button.callback("📊 Track My Order", button_callback_data)],
+                        [
+                            Markup.button.callback(
+                                "💰 TP/SL",
+                                `tp_sl:${encodeMarketId(market.conditionId)}`
+                            ),
+                        ],
+                    ]).reply_markup,
+                }
             );
+            redisClient.rPush(`user:order_ids:${userId}`, orderId);
 
-            await Promise.all([
-                ctx.replyWithPhoto({ source: imgBuffer }),
-                ctx.telegram.editMessageText(
-                    ctx.chat!.id,
-                    sentMessage.message_id,
-                    undefined,
-                    orderPlacedMessage,
-                    {
-                        parse_mode: "HTML",
-                        reply_markup: Markup.inlineKeyboard([
-                            [Markup.button.callback("📊 Track My Order", button_callback_data)],
-                            [
-                                Markup.button.callback(
-                                    "🔔 Set Price Alert",
-                                    `set_price_alert:${encodeMarketId(market.conditionId)}`
-                                ),
-                                Markup.button.callback(
-                                    "💰 Take Profit",
-                                    `take_profit:${encodeMarketId(market.conditionId)}`
-                                ),
-                                Markup.button.callback(
-                                    "🛑 Stop Loss",
-                                    `stop_loss:${encodeMarketId(market.conditionId)}`
-                                ),
-                            ],
-                        ]).reply_markup,
-                    }
-                ),
-                redisClient.rPush(`user:order_ids:${userId}`, orderId),
-            ]);
+            if (orderResponse.response.status === "matched") {
+                const imgBuffer = await generatePositionCard(
+                    username,
+                    market.question,
+                    side,
+                    volume,
+                    closeDate,
+                    toWin,
+                    odds,
+                    amount,
+                    userDetails.show_username_in_cards
+                );
+
+                await ctx.replyWithPhoto({ source: imgBuffer });
+            }
 
             if (orderType === "gtc") {
                 await db("Users")

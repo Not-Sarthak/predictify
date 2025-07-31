@@ -18,6 +18,7 @@ import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
 import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
 import { handleTakeProfitOrStopLossExecution } from "@/bot/input/price-tp-sl";
 import { getEventBySlug } from "@/utils/polymarket/get-markets";
+import { handleEditPriceAlert } from "@/bot/input/edit-price-alert";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -74,6 +75,9 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "tp_sl":
             await handleTakeProfitOrStopLossExecution(ctx, textMessage);
+            break;
+        case "edit_price_alert":
+            await handleEditPriceAlert(ctx, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");

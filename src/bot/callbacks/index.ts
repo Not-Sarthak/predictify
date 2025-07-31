@@ -23,8 +23,15 @@ import {
     handleRefreshTopMarkets,
     handleShowZeroDTEMarketsByCategory,
 } from "./trade";
+import { getMarketById } from "@/utils/polymarket/get-markets";
+import { formatOrderBook, escapeMarkdown } from "@/bot/utils";
+import { encodeMarketId } from "@/utils/encoding";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
-import { handleSubscriptionMenuCallbacks, handleSubscriptionManagement } from "./subscriptions";
+import {
+    handleSubscriptionMenuCallbacks,
+    handleSubscriptionManagement,
+    handleShowCurrentPriceAlerts,
+} from "./subscriptions";
 import {
     handleAddNewWalletCallback,
     handleDeleteWalletCallback,
@@ -80,6 +87,8 @@ import { sendPaginatedHistory } from "@/bot/commands/history";
 import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 import { db } from "@/lib/supabase";
+import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "@/notifier/ws";
+import { getMarketQuestion } from "@/notifier/utils";
 
 /**
  * TODO:FIX
@@ -113,6 +122,59 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("subscribe:")) {
         const [, isSubscribe, category] = data.split(":");
         return handleSubscriptionManagement(ctx, isSubscribe, category);
+    }
+
+    if (data === "edit_price_alerts") {
+        return handleShowCurrentPriceAlerts(ctx);
+    }
+
+    if (data.startsWith("alert_nav:")) {
+        const page = parseInt(data.split(":")[1]);
+        await ctx.answerCbQuery();
+        return handleShowCurrentPriceAlerts(ctx, page, true);
+    }
+
+    if (data.startsWith("alert_delete:")) {
+        const shortKey = data.split(":")[1];
+        const userId = getUserIdFromCtx(ctx);
+
+        const fullFieldKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
+        if (!fullFieldKey) {
+            return ctx.answerCbQuery("❌ Alert not found.");
+        }
+
+        const [marketId, ,] = fullFieldKey.split(":");
+        await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
+        await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
+        stopPriceAlertWatcher(userId.toString(), marketId);
+
+        await ctx.answerCbQuery("✅ Alert deleted");
+        return handleShowCurrentPriceAlerts(ctx, 0, true);
+    }
+
+    if (data.startsWith("alert_edit:")) {
+        const shortKey = data.split(":")[1];
+        const userId = getUserIdFromCtx(ctx);
+
+        const fullKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
+        const configStr = await redisClient.hGet(`user:price_alerts:${userId}`, fullKey as string);
+        if (!fullKey || !configStr) {
+            return ctx.answerCbQuery("❌ Alert not found.");
+        }
+
+        const config = JSON.parse(configStr);
+        const marketTitle = await getMarketQuestion(config.marketId);
+
+        await redisClient.hSet(`user:edit_price_alert:${userId}`, shortKey, configStr);
+        await setUserInputState(userId.toString(), "edit_price_alert");
+
+        return ctx.reply(
+            `✏️ <b>Edit Price Alert</b>\n\n` +
+                `<b>Market:</b> ${marketTitle}\n` +
+                `<b>Current Trigger:</b> ${config.price}\n\n` +
+                `Please send a new price for this alert (between 0 and 1).`,
+            { parse_mode: "HTML" }
+        );
     }
 
     if (data.startsWith("close_position:")) {
@@ -445,11 +507,19 @@ export async function handleCallbackQuery(ctx: Context) {
 
         if (sellType === "50") {
             amountToSell = Math.floor(position.size * 0.5);
+
+            await redisClient.hSet(`user:order_context:${userId}`, {
+                marketId: conditionId,
+                sellType: "50",
+                remainingSize: position.size - amountToSell,
+            });
         } else if (sellType === "100") {
             amountToSell = position.size;
         } else if (sellType === "custom") {
             await redisClient.hSet(`user:order_context:${userId}`, {
                 marketId: conditionId,
+                sellType: "custom",
+                originalSize: position.size,
             });
 
             await setUserInputState(userId.toString(), "close_position");
@@ -611,7 +681,8 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.answerCbQuery("⚠️ Invalid index.");
         }
 
-        const { text, markup } = formatSinglePositionMessage(
+        const { text, markup } = await formatSinglePositionMessage(
+            userId.toString(),
             filteredUserPositions[index],
             index,
             filteredUserPositions.length
@@ -673,15 +744,15 @@ export async function handleCallbackQuery(ctx: Context) {
 
         const message = `🔔 <b>Set Price Alert for this Market</b>\n
 Enter <b>Price</b> & <b>Side</b> details below:\n
-Format: <code>Price-Above</code>  <code>Price-Below</code>  <code>Yes/No</code>\n
-Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
+Format: <code>Price</code> <code>Yes/No</code>\n
+Example: <code>0.7</code> <code>No</code>`;
 
         return ctx.reply(message, {
             parse_mode: "HTML",
         });
     }
 
-    if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
+    if (data.startsWith("tp_sl:")) {
         const userId = getUserIdFromCtx(ctx);
         const action = data.split(":")[0];
         const marketId = decodeMarketId(data.split(":")[1]);
@@ -709,9 +780,7 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
 
         setUserInputState(userId.toString(), "tp_sl");
 
-        const isTP = action === "take_profit";
-
-        const message = `<b>🎯 ${isTP ? "Take Profit" : "Stop Loss"} Setup</b>
+        const message = `<b>🎯 Take Profit/Stop Loss Setup</b>
 
 <b>Market:</b> ${title}
 <b>Outcome:</b> ${outcome}
@@ -720,18 +789,25 @@ Example: <code>0.7</code> <code>0.5</code> <code>No</code>`;
 <b>Current Price:</b> $${curPrice.toFixed(4)}
 <b>Unrealized PnL:</b> $${cashPnl.toFixed(4)} (${percentPnl.toFixed(2)}%)
 
-<b>🟢 Set your ${isTP ? "Take Profit" : "Stop Loss"}:</b>
-Send a price ${isTP ? "above" : "below"} <b>$${curPrice.toFixed(4)}</b> at which you'd like to ${
-            isTP ? "take profit" : "cut your loss"
-        }.
+<b>🟢 Set your Take Profit/Stop Loss:</b>
+Send a price <b>$${curPrice.toFixed(4)}</b> at which you'd like to <b>Take Profits</b> OR <b>Cut your Losses</b>
 
-<b>Example:</b> <code>${isTP ? (curPrice + 0.1).toFixed(2) : (curPrice - 0.1).toFixed(2)}</code>
+<b>Example:</b> <code>0.69</code>
 
 Once the price crosses your target, we'll alert you and execute your strategy.`;
 
         return ctx.reply(message, {
             parse_mode: "HTML",
         });
+    }
+
+    if (data.startsWith("stop_tp_sl:")) {
+        const userId = getUserIdFromCtx(ctx).toString();
+        const marketId = decodeMarketId(data.split(":")[1]);
+
+        await stopAllTpSlWatchers(userId, marketId);
+
+        return ctx.reply("✅ TP/SL Stopped for the Current Market.");
     }
 
     if (data.startsWith("toggle_show_username")) {
@@ -800,7 +876,313 @@ Once the price crosses your target, we'll alert you and execute your strategy.`;
         return ctx.editMessageReplyMarkup(shareKeyboard.reply_markup);
     }
 
+    if (data.startsWith("add_watchlist:")) {
+        const marketId = data.split(":")[1];
+        return handleAddToWatchlist(ctx, marketId);
+    }
+
+    if (data.startsWith("remove_watchlist:")) {
+        const marketId = data.split(":")[1];
+        return handleRemoveFromWatchlist(ctx, marketId);
+    }
+
+    if (data === "refresh_watchlist") {
+        await ctx.deleteMessage();
+        const { handleWatchlistCommand } = await import("../commands/watchlist");
+        return handleWatchlistCommand(ctx);
+    }
+
+    if (data.startsWith("watchlist_page:")) {
+        const page = parseInt(data.split(":")[1]);
+        await ctx.deleteMessage();
+        const { handleWatchlistCommand } = await import("../commands/watchlist");
+        return handleWatchlistCommand(ctx, page);
+    }
+
+    if (data.startsWith("watchlist_market:")) {
+        const marketId = data.split(":")[1];
+        // Show market with additional context that it's from watchlist
+        return handleViewMarketFromWatchlist(ctx, marketId);
+    }
+
+    if (data === "clear_watchlist") {
+        return handleClearWatchlist(ctx);
+    }
+
+    if (data === "back_to_watchlist") {
+        await ctx.deleteMessage();
+        const { handleWatchlistCommand } = await import("../commands/watchlist");
+        return handleWatchlistCommand(ctx);
+    }
+
     if (data === "close_message") {
         return ctx.deleteMessage();
     }
+}
+
+async function handleAddToWatchlist(ctx: Context, marketId: string) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Fetch market details
+        const market = await getMarketById(marketId);
+        if (!market) {
+            await ctx.answerCbQuery("❌ Market not found");
+            return;
+        }
+
+        // Get current watched markets
+        const { data: user, error: fetchError } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        if (fetchError || !user) {
+            await ctx.answerCbQuery("❌ Error adding to watchlist");
+            return;
+        }
+
+        const currentWatchlist = user.market_watchlist || [];
+
+        // Check if already in watchlist by conditionId
+        //@ts-expect-error Some should be allowed
+        const isAlreadyInWatchlist = currentWatchlist.some(
+            (item: any) => item.conditionId === market.conditionId
+        );
+
+        if (isAlreadyInWatchlist) {
+            await ctx.answerCbQuery("Already in watchlist");
+            return;
+        }
+
+        // Check limit
+        //@ts-expect-error Length exists
+        if (currentWatchlist.length >= 20) {
+            await ctx.answerCbQuery("❌ Watchlist full (20 max)");
+            return;
+        }
+
+        // Create market object to store
+        const marketToStore = {
+            conditionId: market.conditionId,
+            marketId: market.id,
+            question: market.question,
+            title: market.title || market.question,
+            groupItemTitle: market.groupItemTitle,
+            endDate: market.endDate,
+            addedAt: new Date().toISOString(),
+        };
+
+        // Add to watchlist
+        //@ts-expect-error Ignore here, because of the above reasons
+        const updatedWatchlist = [...currentWatchlist, marketToStore];
+
+        const { error: updateError } = await db("Users")
+            .update({ market_watchlist: updatedWatchlist })
+            .eq("id", userId);
+
+        if (updateError) {
+            await ctx.answerCbQuery("❌ Error updating watchlist");
+            return;
+        }
+
+        await ctx.answerCbQuery("✅ Added to watchlist");
+
+        // Update the button to show "Remove from Watchlist"
+        const message = ctx.callbackQuery?.message;
+        if (
+            message &&
+            "reply_markup" in message &&
+            message.reply_markup &&
+            "inline_keyboard" in message.reply_markup
+        ) {
+            const newKeyboard = message.reply_markup.inline_keyboard.map((row) =>
+                row.map((button) => {
+                    if (
+                        "callback_data" in button &&
+                        button.callback_data === `add_watchlist:${marketId}`
+                    ) {
+                        return Markup.button.callback(
+                            "💔 Remove from Watchlist",
+                            `remove_watchlist:${marketId}`
+                        );
+                    }
+                    return button;
+                })
+            );
+
+            await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(newKeyboard).reply_markup);
+        }
+    } catch (error) {
+        console.error("Error in handleAddToWatchlist:", error);
+        await ctx.answerCbQuery("❌ Error occurred");
+    }
+}
+
+async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Get current watched markets
+        const { data: user, error: fetchError } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        if (fetchError || !user) {
+            await ctx.answerCbQuery("❌ Error removing from watchlist");
+            return;
+        }
+
+        const currentWatchlist = user.market_watchlist || [];
+
+        // Remove from watchlist by marketId
+        //@ts-expect-error Filter should be allowed
+        const updatedWatchlist = currentWatchlist.filter((item: any) => item.marketId !== marketId);
+
+        const { error: updateError } = await db("Users")
+            .update({ market_watchlist: updatedWatchlist })
+            .eq("id", userId);
+
+        if (updateError) {
+            await ctx.answerCbQuery("❌ Error updating watchlist");
+            return;
+        }
+
+        await ctx.answerCbQuery("✅ Removed from watchlist");
+
+        // Check if this was called from the watchlist view
+        const message = ctx.callbackQuery?.message;
+        if (
+            message &&
+            "reply_markup" in message &&
+            message.reply_markup &&
+            "inline_keyboard" in message.reply_markup
+        ) {
+            // Check if there's a "Back to Watchlist" button (indicating we're in watchlist view)
+            const hasBackButton = message.reply_markup.inline_keyboard.some((row) =>
+                row.some(
+                    (button) =>
+                        "callback_data" in button && button.callback_data === "back_to_watchlist"
+                )
+            );
+
+            if (hasBackButton) {
+                // If from watchlist, show confirmation and redirect back
+                await ctx.deleteMessage();
+                await ctx.reply(
+                    "✅ **Market Removed from Watchlist**\n\n" +
+                        "The market has been removed from your watchlist.",
+                    { parse_mode: "Markdown" }
+                );
+
+                // Wait a moment then show the watchlist again
+                setTimeout(async () => {
+                    const { handleWatchlistCommand } = await import("../commands/watchlist");
+                    await handleWatchlistCommand(ctx);
+                }, 1000);
+            } else {
+                // Otherwise, just update the button
+                const newKeyboard = message.reply_markup.inline_keyboard.map((row) =>
+                    row.map((button) => {
+                        if (
+                            "callback_data" in button &&
+                            button.callback_data === `remove_watchlist:${marketId}`
+                        ) {
+                            return Markup.button.callback(
+                                "❤️ Add to My Watchlist",
+                                `add_watchlist:${marketId}`
+                            );
+                        }
+                        return button;
+                    })
+                );
+
+                await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(newKeyboard).reply_markup);
+            }
+        }
+    } catch (error) {
+        console.error("Error in handleRemoveFromWatchlist:", error);
+        await ctx.answerCbQuery("❌ Error occurred");
+    }
+}
+
+async function handleClearWatchlist(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        const { error } = await db("Users").update({ market_watchlist: [] }).eq("id", userId);
+
+        if (error) {
+            await ctx.answerCbQuery("❌ Error clearing watchlist");
+            return;
+        }
+
+        await ctx.answerCbQuery("✅ Watchlist cleared");
+        await ctx.deleteMessage();
+
+        return ctx.reply(
+            "❤️ **Your Watchlist has been Cleared**\n\n" +
+                "You can add markets back to your watchlist anytime.",
+            { parse_mode: "Markdown" }
+        );
+    } catch (error) {
+        console.error("Error in handleClearWatchlist:", error);
+        await ctx.answerCbQuery("❌ Error occurred");
+    }
+}
+
+async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
+    const market = await getMarketById(marketId);
+
+    if (!market) {
+        return ctx.reply("❌ There Was an Error Fetching Market Details!");
+    }
+
+    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+
+    const userId = ctx.from?.id;
+    if (userId) {
+        const tokenIds = JSON.parse(market.clobTokenIds);
+        const orderBookData = await formatOrderBook(tokenIds, userId.toString());
+        message += orderBookData;
+        message += `----------------------------------\n\n`;
+    }
+
+    const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const yesPrice = outcomes[0];
+    const noPrice = outcomes[1];
+
+    message += `💹 **Prices**
+• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
+• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
+
+    const keyboard = Markup.inlineKeyboard([
+        [
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+            Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`),
+        ],
+        [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
+        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [
+            Markup.button.callback("⬅️ Back to Watchlist", "back_to_watchlist"),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }

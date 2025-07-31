@@ -5,6 +5,7 @@ import { bot } from "./bot";
 // import { connectToSupabaseRealtime } from "@/watcher";
 import { tryCatch } from "./utils";
 import { notifier } from "@/notifier";
+import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "@/notifier/ws";
 
 async function main() {
     // Starts the API Server
@@ -17,6 +18,13 @@ async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours
     console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
     notifier.start();
+
+    // Restores Watchers
+    await restoreWatchersFromRedis();
+    console.log(`[${new Date().toISOString()}] ✅ Restored Price Alert Watchers...`);
+
+    await restoreTpSlWatchersFromRedis();
+    console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
 
     /**
      * DISABLED AUTOTRADING TEMPORARILY
