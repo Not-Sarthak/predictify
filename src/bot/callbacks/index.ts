@@ -507,11 +507,19 @@ export async function handleCallbackQuery(ctx: Context) {
 
         if (sellType === "50") {
             amountToSell = Math.floor(position.size * 0.5);
+
+            await redisClient.hSet(`user:order_context:${userId}`, {
+                marketId: conditionId,
+                sellType: "50",
+                remainingSize: position.size - amountToSell,
+            });
         } else if (sellType === "100") {
             amountToSell = position.size;
         } else if (sellType === "custom") {
             await redisClient.hSet(`user:order_context:${userId}`, {
                 marketId: conditionId,
+                sellType: "custom",
+                originalSize: position.size,
             });
 
             await setUserInputState(userId.toString(), "close_position");

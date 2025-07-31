@@ -21,11 +21,6 @@ TODO:
 5. Tag Bot and Give Info
 6. Twitter Bot
 
-Manav:
-
-- if manually closed, then remove limit orders as well of that particular market
-- edge case in tp sl after sell 50% (close the prev tp/sl order and place new one at new available amount)
-
 Sarthak:
 
 - fix execution price (show similar to pnl)

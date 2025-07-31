@@ -38,6 +38,12 @@ import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
 import { generatePnlCard } from "@/utils/card-generator";
+import {
+    startTpSlWatcher,
+    stopAllTpSlWatchers,
+    storeTpSlWatcherInRedis,
+    type PriceWatchConfig,
+} from "@/notifier/ws";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1020,6 +1026,50 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
+    const { sellType, originalSize } = orderContext;
+
+    let updatedConfig: PriceWatchConfig | null = null;
+
+    if (sellType === "50" || sellType === "custom") {
+        const remaining =
+            sellType === "custom" && originalSize
+                ? Number(originalSize) - (amountToSell || 0)
+                : Number(orderContext.remainingSize);
+
+        if (!isNaN(remaining) && remaining > 0) {
+            const oldWatcher = await redisClient.hGet(
+                `user:tp_sl_watchers:${userId}`,
+                `${decodedConditionId}:${userMarketDetails.asset}`
+            );
+
+            if (oldWatcher) {
+                const oldConfig = JSON.parse(oldWatcher);
+                updatedConfig = { ...oldConfig, size: remaining };
+            }
+        }
+    }
+
+    await stopAllTpSlWatchers(userId.toString(), conditionId);
+
+    if (updatedConfig) {
+        await storeTpSlWatcherInRedis(
+            userId.toString(),
+            updatedConfig,
+            decodedConditionId,
+            userMarketDetails.asset
+        );
+
+        startTpSlWatcher(
+            userId.toString(),
+            decodedConditionId,
+            userMarketDetails.asset,
+            updatedConfig
+        );
+    }
+
+    await redisClient.del(`user:order_context:${userId}`);
 
     const [pnlCardBuffer, { data: pnlData, error: pnlDbErr }] = await Promise.all([
         pnlCardPromise,
