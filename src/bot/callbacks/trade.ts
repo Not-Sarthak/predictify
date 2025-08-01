@@ -253,7 +253,6 @@ export async function handleViewTopMarketsByCategory(
 ) {
     const LIMIT = 8;
     let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
-
     const markets = await fetchMarkets(marketCategory, filter, offset);
 
     const filteredMarkets =
@@ -637,7 +636,12 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
-        [Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`)],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+        ],
         [watchlistButton],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
@@ -673,19 +677,12 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const yesPrice = outcomes[0];
     const noPrice = outcomes[1];
-    const spread = market.spread ? (market.spread * 100).toFixed(2) : "N/A";
-    const minOrderSize = market.orderMinSize || 0;
-    const minOrderValue = (minOrderSize * Math.min(yesPrice, noPrice)).toFixed(2);
 
     message += `----------------------------------\n\n`;
     message += `💹 **Prices**
 • Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
 • No $${noPrice} (${Math.round(noPrice * 100)}%)`;
-    message += `\n\n📊 **Spread:** ${spread}% • **Min Order:** ${minOrderSize} shares (~$${minOrderValue})\n`;
-
-    if (market.lastTradePrice) {
-        message += `🔄 **Last Trade:** $${market.lastTradePrice}\n`;
-    }
+    message += `\n\n[View on Polymarket](https://polymarket.com/market/${encodeURIComponent(market.slug)})`;
 
     // Check if market is in watchlist
     const userId = ctx.from?.id;
@@ -722,6 +719,12 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketId(market.conditionId)}`
+            ),
+        ],
         [watchlistButton],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
@@ -732,6 +735,7 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     return ctx.reply(message, {
         parse_mode: "Markdown",
         reply_markup: keyboard.reply_markup,
+        link_preview_options: { is_disabled: true },
     });
 }
 

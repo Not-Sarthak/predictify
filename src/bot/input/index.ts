@@ -16,7 +16,7 @@ import { getUserInputState } from "@/bot/input/state";
 import { redisClient } from "@/lib/redis";
 import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
 import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
-import { handleTakeProfitOrStopLossExecution } from "@/bot/input/price-tp-sl";
+import { handleTakeProfitOrStopLossExecution, handleTpSlShareInput } from "@/bot/input/price-tp-sl";
 import { getEventBySlug } from "@/utils/polymarket/get-markets";
 import { handleEditPriceAlert } from "@/bot/input/edit-price-alert";
 
@@ -73,7 +73,10 @@ export async function handleUserTextMessage(ctx: Context) {
         case "set_price_alert":
             await handleSetMarketPriceAlert(ctx, textMessage);
             break;
-        case "tp_sl":
+        case "tp_sl_share_input":
+            await handleTpSlShareInput(ctx, textMessage);
+            break;
+        case "tp_sl_price_input":
             await handleTakeProfitOrStopLossExecution(ctx, textMessage);
             break;
         case "edit_price_alert":

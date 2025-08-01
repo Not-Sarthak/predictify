@@ -105,6 +105,9 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (!data) return;
 
+    const userId = getUserIdFromCtx(ctx);
+    const userIdStr = userId.toString();
+
     /**
      * Handle Callbacks based on Data Value
      */
@@ -136,7 +139,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("alert_delete:")) {
         const shortKey = data.split(":")[1];
-        const userId = getUserIdFromCtx(ctx);
 
         const fullFieldKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
         if (!fullFieldKey) {
@@ -146,7 +148,7 @@ export async function handleCallbackQuery(ctx: Context) {
         const [marketId, ,] = fullFieldKey.split(":");
         await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
         await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-        stopPriceAlertWatcher(userId.toString(), marketId);
+        stopPriceAlertWatcher(userIdStr, marketId);
 
         await ctx.answerCbQuery("✅ Alert deleted");
         return handleShowCurrentPriceAlerts(ctx, 0, true);
@@ -154,7 +156,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("alert_edit:")) {
         const shortKey = data.split(":")[1];
-        const userId = getUserIdFromCtx(ctx);
 
         const fullKey = await redisClient.hGet(`user:price_alert_keys:${userId}`, shortKey);
         const configStr = await redisClient.hGet(`user:price_alerts:${userId}`, fullKey as string);
@@ -166,7 +167,7 @@ export async function handleCallbackQuery(ctx: Context) {
         const marketTitle = await getMarketQuestion(config.marketId);
 
         await redisClient.hSet(`user:edit_price_alert:${userId}`, shortKey, configStr);
-        await setUserInputState(userId.toString(), "edit_price_alert");
+        await setUserInputState(userIdStr, "edit_price_alert");
 
         return ctx.reply(
             `✏️ <b>Edit Price Alert</b>\n\n` +
@@ -376,7 +377,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("limit_order:")) {
         const [marketId, side] = data.split(":").slice(1);
-        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -384,7 +384,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        await setUserInputState(userId.toString(), "orderDetails");
+        await setUserInputState(userIdStr, "orderDetails");
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
@@ -399,7 +399,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("market_order:")) {
         const [marketId, side] = data.split(":").slice(1);
-        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -407,7 +406,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: side.toUpperCase(),
         });
 
-        await setUserInputState(userId.toString(), "orderDetails");
+        await setUserInputState(userIdStr, "orderDetails");
         return ctx.reply(
             `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
                 `Enter The Amount in USDC You Want to Spend:\n\n` +
@@ -422,7 +421,6 @@ export async function handleCallbackQuery(ctx: Context) {
         const encodedOrderId = data.split(":")[1];
         const orderId = decodeMarketId(encodedOrderId);
 
-        const userId = getUserIdFromCtx(ctx);
         const user = await getUserDetails(userId);
         if (!user) return;
 
@@ -443,7 +441,7 @@ export async function handleCallbackQuery(ctx: Context) {
             orderId: orderId,
         });
 
-        await setUserInputState(userId.toString(), "orderDetails");
+        await setUserInputState(userIdStr, "orderDetails");
         return ctx.reply(
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
                 `Enter Your Order Details:\n\n` +
@@ -458,7 +456,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("sell_position:")) {
         const marketId = data.split(":")[1];
-        const userId = getUserIdFromCtx(ctx);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -466,7 +463,7 @@ export async function handleCallbackQuery(ctx: Context) {
             side: "SELL",
         });
 
-        await setUserInputState(userId.toString(), "orderDetails");
+        await setUserInputState(userIdStr, "orderDetails");
         return ctx.reply(
             `💵 **Sell Position**\n\n` +
                 `Enter The Amount in USDC You Want to Sell:\n\n` +
@@ -487,7 +484,6 @@ export async function handleCallbackQuery(ctx: Context) {
         const conditionId = parts.slice(2).join("_"); // Handle encoded market IDs
         const decodedConditionId = decodeMarketId(conditionId);
 
-        const userId = getUserIdFromCtx(ctx);
         const userAddress = await getUserAddressFromId(userId);
 
         if (!userAddress) {
@@ -522,7 +518,7 @@ export async function handleCallbackQuery(ctx: Context) {
                 originalSize: position.size,
             });
 
-            await setUserInputState(userId.toString(), "close_position");
+            await setUserInputState(userIdStr, "close_position");
             return ctx.reply(
                 `💵 **Sell Custom Amount**\n\n` +
                     `You currently have **${position.size}** shares.\n\n` +
@@ -598,8 +594,6 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "back_to_main_menu") {
-        const userId = getUserIdFromCtx(ctx);
-
         const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
         if (dbError || !existingUser) {
             return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
@@ -637,7 +631,6 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("orders:")) {
         const [, _, offsetStr] = data.split(":");
         const offset = parseInt(offsetStr, 10);
-        const userId = getUserIdFromCtx(ctx);
         const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
         const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
 
@@ -652,7 +645,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("refresh_order:")) {
         const offset = parseInt(data.split(":")[1], 10);
-        const userId = getUserIdFromCtx(ctx);
         const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);
         const unmatchedOrders = await getUnmatchedOpenOrders(userId, trackedOrderIds);
         if (!unmatchedOrders || unmatchedOrders.length === 0) {
@@ -663,7 +655,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("refresh_portfolio:")) {
         const index = parseInt(data.split(":")[1], 10);
-        const userId = getUserIdFromCtx(ctx);
         const userAddress = await getUserAddressFromId(userId);
 
         if (!userAddress) {
@@ -682,7 +673,7 @@ export async function handleCallbackQuery(ctx: Context) {
         }
 
         const { text, markup } = await formatSinglePositionMessage(
-            userId.toString(),
+            userIdStr,
             filteredUserPositions[index],
             index,
             filteredUserPositions.length
@@ -733,14 +724,13 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("set_price_alert:")) {
-        const userId = getUserIdFromCtx(ctx);
         const encodedMarketId = data.split(":")[1];
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId: encodedMarketId,
         });
 
-        setUserInputState(userId.toString(), "set_price_alert");
+        setUserInputState(userIdStr, "set_price_alert");
 
         const message = `🔔 <b>Set Price Alert for this Market</b>\n
 Enter <b>Price</b> & <b>Side</b> details below:\n
@@ -752,8 +742,7 @@ Example: <code>0.7</code> <code>No</code>`;
         });
     }
 
-    if (data.startsWith("tp_sl:")) {
-        const userId = getUserIdFromCtx(ctx);
+    if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
         const action = data.split(":")[0];
         const marketId = decodeMarketId(data.split(":")[1]);
 
@@ -767,8 +756,7 @@ Example: <code>0.7</code> <code>No</code>`;
             return ctx.reply("❌ You don't have an open Position in this Market");
         }
 
-        const { size, avgPrice, curPrice, outcome, cashPnl, percentPnl, title, asset } =
-            userPositionsByMarkets;
+        const { size, outcome, asset } = userPositionsByMarkets;
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             size,
@@ -778,41 +766,60 @@ Example: <code>0.7</code> <code>No</code>`;
             outcome,
         });
 
-        setUserInputState(userId.toString(), "tp_sl");
+        const isTp = action === "take_profit";
 
-        const message = `<b>🎯 Take Profit/Stop Loss Setup</b>
+        const message = isTp ? "💸 Set Take Profit" : "🛑 Set Stop Loss";
+        const cbId = isTp ? "tp" : "sl";
 
-<b>Market:</b> ${title}
-<b>Outcome:</b> ${outcome}
-<b>Position Size:</b> ${size.toFixed(4)} shares
-<b>Avg Buy Price:</b> $${avgPrice.toFixed(4)}
-<b>Current Price:</b> $${curPrice.toFixed(4)}
-<b>Unrealized PnL:</b> $${cashPnl.toFixed(4)} (${percentPnl.toFixed(2)}%)
-
-<b>🟢 Set your Take Profit/Stop Loss:</b>
-Send a price <b>$${curPrice.toFixed(4)}</b> at which you'd like to <b>Take Profits</b> OR <b>Cut your Losses</b>
-
-<b>Example:</b> <code>0.69</code>
-
-Once the price crosses your target, we'll alert you and execute your strategy.`;
+        const keyboard = [
+            [
+                Markup.button.callback("25%", `${cbId}:25`),
+                Markup.button.callback("50%", `${cbId}:50`),
+                Markup.button.callback("100%", `${cbId}:100`),
+            ],
+            [Markup.button.callback("Custom", `${cbId}:custom`)],
+        ];
 
         return ctx.reply(message, {
             parse_mode: "HTML",
+            reply_markup: Markup.inlineKeyboard(keyboard).reply_markup,
         });
     }
 
-    if (data.startsWith("stop_tp_sl:")) {
-        const userId = getUserIdFromCtx(ctx).toString();
+    if (data.startsWith("tp:") || data.startsWith("sl:")) {
+        const type = data.split(":")[1];
+
+        if (type === "custom") {
+            setUserInputState(userIdStr, "tp_sl_share_input");
+            return ctx.reply("Enter the Percentage of Shares");
+        }
+
+        await redisClient.hSet(`user:order_context:${userId}`, {
+            type,
+        });
+
+        setUserInputState(userIdStr, "tp_sl_price_input");
+        return ctx.reply("Enter the Price");
+    }
+
+    if (data.startsWith("stop_tp:")) {
         const marketId = decodeMarketId(data.split(":")[1]);
 
-        await stopAllTpSlWatchers(userId, marketId);
+        await stopAllTpSlWatchers(userIdStr, marketId, "tp");
+
+        return ctx.reply("✅ TP/SL Stopped for the Current Market.");
+    }
+
+    if (data.startsWith("stop_sl:")) {
+        const marketId = decodeMarketId(data.split(":")[1]);
+
+        await stopAllTpSlWatchers(userIdStr, marketId, "sl");
 
         return ctx.reply("✅ TP/SL Stopped for the Current Market.");
     }
 
     if (data.startsWith("toggle_show_username")) {
         const toggleTo = data.split(":")[1] === "1";
-        const userId = getUserIdFromCtx(ctx);
 
         const { error } = await db("Users")
             .update({ show_username_in_cards: toggleTo })
@@ -1171,7 +1178,6 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
                 "🔔 Set Price Alert",
                 `set_price_alert:${encodeMarketId(market.conditionId)}`
             ),
-            Markup.button.callback("💰 TP/SL", `tp_sl:${encodeMarketId(market.conditionId)}`),
         ],
         [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
