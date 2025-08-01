@@ -23,7 +23,9 @@ TODO:
 
 Sarthak:
 
-- fix execution price (show similar to pnl)
-- share on x in position card
 - strategy 1 -> take notes from scalper
+
+Monday:
+
 - position card / in portfolio section
+- share on x in position card

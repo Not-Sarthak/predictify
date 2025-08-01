@@ -8,6 +8,7 @@ import {
 import type { InlineKeyboardMarkup } from "telegraf/types";
 import { encodeMarketId } from "@/utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "@/shared/constants";
+import { redisClient } from "@/lib/redis";
 
 export const generateWelcomeMessage = (
     evm_address: string,
@@ -119,12 +120,31 @@ export const generateAutoTradeMenu = async (
     return { message: statusMessage, replyMarkup: markup };
 };
 
-export function createPaginationKeyboard(
+export async function createPaginationKeyboard(
     conditionId: string,
     index: number,
     total: number,
-    hasTpSlWatcher: boolean
+    userId: string
 ) {
+    const redisKey = `user:tp_sl_watchers:${userId}`;
+    const tpSlEntries = await redisClient.hGetAll(redisKey); // Get all fields + values
+
+    let showStopTP = false;
+    let showStopSL = false;
+
+    for (const [field, value] of Object.entries(tpSlEntries)) {
+        if (field.startsWith(`${conditionId}:`)) {
+            try {
+                const data = JSON.parse(value);
+                if (data.type === "take_profit") showStopTP = true;
+                if (data.type === "stop_loss") showStopSL = true;
+            } catch (error) {
+                console.error("Invalid JSON in Redis for:", field);
+                console.error("[ERROR]: ", error);
+            }
+        }
+    }
+
     const paginationButtons = [];
 
     if (index > 0) {
@@ -151,14 +171,23 @@ export function createPaginationKeyboard(
                 "🔔 Set Price Alert",
                 `set_price_alert:${encodeMarketId(conditionId)}`
             ),
+            Markup.button.callback("💸 Take Profit", `take_profit:${encodeMarketId(conditionId)}`),
+            Markup.button.callback("🛑 Stop Loss", `stop_loss:${encodeMarketId(conditionId)}`),
         ],
         [
-            Markup.button.callback("💰 Manage TP/SL", `tp_sl:${encodeMarketId(conditionId)}`),
-            ...(hasTpSlWatcher
+            ...(showStopTP
                 ? [
                       Markup.button.callback(
-                          "❌ Stop TP/SL",
-                          `stop_tp_sl:${encodeMarketId(conditionId)}`
+                          "❌ Cancel Take Profit",
+                          `stop_tp:${encodeMarketId(conditionId)}`
+                      ),
+                  ]
+                : []),
+            ...(showStopSL
+                ? [
+                      Markup.button.callback(
+                          "❌ Cancel Stop Loss",
+                          `stop_sl:${encodeMarketId(conditionId)}`
                       ),
                   ]
                 : []),

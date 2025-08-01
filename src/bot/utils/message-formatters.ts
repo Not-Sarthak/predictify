@@ -3,7 +3,6 @@ import type { UserPositionResponse } from "../../types/polymarket/user-position"
 import { getUserDetails } from "@/helpers/get-user-details";
 import { decryptPrivateKey } from "@/utils/crypto";
 import { createPaginationKeyboard } from "@/bot/ui/messages";
-import { redisClient } from "@/lib/redis";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -236,11 +235,7 @@ ${statusLine}
 💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
     `.trim();
 
-    const redisKey = `user:tp_sl_watchers:${userId}`;
-    const tpSlFields = await redisClient.hKeys(redisKey);
-    const hasTpSlWatcher = tpSlFields.some((field) => field.startsWith(`${conditionId}:`));
-
-    const markup = createPaginationKeyboard(conditionId, index, total, hasTpSlWatcher);
+    const markup = await createPaginationKeyboard(conditionId, index, total, userId);
 
     return { text, markup };
 }

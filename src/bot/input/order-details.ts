@@ -349,8 +349,16 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                         [Markup.button.callback("📊 Track My Order", button_callback_data)],
                         [
                             Markup.button.callback(
-                                "💰 TP/SL",
-                                `tp_sl:${encodeMarketId(market.conditionId)}`
+                                "🔔 Set Price Alert",
+                                `set_price_alert:${encodeMarketId(market.conditionId)}`
+                            ),
+                            Markup.button.callback(
+                                "💸 Take Profit",
+                                `take_profit:${encodeMarketId(market.conditionId)}`
+                            ),
+                            Markup.button.callback(
+                                "🛑 Stop Loss",
+                                `stop_loss:${encodeMarketId(market.conditionId)}`
                             ),
                         ],
                     ]).reply_markup,

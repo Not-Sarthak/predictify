@@ -67,6 +67,8 @@ export async function fetchMarkets(
     const LIMIT = 8;
     const OFFSET = offset;
 
+    if (category === "geo-politics") category = "geopolitics";
+
     let url = "";
     const params = new URLSearchParams({
         limit: LIMIT.toString(),
@@ -81,16 +83,25 @@ export async function fetchMarkets(
     const now = new Date();
     const endOfWindow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
+    let manualSortFn: ((a: Market, b: Market) => number) | null = null;
+
     switch (filter) {
         case "volume":
             params.set("order", "volume1mo");
             break;
+
         case "newest":
             params.set("order", "startDate");
+            params.set("ascending", "true");
+            manualSortFn = (a, b) => b.volume1mo - a.volume1mo;
             break;
+
         case "ending":
             params.set("order", "endDate");
+            params.set("ascending", "true");
+            manualSortFn = (a, b) => b.volume1mo - a.volume1mo;
             break;
+
         case "0dte":
             params.set("end_date_min", now.toISOString());
             params.set("end_date_max", endOfWindow.toISOString());
@@ -101,9 +112,15 @@ export async function fetchMarkets(
     }
 
     url = `${BASE_URL}?${params.toString()}`;
-
     const res = await axios.get(url);
-    return res.data.data;
+
+    const markets: Market[] = res.data.data;
+
+    if (manualSortFn) {
+        markets.sort(manualSortFn);
+    }
+
+    return markets;
 }
 
 // Get Event by Slug
