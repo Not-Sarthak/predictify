@@ -466,6 +466,34 @@ export const getMonitoringStatus = () => {
     };
 };
 
+// Get monitoring status for a specific user
+export const getUserMonitoringStatus = (userId: number) => {
+    const userWallets: Array<{
+        wallet: string;
+        isCopyTradingEnabled: boolean;
+        positionPercentage: number;
+        lastActivity: Date;
+    }> = [];
+
+    monitors.forEach((monitor, walletAddress) => {
+        const subscription = monitor.subscribers.find((sub) => sub.userId === userId);
+        if (subscription) {
+            userWallets.push({
+                wallet: walletAddress,
+                isCopyTradingEnabled: subscription.isCopyTradingEnabled,
+                positionPercentage: subscription.positionPercentage,
+                lastActivity: new Date(monitor.lastTimestamp * 1000),
+            });
+        }
+    });
+
+    return {
+        userId,
+        monitoredWallets: userWallets,
+        totalWallets: userWallets.length,
+    };
+};
+
 // Resume monitoring on startup
 export const resumeAllMonitoring = async () => {
     // Get all users with watched wallets
