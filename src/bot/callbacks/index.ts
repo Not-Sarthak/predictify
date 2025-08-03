@@ -38,6 +38,9 @@ import {
     handleViewWatchedWallets,
     handleCopyTradeConfigureMenu,
     handleCopyTradeConfigCallbacks,
+    handleConfigureWalletsMenu,
+    handleConfigureWallet,
+    handleSetWalletPercentage,
 } from "./autotrade";
 import {
     handleResetWallet,
@@ -205,8 +208,22 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewWatchedWallets(ctx);
     }
 
-    if (data === "copy_trade_configure") {
+    if (data === "copy_trade_configure_menu") {
         return handleCopyTradeConfigureMenu(ctx);
+    }
+
+    if (data === "configure_wallets") {
+        return handleConfigureWalletsMenu(ctx);
+    }
+
+    if (data.startsWith("config_wallet:")) {
+        const walletAddress = data.split(":")[1];
+        return handleConfigureWallet(ctx, walletAddress);
+    }
+
+    if (data.startsWith("set_wallet_percent:")) {
+        const [, walletAddress, percentage] = data.split(":");
+        return handleSetWalletPercentage(ctx, walletAddress, percentage);
     }
 
     if (data === "back_to_autotrade") {

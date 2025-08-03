@@ -6,6 +6,7 @@ import { marketBuyOrder, marketSellOrder } from "@/utils/polymarket-order/market
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
 import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
+import { db } from "@/lib/supabase";
 
 interface Trade {
     proxyWallet: string;
@@ -127,6 +128,43 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
 
     try {
         if (!user.is_copytrading_enabled) return;
+
+        // Check for circular trading
+        // If the trade is from wallet A, check if wallet A is copying the current user's wallet
+        const { data: circularCheck } = await db("Copy_Wallets")
+            .select("*")
+            .eq("wallet_address", user.wallet_address)
+            .eq("is_enabled", true);
+
+        if (circularCheck && circularCheck.length > 0) {
+            // Get the user who owns the wallet that initiated this trade
+            const { data: tradeInitiator } = await db("Users")
+                .select("id")
+                .eq("wallet_address", trade.walletAddress)
+                .single();
+
+            if (tradeInitiator) {
+                // Check if any of the users copying the current user's wallet is the trade initiator
+                const isCircular = circularCheck.some((copy) => copy.user_id === tradeInitiator.id);
+
+                if (isCircular) {
+                    console.log(
+                        `Circular trade detected: User ${userId} and wallet ${trade.walletAddress} are copying each other. Skipping trade.`
+                    );
+
+                    await notifyUser(
+                        userId,
+                        `⚠️ *Circular Trade Detected*\n\n` +
+                            `The wallet you're copying (${trade.walletAddress}) is also copying your wallet.\n` +
+                            `This trade has been skipped to prevent infinite loops.\n\n` +
+                            `*Market:* ${trade.market}\n` +
+                            `*Side:* ${trade.side}`
+                    );
+
+                    return;
+                }
+            }
+        }
 
         // trade.size is already adjusted by position percentage in copy-trade.ts
         // trade.value is also already calculated correctly

@@ -19,6 +19,7 @@ import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
 import { handleTakeProfitOrStopLossExecution, handleTpSlShareInput } from "@/bot/input/price-tp-sl";
 import { getEventBySlug } from "@/utils/polymarket/get-markets";
 import { handleEditPriceAlert } from "@/bot/input/edit-price-alert";
+import { handleSetWalletPercentage } from "@/bot/callbacks/autotrade";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -81,6 +82,14 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "edit_price_alert":
             await handleEditPriceAlert(ctx, textMessage);
+            break;
+        case "wallet_percentage":
+            const walletData = await redisClient.hGetAll(`user:config_input:${userId}`);
+            const walletAddress = walletData.walletAddress;
+            if (!walletAddress) {
+                return ctx.reply("❌ Error: Wallet address not found. Please try again.");
+            }
+            await handleSetWalletPercentage(ctx, walletAddress, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");

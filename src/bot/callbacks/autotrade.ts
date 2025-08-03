@@ -1,4 +1,4 @@
-import { setUserInputState } from "@/bot/input/state";
+import { setUserInputState, clearUserInputState } from "@/bot/input/state";
 import { getUserIdFromCtx } from "@/bot/utils";
 import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
 import { redisClient } from "@/lib/redis";
@@ -27,9 +27,10 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             : "Default (Not Set)";
 
     const configMessage =
-        `💰 *Copy Trader Position %*\n\n` +
-        `Choose how much of your balance to use for copy trading:\n\n` +
-        `📊 *Current Settings:* ${configMessageValue}`;
+        `💰 *Global Copy Trader Position %*\n\n` +
+        `Set the default position percentage for new wallets:\n\n` +
+        `📊 *Current Default:* ${configMessageValue}\n\n` +
+        `Note: Individual wallet percentages override this default.`;
 
     const configButtons = [
         [
@@ -82,7 +83,10 @@ export async function handleViewWatchedWallets(ctx: Context) {
             userWallets
                 .map((wallet, index) => {
                     const status = wallet.is_enabled ? "✅" : "❌";
-                    return `${index + 1}. ${status} *${wallet.wallet_address}*`;
+                    const percentage = wallet.percent_ratio
+                        ? `${wallet.percent_ratio * 100}%`
+                        : "100%";
+                    return `${index + 1}. ${status} *${wallet.wallet_address}*\n   💰 Position: ${percentage}`;
                 })
                 .join("\n\n") +
             `\n\n*Copy Trading:* ${userData?.is_copytrading_enabled ? "✅ Enabled" : "❌ Disabled"}`;
@@ -92,6 +96,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
                 Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
                 Markup.button.callback("🗑️ Remove Wallet", "delete_wallet"),
             ],
+            [Markup.button.callback("⚙️ Configure Position %", "configure_wallets")],
             [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
         ];
 
@@ -256,12 +261,43 @@ export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: 
 
         // Get user settings
         const { data: user } = await db("Users")
-            .select("is_copytrading_enabled, config_value")
+            .select("is_copytrading_enabled, wallet_address")
             .eq("id", Number(userId))
             .single();
 
         const newStatus = !wallet.is_enabled;
-        const positionPercentage = user?.config_value ? parseInt(user.config_value) : 100;
+
+        // If enabling, check for circular reference
+        if (newStatus) {
+            // Check if the wallet we're trying to monitor belongs to another user
+            const { data: walletOwner } = await db("Users")
+                .select("id")
+                .eq("wallet_address", walletAddress)
+                .single();
+
+            if (walletOwner) {
+                // Check if this wallet's owner is already watching the current user
+                const { data: reverseWatch } = await db("Copy_Wallets")
+                    .select("*")
+                    .eq("user_id", walletOwner.id)
+                    .eq("wallet_address", user?.wallet_address)
+                    .eq("is_enabled", true)
+                    .single();
+
+                if (reverseWatch) {
+                    await ctx.answerCbQuery("⚠️ Cannot enable: Circular reference detected");
+                    return ctx.reply(
+                        `⚠️ *Circular Reference Detected*\n\n` +
+                            `Cannot enable monitoring for this wallet because it's already copying your wallet.\n\n` +
+                            `This would create an infinite loop of trades.`,
+                        { parse_mode: "Markdown" }
+                    );
+                }
+            }
+        }
+
+        // Use wallet-specific percentage or default to 100%
+        const positionPercentage = wallet.percent_ratio ? wallet.percent_ratio * 100 : 100;
 
         // Update wallet status in database
         await db("Copy_Wallets")
@@ -328,18 +364,28 @@ export async function handleToggleCopyTrading(ctx: Context, enable: boolean) {
         // Update user settings
         await db("Users").update({ is_copytrading_enabled: enable }).eq("id", Number(userId));
 
-        // Get user's watched wallets and config
+        // Get user's watched wallets
         const { data: user } = await db("Users")
-            .select("watched_wallets, config_value")
+            .select("watched_wallets")
             .eq("id", Number(userId))
             .single();
 
         if (user?.watched_wallets && user.watched_wallets.length > 0) {
-            const positionPercentage = user.config_value ? parseInt(user.config_value) : 100;
+            // Get wallet-specific percentages
+            const { data: wallets } = await db("Copy_Wallets")
+                .select("wallet_address, percent_ratio")
+                .eq("user_id", Number(userId))
+                .in("wallet_address", user.watched_wallets);
 
-            // Update monitoring for all watched wallets
-            for (const wallet of user.watched_wallets) {
-                await updateSubscription(wallet, Number(userId), enable, positionPercentage);
+            // Update monitoring for all watched wallets with their specific percentages
+            for (const wallet of wallets || []) {
+                const positionPercentage = wallet.percent_ratio ? wallet.percent_ratio * 100 : 100;
+                await updateSubscription(
+                    wallet.wallet_address,
+                    Number(userId),
+                    enable,
+                    positionPercentage
+                );
             }
         }
 
@@ -374,4 +420,171 @@ export async function handleMonitoringStats(ctx: Context) {
             .join("\n");
 
     return ctx.reply(message, { parse_mode: "Markdown" });
+}
+
+// Handle configure wallets menu
+export async function handleConfigureWalletsMenu(ctx: Context) {
+    const userId = ctx.from?.id?.toString();
+    if (!userId) return;
+
+    try {
+        const { data: userWallets, error } = await db("Copy_Wallets")
+            .select("*")
+            .eq("user_id", Number(userId))
+            .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        if (!userWallets || userWallets.length === 0) {
+            return ctx.reply("⚠️ No wallets added yet. Please add a wallet first.");
+        }
+
+        const message = `⚙️ *Configure Wallet Position %*\n\nSelect a wallet to configure its position percentage:`;
+
+        const buttons = userWallets.map((wallet) => {
+            const percentage = wallet.percent_ratio ? `${wallet.percent_ratio * 100}%` : "100%";
+            const walletDisplay = `${wallet.wallet_address.slice(0, 6)}...${wallet.wallet_address.slice(-4)}`;
+            return [
+                Markup.button.callback(
+                    `${walletDisplay} (${percentage})`,
+                    `config_wallet:${wallet.wallet_address}`
+                ),
+            ];
+        });
+
+        buttons.push([Markup.button.callback("↩️ Back", "view_watched_wallets")]);
+
+        await ctx.editMessageText(message, {
+            parse_mode: "Markdown",
+            reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
+        });
+    } catch (error) {
+        console.error("Error in configure wallets menu:", error);
+        return ctx.reply("❌ Failed to load wallet configuration. Please try again.");
+    }
+}
+
+// Handle individual wallet configuration
+export async function handleConfigureWallet(ctx: Context, walletAddress: string) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        const { data: wallet, error } = await db("Copy_Wallets")
+            .select("*")
+            .eq("user_id", Number(userId))
+            .eq("wallet_address", walletAddress)
+            .single();
+
+        if (error || !wallet) {
+            return ctx.answerCbQuery("Wallet not found");
+        }
+
+        const currentPercentage = wallet.percent_ratio ? `${wallet.percent_ratio * 100}%` : "100%";
+        const walletDisplay = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+
+        const message =
+            `💰 *Configure Position % for Wallet*\n\n` +
+            `📱 Wallet: \`${walletDisplay}\`\n` +
+            `📊 Current: ${currentPercentage}\n\n` +
+            `Choose position percentage for this wallet:`;
+
+        const buttons = [
+            [
+                Markup.button.callback("25%", `set_wallet_percent:${walletAddress}:25`),
+                Markup.button.callback("50%", `set_wallet_percent:${walletAddress}:50`),
+                Markup.button.callback("75%", `set_wallet_percent:${walletAddress}:75`),
+            ],
+            [
+                Markup.button.callback("100%", `set_wallet_percent:${walletAddress}:100`),
+                Markup.button.callback("Custom %", `set_wallet_percent:${walletAddress}:custom`),
+            ],
+            [Markup.button.callback("↩️ Back", "configure_wallets")],
+        ];
+
+        await ctx.editMessageText(message, {
+            parse_mode: "Markdown",
+            reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
+        });
+    } catch (error) {
+        console.error("Error configuring wallet:", error);
+        return ctx.answerCbQuery("Error loading wallet configuration");
+    }
+}
+
+// Handle setting wallet percentage
+export async function handleSetWalletPercentage(
+    ctx: Context,
+    walletAddress: string,
+    percentage: string
+) {
+    const userId = getUserIdFromCtx(ctx);
+
+    if (percentage === "custom") {
+        // Store wallet address in Redis for custom input
+        await redisClient.hSet(`user:config_input:${userId}`, {
+            key: "wallet_percentage",
+            walletAddress: walletAddress,
+        });
+        await setUserInputState(userId.toString(), "wallet_percentage");
+        return ctx.reply(`🔥 Enter position percentage for this wallet (1-100):`);
+    }
+
+    try {
+        // Handle custom percentage input
+        const percentageNum = parseInt(percentage);
+
+        // Validate percentage
+        if (isNaN(percentageNum) || percentageNum < 1 || percentageNum > 100) {
+            await clearUserInputState(userId.toString());
+            await redisClient.del(`user:config_input:${userId}`);
+            return ctx.reply("❌ Invalid percentage. Please enter a number between 1 and 100.");
+        }
+
+        const percentValue = percentageNum / 100;
+
+        // Update wallet percentage in database
+        const { error } = await db("Copy_Wallets")
+            .update({ percent_ratio: percentValue })
+            .eq("user_id", Number(userId))
+            .eq("wallet_address", walletAddress);
+
+        if (error) throw error;
+
+        // Update monitoring with new percentage
+        const { data: user } = await db("Users")
+            .select("is_copytrading_enabled")
+            .eq("id", Number(userId))
+            .single();
+
+        if (user?.is_copytrading_enabled) {
+            await updateSubscription(walletAddress, Number(userId), true, percentageNum);
+        }
+
+        // Clear input state
+        await clearUserInputState(userId.toString());
+        await redisClient.del(`user:config_input:${userId}`);
+
+        // Answer callback query if this is from a button
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery(`✅ Position set to ${percentageNum}%`);
+        }
+
+        const walletDisplay = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+        await ctx.reply(
+            `✅ *Configuration Updated*\n\n` +
+                `Wallet: \`${walletDisplay}\`\n` +
+                `Position %: ${percentageNum}%\n\n` +
+                `This wallet will now use ${percentageNum}% of your balance for copy trading.`,
+            { parse_mode: "Markdown" }
+        );
+
+        // Return to configure wallets menu
+        return handleConfigureWalletsMenu(ctx);
+    } catch (error) {
+        console.error("Error setting wallet percentage:", error);
+        if ("answerCbQuery" in ctx) {
+            return ctx.answerCbQuery("Error updating configuration");
+        }
+        return ctx.reply("❌ Error updating configuration. Please try again.");
+    }
 }
