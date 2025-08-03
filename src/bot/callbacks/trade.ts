@@ -134,33 +134,11 @@ export async function handleViewTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
     }
 
-    // Check for recent copy trades
-    const { data: recentCopyTrades } = await supabase
-        .from("Auto_Trade")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("status", "executed")
-        .gte("executed_at", new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Last 5 minutes
-        .order("executed_at", { ascending: false })
-        .limit(5);
-
     const userPositions = await getUserPosition({ user: userAddress });
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        let message = "⚠️ No Open Positions From Your Account!";
-
-        if (recentCopyTrades && recentCopyTrades.length > 0) {
-            message += "\n\n📝 Recent Copy Trades (may take 1-2 minutes to appear):\n";
-            recentCopyTrades.forEach((trade) => {
-                const time = new Date(trade.executed_at).toLocaleTimeString();
-                message += `\n• ${trade.side} ${trade.copied_size.toFixed(2)} shares at ${time}`;
-                message += `\n  Market: ${trade.market_title.substring(0, 50)}...`;
-            });
-            message += "\n\n💡 Positions usually appear within 1-2 minutes after execution.";
-        }
-
-        return ctx.reply(message);
+        return ctx.reply("⚠️ No Open Positions From Your Account!");
     }
 
     const { text, markup } = await formatSinglePositionMessage(
