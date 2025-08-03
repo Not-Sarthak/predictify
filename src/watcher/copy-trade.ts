@@ -268,6 +268,62 @@ const executeCopyTrade = async (trade: Trade, subscription: WalletSubscription) 
                 error_message: "Insufficient market liquidity",
                 original_timestamp: new Date(trade.timestamp * 1000).toISOString(),
             });
+        } else if (error.message?.includes("Insufficient position")) {
+            await bot.telegram.sendMessage(
+                subscription.userId,
+                `⚠️ Copy trade could not be executed - insufficient position\n\n` +
+                    `Market: ${trade.title}\n` +
+                    `Side: ${trade.side}\n` +
+                    `Attempted to sell: ${copySize} shares\n\n` +
+                    `You don't have enough shares of this outcome to sell.\n` +
+                    `Please check your positions at /trade`
+            );
+
+            // Record as failed trade
+            await supabase.from("Auto_Trade").insert({
+                user_id: subscription.userId,
+                watched_wallet: trade.proxyWallet,
+                original_trade_hash: trade.transactionHash,
+                market_id: trade.asset,
+                market_title: trade.title,
+                outcome: trade.outcome,
+                side: trade.side,
+                original_size: trade.size,
+                original_price: trade.price,
+                copied_size: copySize,
+                position_percentage: subscription.positionPercentage,
+                status: "failed",
+                error_message: error.message,
+                original_timestamp: new Date(trade.timestamp * 1000).toISOString(),
+            });
+        } else if (error.message?.includes("not enough balance")) {
+            await bot.telegram.sendMessage(
+                subscription.userId,
+                `⚠️ Copy trade could not be executed - insufficient balance\n\n` +
+                    `Market: ${trade.title}\n` +
+                    `Side: ${trade.side}\n` +
+                    `Required: ${(copySize * trade.price).toFixed(4)} USDC\n\n` +
+                    `Please ensure you have enough USDC in your wallet.\n` +
+                    `Check your balance at /fund`
+            );
+
+            // Record as failed trade
+            await supabase.from("Auto_Trade").insert({
+                user_id: subscription.userId,
+                watched_wallet: trade.proxyWallet,
+                original_trade_hash: trade.transactionHash,
+                market_id: trade.asset,
+                market_title: trade.title,
+                outcome: trade.outcome,
+                side: trade.side,
+                original_size: trade.size,
+                original_price: trade.price,
+                copied_size: copySize,
+                position_percentage: subscription.positionPercentage,
+                status: "failed",
+                error_message: "Insufficient balance",
+                original_timestamp: new Date(trade.timestamp * 1000).toISOString(),
+            });
         }
         throw error;
     }

@@ -5,6 +5,7 @@ import { decryptPrivateKey } from "@/utils/crypto";
 import { marketBuyOrder, marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
+import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
 
 interface Trade {
     proxyWallet: string;
@@ -149,6 +150,17 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 orderType: OrderType.FOK,
             });
         } else {
+            // Check if user has position before selling
+            const userPositions = await getUserPositionsFromPolymarket(user.wallet_address);
+            const position = userPositions?.find((p: any) => p.asset === trade.asset);
+
+            if (!position || position.size < trade.size) {
+                const availableSize = position?.size || 0;
+                throw new Error(
+                    `Insufficient position. Available: ${availableSize}, Required: ${trade.size}`
+                );
+            }
+
             await marketSellOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: JSON.parse(user.api_credentials),
