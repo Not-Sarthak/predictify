@@ -13,8 +13,7 @@ export async function initializeCopyTrading() {
         await resumeAllMonitoring();
 
         // Connect to Supabase realtime for new wallet additions/removals
-        // This is currently commented out in the old system but we'll keep the structure
-        // await connectToSupabaseRealtime();
+        await connectToSupabaseRealtime();
 
         console.log("Copy trading system initialized successfully");
     } catch (error) {
