@@ -5,8 +5,15 @@ import { decryptPrivateKey } from "@/utils/crypto";
 import { marketBuyOrder, marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
-import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
 import { db } from "@/lib/supabase";
+import {
+    validateSellPosition,
+    isTradeAlreadyProcessed,
+    markTradeAsProcessed,
+    isSelfCopyAttempt,
+    setCopyTradeLock,
+    releaseCopyTradeLock,
+} from "./position-validator";
 
 interface Trade {
     proxyWallet: string;
@@ -33,9 +40,10 @@ interface FormattedTrade {
     value: number;
     hash: string;
     timestamp: string;
+    originalSize?: number;
+    originalValue?: number;
 }
 
-// Track the latest timestamp in memory per wallet
 const lastTimestamps = new Map<string, number>();
 
 export const pollForNewTrades = async (walletAddress: string) => {
@@ -86,7 +94,7 @@ export const fetchTrades = async (
         });
         return response.data || [];
     } catch (error) {
-        console.error(`Failed to fetch trades: ${error}`);
+        console.error(`Failed To Fetch Trades: ${error}`);
         return null;
     }
 };
@@ -116,7 +124,7 @@ export const getInitialTimestamp = async (walletAddress: string): Promise<number
         const trades = await fetchTrades(walletAddress, 1);
         return trades!.length > 0 ? trades![0].timestamp : Math.floor(Date.now() / 1000);
     } catch (error) {
-        console.error(`Failed to Get Initial Timestamp: ${error}`);
+        console.error(`Failed To Get Initial Timestamp: ${error}`);
         return Math.floor(Date.now() / 1000);
     }
 };
@@ -129,81 +137,89 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
     try {
         if (!user.is_copytrading_enabled) return;
 
-        // Check for circular trading
-        // If the trade is from wallet A, check if wallet A is copying the current user's wallet
+        if (await isTradeAlreadyProcessed(Number(userId), trade.hash)) {
+            console.log(`Trade ${trade.hash} Already Processed For User ${userId}`);
+            return;
+        }
+
+        await markTradeAsProcessed(Number(userId), trade.hash);
+
+        if (await isSelfCopyAttempt(Number(userId), trade.walletAddress)) {
+            throw new Error("Cannot copy trade your own wallet");
+        }
+
         const { data: circularCheck } = await db("Copy_Wallets")
             .select("*")
             .eq("wallet_address", user.wallet_address)
             .eq("is_enabled", true);
 
         if (circularCheck && circularCheck.length > 0) {
-            // Get the user who owns the wallet that initiated this trade
             const { data: tradeInitiator } = await db("Users")
                 .select("id")
                 .eq("wallet_address", trade.walletAddress)
                 .single();
 
             if (tradeInitiator) {
-                // Check if any of the users copying the current user's wallet is the trade initiator
                 const isCircular = circularCheck.some((copy) => copy.user_id === tradeInitiator.id);
 
                 if (isCircular) {
                     console.log(
-                        `Circular trade detected: User ${userId} and wallet ${trade.walletAddress} are copying each other. Skipping trade.`
+                        `Circular Trade Detected: User ${userId} And Wallet ${trade.walletAddress} Are Copying Each Other`
                     );
 
-                    await notifyUser(
-                        userId,
-                        `⚠️ *Circular Trade Detected*\n\n` +
-                            `The wallet you're copying (${trade.walletAddress}) is also copying your wallet.\n` +
-                            `This trade has been skipped to prevent infinite loops.\n\n` +
-                            `*Market:* ${trade.market}\n` +
-                            `*Side:* ${trade.side}`
-                    );
-
-                    return;
+                    throw new Error("Circular trade detected - wallets are copying each other");
                 }
             }
         }
 
-        // trade.size is already adjusted by position percentage in copy-trade.ts
-        // trade.value is also already calculated correctly
-        const amount = trade.value; // This is the USD amount to spend
+        const lockAcquired = await setCopyTradeLock(Number(userId), trade.asset);
+        if (!lockAcquired) {
+            console.log(`Concurrent Trade In Progress For User ${userId}`);
+            return;
+        }
 
-        console.log(`Executing trade for user ${userId}:`, {
-            tokenId: trade.asset,
-            amount,
-            side: trade.side,
-            shares: trade.size,
-            price: trade.price,
-        });
+        const amount = parseFloat(trade.value.toFixed(6));
 
         if (trade.side === "BUY") {
             await marketBuyOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: JSON.parse(user.api_credentials),
                 tokenId: trade.asset,
-                amount, // USD amount to spend
+                amount,
                 side: Side.BUY,
                 orderType: OrderType.FOK,
             });
         } else {
-            // Check if user has position before selling
-            const userPositions = await getUserPositionsFromPolymarket(user.wallet_address);
-            const position = userPositions?.find((p: any) => p.asset === trade.asset);
+            const validation = await validateSellPosition(
+                user.wallet_address,
+                trade.asset,
+                trade.size,
+                Number(userId)
+            );
 
-            if (!position || position.size < trade.size) {
-                const availableSize = position?.size || 0;
-                throw new Error(
-                    `Insufficient position. Available: ${availableSize}, Required: ${trade.size}`
-                );
+            if (!validation.isValid) {
+                if (!validation.hasPosition) {
+                    throw new Error(validation.reason);
+                } else if (validation.availableSize! < trade.size) {
+                    const availableSize = validation.availableSize!;
+                    await notifyUser(
+                        userId,
+                        `ℹ️ Copy Trade Adjusted\n` +
+                            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                            `Reason: Partial Position Available\n` +
+                            `Original Size: ${trade.originalSize ? trade.originalSize.toFixed(4) : trade.size.toFixed(4)} shares\n` +
+                            `Available: ${availableSize.toFixed(4)} shares\n` +
+                            `Selling available amount only.`
+                    );
+                    trade.size = availableSize;
+                }
             }
 
             await marketSellOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: JSON.parse(user.api_credentials),
                 tokenId: trade.asset,
-                amount: trade.size, // number of shares to sell
+                amount: trade.size,
                 orderType: OrderType.FOK,
             });
         }
@@ -220,20 +236,29 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 value: trade.value,
                 timestamp: new Date().toISOString(),
             }),
-            { EX: 60 * 60 * 24 } // expire in 24 hours
+            { EX: 60 * 60 * 24 }
         );
 
         return notifyUser(
             userId,
-            `✅ *CopyTrade Order Executed Successfully!*
-*Market:* ${trade.market}
-*Side:* ${trade.side}
-*Shares:* ${trade.size.toFixed(2)}
-*Price:* ${trade.price.toFixed(4)}
-*Value:* ${trade.value.toFixed(4)} USDC`
+            `✅ Copy Trade Executed Successfully!\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `📋 Target Wallet Order Details\n` +
+                `Market: ${trade.market}\n` +
+                `Side: ${trade.side}\n` +
+                `Size: ${trade.originalSize ? trade.originalSize.toFixed(4) : trade.size.toFixed(4)} shares\n` +
+                `Price: $${trade.price.toFixed(4)}\n` +
+                `Value: $${trade.originalValue ? trade.originalValue.toFixed(2) : trade.value.toFixed(2)} USDC\n` +
+                `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `💼 My Wallet Order Details\n` +
+                `Market: ${trade.market}\n` +
+                `Side: ${trade.side}\n` +
+                `Size: ${trade.size.toFixed(4)} shares\n` +
+                `Price: $${trade.price.toFixed(4)}\n` +
+                `Value: $${trade.value.toFixed(2)} USDC`
         );
     } catch (error) {
-        console.error("❌ Error placing market order:", error);
+        console.error(`Copy Trade Error For User ${userId}:`, error);
 
         const errorKey = `copytrade:error:${userId}:${Date.now()}`;
         await redisClient.set(
@@ -243,20 +268,36 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 error: error instanceof Error ? error.message : String(error),
                 timestamp: new Date().toISOString(),
             }),
-            { EX: 60 * 60 * 6 } // 6-hour TTL
+            { EX: 60 * 60 * 6 }
         );
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        let emoji = "⚠️";
+        let title = "Copy Trade Skipped";
+
+        if (
+            errorMessage.toLowerCase().includes("insufficient balance") ||
+            errorMessage.toLowerCase().includes("api error") ||
+            errorMessage.toLowerCase().includes("network")
+        ) {
+            emoji = "❌";
+            title = "Copy Trade Failed";
+        }
 
         await notifyUser(
             userId,
-            `❌ *CopyTrade Order Execution Failed*
-*Market:* ${trade.market}
-*Side:* ${trade.side}
-*Shares:* ${trade.size.toFixed(2)}
-*Price:* ${trade.price.toFixed(4)}
-*Value:* ${trade.value.toFixed(4)} USDC
-
-*Reason:* ${error instanceof Error ? error.message : String(error)}`
+            `${emoji} ${title}\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `Reason: ${errorMessage}\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `Market: ${trade.market}\n` +
+                `Side: ${trade.side}\n` +
+                `Size: ${trade.size.toFixed(4)} shares\n` +
+                `Price: $${trade.price.toFixed(4)}\n` +
+                `Value: $${trade.value.toFixed(2)} USDC`
         );
+    } finally {
+        await releaseCopyTradeLock(Number(userId), trade.asset);
     }
 };
 
@@ -277,6 +318,6 @@ const notifyUser = async (telegramUserId: string, message: string) => {
             body: JSON.stringify(body),
         });
     } catch (error) {
-        console.error("❌ Failed to send Telegram message:", error);
+        console.error("Failed To Send Telegram Message:", error);
     }
 };

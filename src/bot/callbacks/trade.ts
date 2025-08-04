@@ -17,7 +17,7 @@ import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
 import { supabase } from "@/lib/supabase";
-import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
+import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -45,6 +45,9 @@ import {
     storeTpSlWatcherInRedis,
     type PriceWatchConfig,
 } from "@/notifier/ws";
+import { createLegacyWallet } from "@/utils";
+import { ethers } from "ethers";
+import { trackManualTrade } from "@/utils/trade-tracker";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -772,7 +775,7 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
         if ("answerCbQuery" in ctx) {
             await ctx.answerCbQuery("Wallet deleted");
         }
-        return ctx.reply("✅ Wallet was successfully deleted and monitoring stopped!");
+        return ctx.reply("✅ Wallet was Successfully Deleted!");
     } catch (error) {
         console.error("Error Deleting User Copy Wallet: ", error);
         if ("answerCbQuery" in ctx) {
@@ -1043,11 +1046,13 @@ export async function handleCloseOpenPosition(
         user.show_username_in_cards
     );
 
+    const sellAmount = amountToSell || userMarketDetails.size;
+
     const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
         tokenId: userMarketDetails.asset,
-        amount: amountToSell || userMarketDetails.size,
+        amount: sellAmount,
         orderType: OrderType.FOK,
     });
 
@@ -1055,6 +1060,9 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    // Track this manual sell for copy trading system
+    await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;

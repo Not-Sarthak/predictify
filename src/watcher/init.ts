@@ -7,15 +7,10 @@ import { connectToSupabaseRealtime } from "./index";
  */
 export async function initializeCopyTrading() {
     try {
-        console.log("Initializing copy trading system...");
-
-        // Resume monitoring for all existing watched wallets
         await resumeAllMonitoring();
-
-        // Connect to Supabase realtime for new wallet additions/removals
         await connectToSupabaseRealtime();
 
-        console.log("Copy trading system initialized successfully");
+        console.log("Copy Trading System Initialized Successfully");
     } catch (error) {
         console.error("Failed to initialize copy trading system:", error);
         throw error;

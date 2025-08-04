@@ -69,7 +69,7 @@ bun run set:wh          # Set Telegram webhook
 
 ### Database Schema
 - `Users` - User profiles with encrypted wallet private keys
-- `Positions` - Trading positions and P&L tracking
+- `Auto_Trade` - Copy trading execution tracking
 - `Copy_Wallets` - Wallets to monitor for copy trading
 - `wallet_subscriptions` - Market notification preferences
 
@@ -83,13 +83,13 @@ bun run set:wh          # Set Telegram webhook
 - `/ref` - Referral program
 
 ### Environment Variables
-Required environment variables are validated in `src/config/index.ts`. Key variables include:
+Required environment variables are validated in `src/config/env.schema.ts`. Key variables include:
 - `REDIS_URL` - Redis connection string
-- `TELEGRAM_BOT_TOKEN` - Bot token from BotFather
-- `SUPABASE_URL` & `SUPABASE_ANON_KEY` - Database credentials
-- `POLYGON_RPC_URL` - Blockchain RPC endpoint
-- `POLYMARKET_API_KEY` & `POLYMARKET_ENDPOINT` - Trading API
-- `ENCRYPTION_KEY` - For private key encryption
+- `TG_BOT_TOKEN` - Bot token from BotFather
+- `SUPABASE_URL` & `SUPABASE_SERVICE_ROLE_KEY` - Database credentials
+- `MAINNET_RPC_URL` & `TESTNET_RPC_URL` - Blockchain RPC endpoints
+- `CLOB_API_URL` - Polymarket API endpoint
+- `PRIVATE_KEY_ENCRYPTION_KEY` - For private key encryption
 
 ### Common Development Tasks
 
@@ -125,5 +125,4 @@ Currently no automated tests. Manual testing through:
 - Always encrypt private keys before storage
 - Use environment variables for sensitive data
 - Follow existing code patterns for consistency
-- Check TODO.md for current development priorities
-- Manav handles frontend/UI, Sarthak handles backend/infrastructure
+- Check README.md for current development priorities
