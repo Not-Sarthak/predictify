@@ -183,11 +183,21 @@ export class PolymarketMarketTradeWatcher {
 
         try {
             const eventData = JSON.parse(event.data.toString());
+
+            if (!Array.isArray(eventData) || eventData.length === 0) {
+                return;
+            }
+
             const data = eventData[0];
 
-            if (data.event_type !== "book") return;
+            if (!data || data.event_type !== "book") return;
+
+            if (!data.asks || !Array.isArray(data.asks) || data.asks.length === 0) return;
 
             const asks = data.asks.map((a: any) => parseFloat(a.price)).filter(isFinite);
+
+            if (asks.length === 0) return;
+
             const currentAsk = Math.min(...asks);
 
             if (!isFinite(currentAsk)) return;

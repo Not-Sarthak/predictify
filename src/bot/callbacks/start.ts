@@ -16,6 +16,7 @@ export async function handleStartMenuCallbacks(ctx: Context, target: string) {
         case "trade":
             return handleTradeMenu(ctx);
         case "autotrade":
+            console.log("AutoTrade menu clicked - calling handleAutoTradeMenu");
             return handleAutoTradeMenu(ctx);
         case "settings":
             return handleSettingsMenu(ctx);

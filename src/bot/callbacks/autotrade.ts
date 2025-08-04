@@ -243,12 +243,10 @@ export async function handleDeleteWalletCallback(ctx: Context) {
     }
 }
 
-// New function to handle wallet enable/disable
 export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: string) {
     const userId = getUserIdFromCtx(ctx);
 
     try {
-        // Get wallet details
         const { data: wallet, error } = await db("Copy_Wallets")
             .select("*")
             .eq("user_id", Number(userId))
@@ -259,7 +257,6 @@ export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: 
             return ctx.answerCbQuery("Wallet not found");
         }
 
-        // Get user settings
         const { data: user } = await db("Users")
             .select("is_copytrading_enabled, wallet_address")
             .eq("id", Number(userId))
@@ -267,31 +264,29 @@ export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: 
 
         const newStatus = !wallet.is_enabled;
 
-        // If enabling, check for circular reference
         if (newStatus) {
-            // Check if the wallet we're trying to monitor belongs to another user
             const { data: walletOwner } = await db("Users")
                 .select("id")
                 .eq("wallet_address", walletAddress)
                 .single();
 
             if (walletOwner) {
-                // Check if this wallet's owner is already watching the current user
-                const { data: reverseWatch } = await db("Copy_Wallets")
-                    .select("*")
-                    .eq("user_id", walletOwner.id)
-                    .eq("wallet_address", user?.wallet_address)
-                    .eq("is_enabled", true)
-                    .single();
+                if (user?.wallet_address) {
+                    const { data: reverseWatch } = await db("Copy_Wallets")
+                        .select("*")
+                        .eq("user_id", walletOwner.id)
+                        .eq("wallet_address", user.wallet_address)
+                        .eq("is_enabled", true)
+                        .single();
 
-                if (reverseWatch) {
-                    await ctx.answerCbQuery("⚠️ Cannot enable: Circular reference detected");
-                    return ctx.reply(
-                        `⚠️ *Circular Reference Detected*\n\n` +
-                            `Cannot enable monitoring for this wallet because it's already copying your wallet.\n\n` +
-                            `This would create an infinite loop of trades.`,
-                        { parse_mode: "Markdown" }
-                    );
+                    if (reverseWatch) {
+                        await ctx.answerCbQuery("⚠️ Cannot enable: Circular reference detected");
+                        return ctx.reply(
+                            `⚠️ *Circular Reference Detected*\n\n` +
+                                `This Wallet is already Monitoring your Wallet. Enabling Would create an Infinite Circular Reference.`,
+                            { parse_mode: "Markdown" }
+                        );
+                    }
                 }
             }
         }
@@ -511,7 +506,6 @@ export async function handleConfigureWallet(ctx: Context, walletAddress: string)
     }
 }
 
-// Handle setting wallet percentage
 export async function handleSetWalletPercentage(
     ctx: Context,
     walletAddress: string,
@@ -520,7 +514,6 @@ export async function handleSetWalletPercentage(
     const userId = getUserIdFromCtx(ctx);
 
     if (percentage === "custom") {
-        // Store wallet address in Redis for custom input
         await redisClient.hSet(`user:config_input:${userId}`, {
             key: "wallet_percentage",
             walletAddress: walletAddress,
@@ -530,10 +523,8 @@ export async function handleSetWalletPercentage(
     }
 
     try {
-        // Handle custom percentage input
         const percentageNum = parseInt(percentage);
 
-        // Validate percentage
         if (isNaN(percentageNum) || percentageNum < 1 || percentageNum > 100) {
             await clearUserInputState(userId.toString());
             await redisClient.del(`user:config_input:${userId}`);
@@ -542,7 +533,6 @@ export async function handleSetWalletPercentage(
 
         const percentValue = percentageNum / 100;
 
-        // Update wallet percentage in database
         const { error } = await db("Copy_Wallets")
             .update({ percent_ratio: percentValue })
             .eq("user_id", Number(userId))
@@ -550,7 +540,6 @@ export async function handleSetWalletPercentage(
 
         if (error) throw error;
 
-        // Update monitoring with new percentage
         const { data: user } = await db("Users")
             .select("is_copytrading_enabled")
             .eq("id", Number(userId))
@@ -560,11 +549,9 @@ export async function handleSetWalletPercentage(
             await updateSubscription(walletAddress, Number(userId), true, percentageNum);
         }
 
-        // Clear input state
         await clearUserInputState(userId.toString());
         await redisClient.del(`user:config_input:${userId}`);
 
-        // Answer callback query if this is from a button
         if ("answerCbQuery" in ctx) {
             await ctx.answerCbQuery(`✅ Position set to ${percentageNum}%`);
         }
@@ -574,17 +561,16 @@ export async function handleSetWalletPercentage(
             `✅ *Configuration Updated*\n\n` +
                 `Wallet: \`${walletDisplay}\`\n` +
                 `Position %: ${percentageNum}%\n\n` +
-                `This wallet will now use ${percentageNum}% of your balance for copy trading.`,
+                `Config: ${percentageNum}% of your Balance.`,
             { parse_mode: "Markdown" }
         );
 
-        // Return to configure wallets menu
         return handleConfigureWalletsMenu(ctx);
     } catch (error) {
         console.error("Error setting wallet percentage:", error);
         if ("answerCbQuery" in ctx) {
             return ctx.answerCbQuery("Error updating configuration");
         }
-        return ctx.reply("❌ Error updating configuration. Please try again.");
+        return (ctx as Context).reply("❌ Error Updating Configuration.");
     }
 }

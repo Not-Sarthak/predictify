@@ -59,26 +59,22 @@ export async function handleWalletDetailsTextMessage(
             if (reverseWatch) {
                 return ctx.reply(
                     `⚠️ *Circular Reference Detected*\n\n` +
-                        `This wallet is already copying your wallet. Adding it would create a circular reference.\n\n` +
-                        `To add this wallet, the owner must first stop copying your wallet.`,
-                    { parse_mode: "Markdown" }
+                        `This Wallet is already Monitoring your Wallet. Enabling Would create an Infinite Circular Reference.\n` +
+                        { parse_mode: "Markdown" }
                 );
             }
         }
 
-        // Insert new wallet with default 100% position
         const { error } = await db("Copy_Wallets").insert([
             {
                 user_id: userId,
                 wallet_address: walletAddress,
-                is_enabled: false, // Start with monitoring disabled
+                is_enabled: false, // Start with Monitoring Disabled
                 percent_ratio: 1, // Default to 100%
             },
         ]);
 
         if (error) throw new Error(error.message, { cause: error.cause });
-
-        // No need to get user settings here since wallet starts disabled
 
         await clearUserInputState(userId.toString());
 
