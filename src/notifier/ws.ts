@@ -15,6 +15,7 @@ import { generatePnlCard } from "@/utils/card-generator";
 import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
 import { capitalize } from "@/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { Markup } from "telegraf";
 
 type Auth = {
     apiKey: string;
@@ -234,7 +235,15 @@ export class PolymarketMarketTradeWatcher {
                     await bot.telegram.sendMessage(
                         this.userId,
                         generatePriceAlertMessage({ type, ...basePayload }),
-                        { parse_mode: "HTML" }
+                        {
+                            parse_mode: "HTML",
+                            reply_markup: Markup.inlineKeyboard([
+                                Markup.button.callback(
+                                    "View this Market",
+                                    `view_market:${this.marketId}`
+                                ),
+                            ]).reply_markup,
+                        }
                     );
                     await stopPriceAlertWatcher(this.userId, this.marketId);
                 } catch (error) {

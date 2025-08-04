@@ -639,7 +639,6 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
@@ -722,7 +721,6 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
             Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
@@ -1239,7 +1237,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
 *Estimated Fill:*
 • Shares: ${shares.toFixed(4)}
-• Execution Price: $${pricePerShare.toFixed(4)}
+• Execution Price: $${side === "YES" ? outcomes[0] : outcomes[1]}
 • Total Cost: $${amount.toFixed(2)}
 • Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
 
