@@ -74,17 +74,13 @@ export const generateAutoTradeMenu = async (
     ctx: Context
 ): Promise<{ message: string; replyMarkup: InlineKeyboardMarkup } | undefined> => {
     const userId = getUserIdFromCtx(ctx);
-    console.log("generateAutoTradeMenu - userId:", userId);
 
     const [walletStatusList, userCopyTradeStatus] = await Promise.all([
         await checkWalletCopyTradeStatus(userId.toString()),
         await checkCopyTradeUserStatus(userId.toString()),
     ]);
-    console.log("walletStatusList:", walletStatusList);
-    console.log("userCopyTradeStatus:", userCopyTradeStatus);
 
     if (!walletStatusList) {
-        console.log("No wallets found - sending No Added Wallets message");
         ctx.reply("No Added Wallets");
         return;
     }
@@ -204,15 +200,10 @@ export async function createPaginationKeyboard(
 }
 
 export async function handleAutoTradeMenu(ctx: Context) {
-    console.log("handleAutoTradeMenu called");
     const menuResult = await generateAutoTradeMenu(ctx);
-    if (!menuResult) {
-        console.log("generateAutoTradeMenu returned undefined");
-        return;
-    }
+    if (!menuResult) return;
 
     const { message, replyMarkup } = menuResult;
-    console.log("Sending autotrade menu message:", message);
 
     await ctx.reply(message, {
         parse_mode: "Markdown",

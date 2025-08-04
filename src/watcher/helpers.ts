@@ -224,6 +224,11 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             });
         }
 
+        // Update user's total volume
+        const volumeToAdd = trade.side === "BUY" ? amount : trade.size * trade.price;
+        const { updateUserVolume } = await import("@/helpers/update-user-volume");
+        await updateUserVolume(Number(userId), volumeToAdd);
+
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
         await redisClient.set(
             redisKey,

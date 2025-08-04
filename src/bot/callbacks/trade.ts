@@ -1061,8 +1061,13 @@ export async function handleCloseOpenPosition(
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
 
-    // Track this manual sell for copy trading system
+    // Track this manual sell for copy trading system and update volume
     await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
+
+    // Update user's total volume (sell amount * current price)
+    const sellVolume = sellAmount * userMarketDetails.curPrice;
+    const { updateUserVolume } = await import("@/helpers/update-user-volume");
+    await updateUserVolume(userId, sellVolume);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;

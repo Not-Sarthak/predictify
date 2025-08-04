@@ -182,9 +182,10 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 orderType: OrderType.FOK,
             });
 
-            // Track manual buy order
             if (orderResponse && !orderResponse.error) {
                 await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
+                const { updateUserVolume } = await import("@/helpers/update-user-volume");
+                await updateUserVolume(userId, finalAmount);
             }
         } else if (orderType === "fok_sell") {
             const isAutoExecute = orderContext.autoExecute === "true";
@@ -231,9 +232,17 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 orderType: OrderType.FOK,
             });
 
-            // Track manual sell order
+            // Track manual sell order and update volume
             if (orderResponse && !orderResponse.error) {
                 await trackManualTrade(userId, tokenId, "SELL", amount);
+                const market = await getMarketByConditionId(marketId);
+                const currentPrice =
+                    position.outcome.toLowerCase() === "yes"
+                        ? JSON.parse(market.outcomePrices)[0]
+                        : JSON.parse(market.outcomePrices)[1];
+                const sellVolume = amount * currentPrice;
+                const { updateUserVolume } = await import("@/helpers/update-user-volume");
+                await updateUserVolume(userId, sellVolume);
             }
         } else {
             return ctx.reply("❌ Invalid Order Type!");
@@ -264,8 +273,8 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             try {
                 await db("Users")
                     .update({
-                        amount_deposited: data?.amount_deposited || 0 + finalAmount,
-                        fees_total: data?.fees_total || 0 + fee,
+                        amount_deposited: (data?.amount_deposited || 0) + finalAmount,
+                        fees_total: (data?.fees_total || 0) + fee,
                     })
                     .eq("id", userId);
             } catch (error) {
@@ -276,7 +285,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         try {
             await db("Users")
                 .update({
-                    total_volume: data?.total_volume || 0 + finalAmount,
+                    total_volume: (data?.total_volume || 0) + finalAmount,
                 })
                 .eq("id", userId);
         } catch (error) {
