@@ -38,6 +38,9 @@ import {
     handleViewWatchedWallets,
     handleCopyTradeConfigureMenu,
     handleCopyTradeConfigCallbacks,
+    handleConfigureWalletsMenu,
+    handleConfigureWallet,
+    handleSetWalletPercentage,
 } from "./autotrade";
 import {
     handleResetWallet,
@@ -99,9 +102,10 @@ export async function handleCallbackQuery(ctx: Context) {
     const data =
         ctx.callbackQuery && "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
 
-    // Always answer a callback query.
-    // Works for both valid and invalid incoming data.
-    await ctx.answerCbQuery();
+    // Only answer callback query if it's actually a callback query context
+    if ("answerCbQuery" in ctx && ctx.callbackQuery) {
+        await ctx.answerCbQuery();
+    }
 
     if (!data) return;
 
@@ -204,8 +208,22 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewWatchedWallets(ctx);
     }
 
-    if (data === "copy_trade_configure") {
+    if (data === "copy_trade_configure_menu") {
         return handleCopyTradeConfigureMenu(ctx);
+    }
+
+    if (data === "configure_wallets") {
+        return handleConfigureWalletsMenu(ctx);
+    }
+
+    if (data.startsWith("config_wallet:")) {
+        const walletAddress = data.split(":")[1];
+        return handleConfigureWallet(ctx, walletAddress);
+    }
+
+    if (data.startsWith("set_wallet_percent:")) {
+        const [, walletAddress, percentage] = data.split(":");
+        return handleSetWalletPercentage(ctx, walletAddress, percentage);
     }
 
     if (data === "back_to_autotrade") {

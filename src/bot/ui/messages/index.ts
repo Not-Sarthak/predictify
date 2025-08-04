@@ -200,20 +200,15 @@ export async function createPaginationKeyboard(
 }
 
 export async function handleAutoTradeMenu(ctx: Context) {
-    return ctx.reply(
-        "🚧 *Coming Soon!*\n\nThis feature isn't available yet, but it's in the works. Stay tuned! 👷‍♂️",
-        { parse_mode: "Markdown" }
-    );
+    const menuResult = await generateAutoTradeMenu(ctx);
+    if (!menuResult) return;
 
-    // const menuResult = await generateAutoTradeMenu(ctx);
-    // if (!menuResult) return;
+    const { message, replyMarkup } = menuResult;
 
-    // const { message, replyMarkup } = menuResult;
-
-    // await ctx.reply(message, {
-    //     parse_mode: "Markdown",
-    //     reply_markup: replyMarkup,
-    // });
+    await ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: replyMarkup,
+    });
 }
 
 export async function generate0DTEMarketCategoryKeyboard() {

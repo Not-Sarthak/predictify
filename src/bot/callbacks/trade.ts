@@ -16,7 +16,8 @@ import {
 import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
 import { getUserDetails } from "@/helpers/get-user-details";
 import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
+import { supabase } from "@/lib/supabase";
+import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
 import { capitalize } from "@/utils/capitalize";
 import {
     fetchMarkets,
@@ -44,6 +45,9 @@ import {
     storeTpSlWatcherInRedis,
     type PriceWatchConfig,
 } from "@/notifier/ws";
+import { createLegacyWallet } from "@/utils";
+import { ethers } from "ethers";
+import { trackManualTrade } from "@/utils/trade-tracker";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -741,6 +745,24 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
     const userId = getUserIdFromCtx(ctx);
 
     try {
+        // Import at runtime to avoid circular dependency
+        const { stopWalletMonitoring } = await import("@/watcher/copy-trade");
+
+        // Stop monitoring first
+        await stopWalletMonitoring(walletAddress, userId);
+
+        // Remove from watched_wallets array
+        const { data: currentUser } = await db("Users")
+            .select("watched_wallets")
+            .eq("id", userId)
+            .single();
+
+        const currentWallets = currentUser?.watched_wallets || [];
+        const updatedWallets = currentWallets.filter((w) => w !== walletAddress);
+
+        await db("Users").update({ watched_wallets: updatedWallets }).eq("id", userId);
+
+        // Delete from Copy_Wallets table
         const { error } = await db("Copy_Wallets")
             .delete()
             .filter("user_id", "eq", userId)
@@ -748,10 +770,16 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
 
         if (error) throw new Error(error.message, { cause: error.cause });
 
-        ctx.reply("✅ Wallet Was Successfully Deleted!");
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery("Wallet deleted");
+        }
+        return ctx.reply("✅ Wallet was Successfully Deleted!");
     } catch (error) {
         console.error("Error Deleting User Copy Wallet: ", error);
-        return ctx.reply(`❌ There Was an Error Deleting Copy Wallet! Please Try Again Later.`, {
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery("Error occurred");
+        }
+        return ctx.reply(`❌ There was an error deleting the wallet! Please try again later.`, {
             parse_mode: "Markdown",
         });
     }
@@ -1016,11 +1044,13 @@ export async function handleCloseOpenPosition(
         user.show_username_in_cards
     );
 
+    const sellAmount = amountToSell || userMarketDetails.size;
+
     const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
         tokenId: userMarketDetails.asset,
-        amount: amountToSell || userMarketDetails.size,
+        amount: sellAmount,
         orderType: OrderType.FOK,
     });
 
@@ -1028,6 +1058,9 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    // Track this manual sell for copy trading system
+    await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;

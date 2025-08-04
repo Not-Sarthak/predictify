@@ -26,6 +26,7 @@ import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 import { generatePositionCard } from "@/utils/card-generator";
 import { encodeMarketId } from "@/utils/encoding";
+import { trackManualTrade } from "@/utils/trade-tracker";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -180,6 +181,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 side: Side.BUY,
                 orderType: OrderType.FOK,
             });
+
+            // Track manual buy order
+            if (orderResponse && !orderResponse.error) {
+                await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
+            }
         } else if (orderType === "fok_sell") {
             const isAutoExecute = orderContext.autoExecute === "true";
             const amount = isAutoExecute ? Number(orderContext.amount) : Number(textMessage.trim());
@@ -224,6 +230,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 amount: amount,
                 orderType: OrderType.FOK,
             });
+
+            // Track manual sell order
+            if (orderResponse && !orderResponse.error) {
+                await trackManualTrade(userId, tokenId, "SELL", amount);
+            }
         } else {
             return ctx.reply("❌ Invalid Order Type!");
         }

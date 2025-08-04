@@ -1,76 +1,68 @@
 import { redisClient } from "@/lib/redis";
 import type { TableRow } from "@/types/supabase";
-import { pollForNewTrades } from "@/watcher/helpers";
+import {
+    startWalletMonitoring,
+    stopWalletMonitoring,
+    updateSubscription,
+} from "@/watcher/copy-trade";
+import { supabase } from "@/lib/supabase";
 
 const activeWalletIntervals = new Map<string, NodeJS.Timeout>();
 
 export const addWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
-    const { is_enabled, user_id, wallet_address } = data;
+    const { is_enabled, user_id, wallet_address, percent_ratio } = data;
 
-    const walletKey = wallet_address.toString();
-    const redisSetKey = `wallet:MONITOR:${walletKey}`;
-    const intervalKey = `wallet:INTERVAL_ACTIVE:${walletKey}`;
-    const userEntry = `${user_id.toString()}:${String(is_enabled)}`;
+    // Get user's copy trading settings
+    const { data: user } = await supabase
+        .from("Users")
+        .select("is_copytrading_enabled, config_value")
+        .eq("id", user_id)
+        .single();
 
-    await redisClient.sAdd(redisSetKey, userEntry);
+    if (!user) {
+        console.error(`User ${user_id} not found`);
+        return;
+    }
 
-    if (activeWalletIntervals.has(walletKey)) return;
+    const positionPercentage =
+        percent_ratio * 100 || (user.config_value ? parseInt(user.config_value) : 100);
 
-    const interval = setInterval(() => {
-        pollForNewTrades(wallet_address);
-    }, 5000);
+    // Use the user-specific monitoring from copy-trade.ts
+    await startWalletMonitoring(
+        wallet_address,
+        Number(user_id),
+        is_enabled && user.is_copytrading_enabled,
+        positionPercentage
+    );
 
-    activeWalletIntervals.set(wallet_address, interval);
-    await redisClient.set(intervalKey, "1");
-
-    console.log(`🟢 Started monitoring ${wallet_address}`);
+    console.log(`🟢 Started monitoring ${wallet_address} for user ${user_id}`);
 };
 
 export const updateWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
-    const { is_enabled, user_id, wallet_address } = data;
+    const { is_enabled, user_id, wallet_address, percent_ratio } = data;
 
-    const walletKey = wallet_address.toString();
-    const redisSetKey = `wallet:MONITOR:${walletKey}`;
-    const intervalKey = `wallet:INTERVAL_ACTIVE:${walletKey}`;
-    const userPrefix = `${user_id.toString()}:`;
-    const updatedEntry = `${user_id.toString()}:${String(is_enabled)}`;
+    // Get user's copy trading settings
+    const { data: user } = await supabase
+        .from("Users")
+        .select("is_copytrading_enabled, config_value")
+        .eq("id", user_id)
+        .single();
 
-    // Remove old entry for this user (true or false)
-    const currentUsers = (await redisClient.sMembers(redisSetKey)) as string[];
-    for (const entry of currentUsers) {
-        if (entry.startsWith(userPrefix)) {
-            await redisClient.sRem(redisSetKey, entry);
-        }
+    if (!user) {
+        console.error(`User ${user_id} not found`);
+        return;
     }
 
-    // Add updated entry
-    await redisClient.sAdd(redisSetKey, updatedEntry);
+    const positionPercentage =
+        percent_ratio * 100 || (user.config_value ? parseInt(user.config_value) : 100);
 
-    // Check current enabled users
-    const allEntries = (await redisClient.sMembers(redisSetKey)) as string[];
-    const hasEnabledUser = allEntries.some((entry) => entry.endsWith(":true"));
-
-    const isCurrentlyMonitoring = activeWalletIntervals.has(walletKey);
-
-    if (hasEnabledUser && !isCurrentlyMonitoring) {
-        const interval = setInterval(() => {
-            pollForNewTrades(wallet_address);
-        }, 5000);
-
-        activeWalletIntervals.set(walletKey, interval);
-        await redisClient.set(intervalKey, "1");
-        console.log(`🟢 (UPDATE) Started monitoring ${wallet_address}`);
-    } else if (!hasEnabledUser && isCurrentlyMonitoring) {
-        const interval = activeWalletIntervals.get(walletKey);
-        if (interval) {
-            clearInterval(interval);
-            activeWalletIntervals.delete(walletKey);
-            await redisClient.del(intervalKey);
-            console.log(`🔴 (UPDATE) Stopped monitoring ${wallet_address}`);
-        }
-    } else {
-        console.log(`↔️ (UPDATE) No interval change for ${wallet_address}`);
-    }
+    // Update the user-specific monitoring
+    await updateSubscription(
+        wallet_address,
+        Number(user_id),
+        is_enabled && user.is_copytrading_enabled,
+        positionPercentage
+    );
 
     console.log(`🔄 Updated monitor for user ${user_id} on wallet ${wallet_address}`);
 };
@@ -78,62 +70,14 @@ export const updateWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
 export const deleteWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
     const { user_id, wallet_address } = data;
 
-    const walletKey = wallet_address.toString();
-    const redisSetKey = `wallet:MONITOR:${walletKey}`;
-    const intervalKey = `wallet:INTERVAL_ACTIVE:${walletKey}`;
-    const userPrefix = `${user_id.toString()}:`;
+    // Stop user-specific monitoring
+    await stopWalletMonitoring(wallet_address, Number(user_id));
 
-    const currentUsers = (await redisClient.sMembers(redisSetKey)) as string[];
-    for (const entry of currentUsers) {
-        if (entry.startsWith(userPrefix)) {
-            await redisClient.sRem(redisSetKey, entry);
-        }
-    }
-
-    const remaining = (await redisClient.sMembers(redisSetKey)) as string[];
-
-    if (remaining.length === 0) {
-        const interval = activeWalletIntervals.get(walletKey);
-        if (interval) {
-            clearInterval(interval);
-            activeWalletIntervals.delete(walletKey);
-        }
-
-        await redisClient.del(intervalKey);
-        console.log(`🔴 Stopped monitoring ${wallet_address}`);
-    }
+    console.log(`🔴 Stopped monitoring ${wallet_address} for user ${user_id}`);
 };
 
 export const resumeAllWalletMonitors = async () => {
-    console.log("Checking and updating existing Wallet Monitors...");
-
-    const keys = await redisClient.keys("wallet:MONITOR:*");
-
-    for (const redisSetKey of keys) {
-        const walletKey = redisSetKey.replace("wallet:MONITOR:", "");
-        const intervalKey = `wallet:INTERVAL_ACTIVE:${walletKey}`;
-
-        const userEntries = (await redisClient.sMembers(redisSetKey)) as string[];
-        const hasEnabledUser = userEntries.some((entry) => entry.endsWith(":true"));
-
-        if (hasEnabledUser && !activeWalletIntervals.has(walletKey)) {
-            const interval = setInterval(() => {
-                pollForNewTrades(walletKey);
-            }, 5000);
-
-            activeWalletIntervals.set(walletKey, interval);
-            await redisClient.set(intervalKey, "1");
-            console.log(`🔁 Resumed monitoring for ${walletKey}`);
-        } else if (!hasEnabledUser && activeWalletIntervals.has(walletKey)) {
-            const interval = activeWalletIntervals.get(walletKey);
-            if (interval) {
-                clearInterval(interval);
-                activeWalletIntervals.delete(walletKey);
-                await redisClient.del(intervalKey);
-                console.log(`⏹️ Stopped orphan monitor for ${walletKey}`);
-            }
-        }
-    }
-
-    console.log("Wallet monitoring resumed based on Redis state");
+    console.log("Resuming wallet monitors is now handled by copy-trade.ts");
+    // This is now handled by resumeAllMonitoring in copy-trade.ts
+    // which is called from init.ts
 };
