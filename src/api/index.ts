@@ -3,6 +3,7 @@ import helmet from "@fastify/helmet";
 import { userRoutes } from "./routes/user-routes";
 import { APIError } from "../shared/errors/api-error";
 import { env } from "@/config";
+import { getMonitoringStatus, getUserMonitoringStatus } from "@/watcher/copy-trade";
 
 const server = Fastify({
     logger: {
@@ -61,6 +62,17 @@ server.get("/health", async () => ({
     status: "ok",
     timestamp: Date.now(),
 }));
+
+// Debug: Monitoring Status
+server.get("/debug/monitoring", async () => {
+    return getMonitoringStatus();
+});
+
+// Debug: User Monitoring Status
+server.get("/debug/monitoring/:userId", async (request) => {
+    const { userId } = request.params as { userId: string };
+    return getUserMonitoringStatus(parseInt(userId));
+});
 
 // User Routes
 server.register(userRoutes, { prefix: "/api/users" });

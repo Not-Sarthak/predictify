@@ -48,12 +48,10 @@ export async function ensureTokenApproval(privateKey: string): Promise<void> {
             await tx.wait();
         }
     } catch (err) {
-        console.error("Approval check failed:", err);
+        console.error("Approval Check Failed:", err);
     }
 }
 
-// FOK: Fill Or Kill -> Must Fill the ENTIRE Order Immediately or Cancel Completely
-// FAK: Fill And Kill -> Fill whatever Portion is Available Immediately, then Cancel the Rest.
 export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderRequest) {
     const wallet = new ethers.Wallet(marketBuyOrderRequest.privateKey);
     const chainId = CHAIN_ID;
@@ -74,9 +72,10 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
     }
 
     try {
-        txHash = await setUSDCAllowance(wallet, totalCost.toString());
+        const formattedAmount = totalCost.toFixed(6);
+        txHash = await setUSDCAllowance(wallet, formattedAmount);
     } catch (error) {
-        console.error("Error setting USDC Allowance: ", error);
+        console.error("Error Setting USDC Allowance: ", error);
         return {
             response: null,
             error: "Error setting USDC Allowance",
@@ -86,9 +85,11 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
     await setNegativeRiskAllowance(marketBuyOrderRequest.privateKey);
 
     try {
+        const roundedAmount = parseFloat(marketBuyOrderRequest.amount.toFixed(6));
+
         const marketBuyOrder = await clobClient.createMarketOrder({
             tokenID: marketBuyOrderRequest.tokenId,
-            amount: marketBuyOrderRequest.amount,
+            amount: roundedAmount,
             side: marketBuyOrderRequest.side,
             orderType: marketBuyOrderRequest.orderType,
         });
@@ -101,7 +102,7 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
 
         return { response, tx: txHash, error: null };
     } catch (error) {
-        console.error("Error placing Order: ", error);
+        console.error("Error Placing Order:", error);
         return { response: null, error };
     }
 }
@@ -116,9 +117,11 @@ export async function marketSellOrder(request: MarketSellOrderRequest) {
     try {
         await ensureTokenApproval(request.privateKey);
 
+        const roundedAmount = parseFloat(request.amount.toFixed(6));
+
         const marketSellOrder = await clobClient.createMarketOrder({
             tokenID: request.tokenId,
-            amount: request.amount,
+            amount: roundedAmount,
             side: Side.SELL,
             orderType: request.orderType,
         });

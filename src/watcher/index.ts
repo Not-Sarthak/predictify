@@ -16,7 +16,7 @@ let channel: RealtimeChannel | null = null;
 let retrying = false;
 let retryCount = 0;
 const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY = 2000; // 2 seconds
+const RETRY_BASE_DELAY = 2000; // 2 Seconds
 
 export const subscribe = async () => {
     if (channel) {

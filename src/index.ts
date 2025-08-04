@@ -3,6 +3,7 @@ import { API_SERVER_PORT, PORT } from "./shared/constants";
 import { apiServer } from "@/api";
 import { bot } from "./bot";
 // import { connectToSupabaseRealtime } from "@/watcher";
+import { initializeCopyTrading } from "@/watcher/init";
 import { tryCatch } from "./utils";
 import { notifier } from "@/notifier";
 import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "@/notifier/ws";
@@ -27,10 +28,10 @@ async function main() {
     console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
 
     /**
-     * DISABLED AUTOTRADING TEMPORARILY
+     * COPY TRADING SYSTEM
+     * Initialize the wallet monitoring and copy trading functionality
      */
-    // Listens to copy wallets db updates
-    // await connectToSupabaseRealtime();
+    await initializeCopyTrading();
 
     // Initialize Telegram Bot Webhook
     bot.launch(

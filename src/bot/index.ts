@@ -37,6 +37,10 @@ bot.command("portfolio", handleViewTradePositions);
 bot.command("manage", handleCancelOpenOrdersCommand);
 bot.command("stats", handleViewProfileCallback);
 bot.command("watchlist", handleWatchlistCommand);
+bot.command("monitoring", async (ctx) => {
+    const { handleMonitoringStats } = await import("@/bot/callbacks/autotrade");
+    return handleMonitoringStats(ctx);
+});
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
