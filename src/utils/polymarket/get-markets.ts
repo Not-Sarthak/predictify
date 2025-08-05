@@ -5,7 +5,7 @@ import { CHAIN_ID } from "../../shared/constants";
 import { env } from "../../config/env";
 import { ethers } from "ethers";
 
-interface Market {
+export interface Market {
     id: string;
     ticker: string;
     slug: string;

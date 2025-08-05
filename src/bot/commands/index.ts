@@ -5,6 +5,7 @@ export * from "./start";
 export * from "./subscriptions";
 export * from "./trade";
 export * from "./watchlist";
+export * from "./high-probability";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -47,5 +48,9 @@ export const botCommands: BotCommand[] = [
     {
         command: "watchlist",
         description: "View your favorite markets watchlist",
+    },
+    {
+        command: "highprob",
+        description: "Trade high-probability markets (85-95% odds)",
     },
 ];
