@@ -16,6 +16,7 @@ import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
 import { capitalize } from "@/utils";
 import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
 import { Markup } from "telegraf";
+import { encodeMarketId } from "@/utils/encoding";
 
 type Auth = {
     apiKey: string;
@@ -240,7 +241,7 @@ export class PolymarketMarketTradeWatcher {
                             reply_markup: Markup.inlineKeyboard([
                                 Markup.button.callback(
                                     "View this Market",
-                                    `view_market:${this.marketId}`
+                                    `view_market:${encodeMarketId(this.marketId)}`
                                 ),
                             ]).reply_markup,
                         }

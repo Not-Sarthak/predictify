@@ -224,7 +224,10 @@ export async function handleFetchMarketWithOffsetCallback(
 
     for (const market of marketData) {
         marketTitleButtons.push([
-            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
+            Markup.button.callback(
+                padButtonText(market.title),
+                `selected_market:${encodeMarketId(market.id)}`
+            ),
         ]);
     }
 
@@ -564,7 +567,9 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         const probability = Math.round(yesPrice * 100);
 
         message += `**${i + 1}.** ${escapeMarkdown(market.groupItemTitle)} • ${probability}%\n`;
-        marketButtons.push(Markup.button.callback(`#${i + 1}`, `view_market:${market.id}`));
+        marketButtons.push(
+            Markup.button.callback(`#${i + 1}`, `view_market:${encodeMarketId(market.id)}`)
+        );
     }
 
     const marketButtonsLayout = layoutButtons(marketButtons);
@@ -621,23 +626,32 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
                 (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
-            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+            ? Markup.button.callback(
+                  "💔 Remove from Watchlist",
+                  `remove_watchlist:${encodeMarketId(market.id)}`
+              )
+            : Markup.button.callback(
+                  "❤️ Add to My Watchlist",
+                  `add_watchlist:${encodeMarketId(market.id)}`
+              );
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${market.id}`
+            `add_watchlist:${encodeMarketId(market.id)}`
         );
     }
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            Markup.button.callback(
+                "⚡ Market Yes",
+                `market_order:${encodeMarketId(market.id)}:yes`
+            ),
+            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
         ],
         [
             Markup.button.callback(
@@ -646,9 +660,14 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             ),
         ],
         [watchlistButton],
-        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
-            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
+            Markup.button.callback(
+                "ℹ️ About this Market",
+                `market_details:${encodeMarketId(market.id)}`
+            ),
+        ],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market:${encodeMarketId(market.id)}`),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
@@ -703,23 +722,32 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
                     item.marketId === market.id || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
-            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+            ? Markup.button.callback(
+                  "💔 Remove from Watchlist",
+                  `remove_watchlist:${encodeMarketId(market.id)}`
+              )
+            : Markup.button.callback(
+                  "❤️ Add to My Watchlist",
+                  `add_watchlist:${encodeMarketId(market.id)}`
+              );
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${market.id}`
+            `add_watchlist:${encodeMarketId(market.id)}`
         );
     }
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            Markup.button.callback(
+                "⚡ Market Yes",
+                `market_order:${encodeMarketId(market.id)}:yes`
+            ),
+            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
         ],
         [
             Markup.button.callback(
@@ -729,7 +757,10 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         ],
         [watchlistButton],
         [
-            Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_market_details:${encodeMarketId(market.id)}`
+            ),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);

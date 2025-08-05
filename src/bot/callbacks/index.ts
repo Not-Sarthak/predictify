@@ -292,7 +292,8 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("selected_market:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleViewMarket(ctx, marketId);
     }
 
@@ -373,12 +374,14 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("view_market:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleViewMarket(ctx, marketId);
     }
 
     if (data.startsWith("market_details:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleMarketDetails(ctx, marketId);
     }
 
@@ -394,7 +397,8 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("limit_order:")) {
-        const [marketId, side] = data.split(":").slice(1);
+        const [encodedMarketId, side] = data.split(":").slice(1);
+        const marketId = decodeMarketId(encodedMarketId);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -416,7 +420,8 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("market_order:")) {
-        const [marketId, side] = data.split(":").slice(1);
+        const [encodedMarketId, side] = data.split(":").slice(1);
+        const marketId = decodeMarketId(encodedMarketId);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -715,12 +720,14 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("refresh_market:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleRefreshMarket(ctx, marketId);
     }
 
     if (data.startsWith("refresh_market_details:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleRefreshMarketDetails(ctx, marketId);
     }
 
@@ -902,12 +909,14 @@ Example: <code>0.7</code> <code>No</code>`;
     }
 
     if (data.startsWith("add_watchlist:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleAddToWatchlist(ctx, marketId);
     }
 
     if (data.startsWith("remove_watchlist:")) {
-        const marketId = data.split(":")[1];
+        const encodedMarketId = data.split(":")[1];
+        const marketId = decodeMarketId(encodedMarketId);
         return handleRemoveFromWatchlist(ctx, marketId);
     }
 
@@ -1025,11 +1034,11 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
                 row.map((button) => {
                     if (
                         "callback_data" in button &&
-                        button.callback_data === `add_watchlist:${marketId}`
+                        button.callback_data === `add_watchlist:${encodeMarketId(marketId)}`
                     ) {
                         return Markup.button.callback(
                             "💔 Remove from Watchlist",
-                            `remove_watchlist:${marketId}`
+                            `remove_watchlist:${encodeMarketId(marketId)}`
                         );
                     }
                     return button;
@@ -1112,11 +1121,11 @@ async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
                     row.map((button) => {
                         if (
                             "callback_data" in button &&
-                            button.callback_data === `remove_watchlist:${marketId}`
+                            button.callback_data === `remove_watchlist:${encodeMarketId(marketId)}`
                         ) {
                             return Markup.button.callback(
                                 "❤️ Add to My Watchlist",
-                                `add_watchlist:${marketId}`
+                                `add_watchlist:${encodeMarketId(marketId)}`
                             );
                         }
                         return button;
@@ -1184,12 +1193,15 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            Markup.button.callback(
+                "⚡ Market Yes",
+                `market_order:${encodeMarketId(market.id)}:yes`
+            ),
+            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
         ],
         [
             Markup.button.callback(
@@ -1197,8 +1209,18 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
                 `set_price_alert:${encodeMarketId(market.conditionId)}`
             ),
         ],
-        [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
-        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [
+            Markup.button.callback(
+                "💔 Remove from Watchlist",
+                `remove_watchlist:${encodeMarketId(market.id)}`
+            ),
+        ],
+        [
+            Markup.button.callback(
+                "ℹ️ About this Market",
+                `market_details:${encodeMarketId(market.id)}`
+            ),
+        ],
         [
             Markup.button.callback("⬅️ Back to Watchlist", "back_to_watchlist"),
             Markup.button.callback("❌ Close", "close_message"),
