@@ -38,7 +38,7 @@ import { decryptPrivateKey } from "@/utils/crypto";
 import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "@/types/polymarket";
 import { setUserInputState } from "@/bot/input/state";
-import { generatePnlCard } from "@/utils/card-generator";
+import { generatePnlCard, generatePortfolioPositionCard } from "@/utils/card-generator";
 import {
     startTpSlWatcher,
     stopAllTpSlWatchers,
@@ -1463,4 +1463,56 @@ export async function handleRefreshTopMarkets(
             }
         }
     }
+}
+
+export async function handleGeneratePortfolioCard(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const user = await getUserDetails(userId);
+
+    if (!user) return;
+
+    if (!user.wallet_address) {
+        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+    }
+
+    const msg = await ctx.reply("⚡ Generating your Portfolio Card...");
+
+    const userPositions = await getUserPosition({ user: user.wallet_address });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
+
+    if (filteredUserPositions.length === 0) {
+        return ctx.reply("📭 No active positions found to generate portfolio card.");
+    }
+
+    const totalInitialValue = filteredUserPositions.reduce((sum, p) => sum + p.initialValue, 0);
+    const totalCurrentValue = filteredUserPositions.reduce((sum, p) => sum + p.currentValue, 0);
+    const totalPnlDiff = totalCurrentValue - totalInitialValue;
+
+    const topPositions = filteredUserPositions
+        .sort((a, b) => Math.abs(b.cashPnl) - Math.abs(a.cashPnl))
+        .slice(0, 5);
+
+    const marketData = topPositions.map((position) => ({
+        title: position.title,
+        pnl: position.cashPnl,
+    }));
+
+    const pnlDiffSign = totalPnlDiff >= 0 ? "+" : "-";
+
+    const cardBuffer = await generatePortfolioPositionCard(
+        user.telegram_username,
+        user.show_username_in_cards,
+        totalInitialValue.toFixed(2),
+        pnlDiffSign,
+        Math.abs(totalPnlDiff).toFixed(2),
+        marketData
+    );
+
+    await ctx.deleteMessage(msg.message_id);
+    await ctx.replyWithPhoto(
+        { source: cardBuffer },
+        {
+            caption: `📊 Portfolio Summary for @${user.telegram_username}`,
+        }
+    );
 }

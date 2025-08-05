@@ -22,6 +22,7 @@ import {
     handleRefreshMarkets,
     handleRefreshTopMarkets,
     handleShowZeroDTEMarketsByCategory,
+    handleGeneratePortfolioCard,
 } from "./trade";
 import { getMarketById } from "@/utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "@/bot/utils";
@@ -937,6 +938,10 @@ Example: <code>0.7</code> <code>No</code>`;
         const marketId = data.split(":")[1];
         // Show market with additional context that it's from watchlist
         return handleViewMarketFromWatchlist(ctx, marketId);
+    }
+
+    if (data === "generate_portfolio_card") {
+        return handleGeneratePortfolioCard(ctx);
     }
 
     if (data === "clear_watchlist") {

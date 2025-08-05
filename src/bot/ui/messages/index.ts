@@ -193,6 +193,7 @@ export async function createPaginationKeyboard(
                 : []),
         ],
         paginationButtons,
+        [Markup.button.callback("⚡ Generate Portfolio Card", "generate_portfolio_card")],
         [CLOSE_BUTTON],
     ];
 

@@ -27,5 +27,4 @@ Sarthak:
 
 Monday:
 
-- position card / in portfolio section
 - share on x in position card
