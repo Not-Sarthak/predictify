@@ -20,5 +20,3 @@ TODO:
 
 5. Tag Bot and Give Info
 6. Twitter Bot
-
-- share on x in position card

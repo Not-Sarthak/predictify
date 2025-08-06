@@ -7,6 +7,7 @@ import {
     type PriceWatchConfig,
 } from "../../notifier/ws";
 import type { Context } from "telegraf";
+import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 
 export async function handleTpSlShareInput(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -60,11 +61,9 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
         });
     }
 
-    clearUserInputState(userId.toString());
-
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 
-    const { tokenId, marketId, outcome, type, action } = orderContext;
+    const { tokenId, marketId, outcome, type, action, currentPrice } = orderContext;
 
     const config: PriceWatchConfig = {
         type: action as "take_profit" | "stop_loss",
@@ -73,7 +72,21 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
         outcome,
     };
 
-    console.log(config);
+    if (action === "take_profit") {
+        if (price <= Number(currentPrice)) {
+            return ctx.reply(
+                `❌ Entered Price should be greater than the current price (${currentPrice}).`
+            );
+        }
+    } else {
+        if (price >= Number(currentPrice)) {
+            return ctx.reply(
+                `❌ Entered Price should be less than the current price. (${currentPrice})`
+            );
+        }
+    }
+
+    clearUserInputState(userId.toString());
 
     await storeTpSlWatcherInRedis(userId.toString(), config, marketId, tokenId);
     startTpSlWatcher(userId.toString(), marketId, tokenId, config);

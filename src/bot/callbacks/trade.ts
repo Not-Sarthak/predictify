@@ -566,9 +566,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         const probability = Math.round(yesPrice * 100);
 
         message += `**${i + 1}.** ${escapeMarkdown(market.groupItemTitle)} • ${probability}%\n`;
-        marketButtons.push(
-            Markup.button.callback(`#${i + 1}`, `view_market:${encodeMarketId(market.id)}`)
-        );
+        marketButtons.push(Markup.button.callback(`#${i + 1}`, `view_market:${market.id}`));
     }
 
     const marketButtonsLayout = layoutButtons(marketButtons);
@@ -642,11 +640,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback(
-                "⚡ Market Yes",
-                `market_order:${encodeMarketId(market.id)}:yes`
-            ),
-            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
@@ -666,7 +661,7 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             ),
         ],
         [
-            Markup.button.callback("🔄 Refresh", `refresh_market:${encodeMarketId(market.id)}`),
+            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
@@ -738,11 +733,8 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback(
-                "⚡ Market Yes",
-                `market_order:${encodeMarketId(market.id)}:yes`
-            ),
-            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
@@ -1200,9 +1192,14 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { marketId, side, orderType } = orderContext;
 
+    console.log("MARKET ID: ", marketId);
+
     const market = marketId.startsWith("0x")
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
+
+    console.log("Market: ", market);
+
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const clobTokenIds = JSON.parse(market.clobTokenIds);
     const endDate = market.endDate || market.events?.[0]?.endDate;

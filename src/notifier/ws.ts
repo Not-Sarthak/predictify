@@ -32,6 +32,7 @@ export type PriceWatchConfig =
 type WatcherKey = `${string}:${string}`; // userId:marketId:direction
 
 const watchers = new Map<WatcherKey, PolymarketMarketTradeWatcher>();
+const EPSILON = 0.00001;
 
 export class PolymarketUserTradeWatcher {
     private socket: WebSocket;
@@ -197,9 +198,7 @@ export class PolymarketMarketTradeWatcher {
             let shouldTrigger = false;
 
             if (type === "alert") {
-                shouldTrigger =
-                    (this.lastBestAsk < price && currentAsk >= price) ||
-                    (this.lastBestAsk > price && currentAsk <= price);
+                shouldTrigger = Math.abs(currentAsk - price) < EPSILON;
             } else if (type === "take_profit") {
                 shouldTrigger = this.lastBestAsk < price && currentAsk > price;
             } else if (type === "stop_loss") {

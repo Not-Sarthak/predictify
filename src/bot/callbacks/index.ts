@@ -296,9 +296,14 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleResetWallet(ctx);
     }
 
-    if (data.startsWith("selected_market:") || data.startsWith("view_market:")) {
+    if (data.startsWith("selected_market:")) {
         const encodedMarketId = data.split(":")[1];
         const marketId = decodeMarketId(encodedMarketId);
+        return handleViewMarket(ctx, marketId);
+    }
+
+    if (data.startsWith("view_market:")) {
+        const marketId = data.split(":")[1];
         return handleViewMarket(ctx, marketId);
     }
 
@@ -415,8 +420,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("market_order:")) {
-        const [encodedMarketId, side] = data.split(":").slice(1);
-        const marketId = decodeMarketId(encodedMarketId);
+        const [marketId, side] = data.split(":").slice(1);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -713,8 +717,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("refresh_market:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleRefreshMarket(ctx, marketId);
     }
 
@@ -774,7 +777,7 @@ Example: <code>0.7</code> <code>No</code>`;
             return ctx.reply("❌ You don't have an open Position in this Market");
         }
 
-        const { size, outcome, asset } = userPositionsByMarkets;
+        const { size, outcome, asset, curPrice } = userPositionsByMarkets;
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             size,
@@ -782,6 +785,7 @@ Example: <code>0.7</code> <code>No</code>`;
             action,
             marketId,
             outcome,
+            currentPrice: curPrice,
         });
 
         const isTp = action === "take_profit";
@@ -1186,11 +1190,8 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback(
-                "⚡ Market Yes",
-                `market_order:${encodeMarketId(market.id)}:yes`
-            ),
-            Markup.button.callback("⚡ Market No", `market_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
             Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
