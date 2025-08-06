@@ -15,7 +15,9 @@ import { getUserDetails } from "@/helpers/get-user-details";
 import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
 
 export async function handleStartCommand(ctx: Context) {
+    console.log("[START] Command received from user:", ctx.from?.id, ctx.from?.username);
     const userId = getUserIdFromCtx(ctx);
+    console.log("[START] Processing for user ID:", userId);
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {

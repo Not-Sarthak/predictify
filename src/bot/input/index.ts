@@ -20,6 +20,10 @@ import { handleTakeProfitOrStopLossExecution, handleTpSlShareInput } from "@/bot
 import { getEventBySlug } from "@/utils/polymarket/get-markets";
 import { handleEditPriceAlert } from "@/bot/input/edit-price-alert";
 import { handleSetWalletPercentage } from "@/bot/callbacks/autotrade";
+import {
+    handleHighProbAutoSplitAmount,
+    handleHighProbManualAmount,
+} from "@/bot/input/high-probability";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -90,6 +94,12 @@ export async function handleUserTextMessage(ctx: Context) {
                 return ctx.reply("❌ Error: Wallet address not found. Please try again.");
             }
             await handleSetWalletPercentage(ctx, walletAddress, textMessage);
+            break;
+        case "highprob_autosplit_amount":
+            await handleHighProbAutoSplitAmount(ctx, textMessage);
+            break;
+        case "highprob_manual_amount":
+            await handleHighProbManualAmount(ctx, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");
