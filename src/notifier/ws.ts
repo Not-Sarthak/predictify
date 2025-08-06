@@ -38,6 +38,9 @@ export class PolymarketUserTradeWatcher {
     private userId: string;
     private marketId: string;
     private auth: Auth;
+    private hasTriggered = false;
+    private reconnectTimeout: NodeJS.Timeout | null = null;
+    private reconnectDelay = 5000;
 
     constructor(userId: string, auth: Auth, marketId: string) {
         this.userId = userId;
@@ -75,45 +78,27 @@ export class PolymarketUserTradeWatcher {
                 message.event_type === "trade" &&
                 message.market === this.marketId
             ) {
+                this.hasTriggered = true;
+
                 const user = await getUserDetails(Number(this.userId));
                 const market = await getMarketByConditionId(message.market);
-
-                if (!user || !market) {
-                    console.log("Error sending Limit Order Placed Message");
-                    return;
-                }
-
-                let pnlType: "Positive" | "Negative" | "Neutral";
-
-                const marketTitle = market.question || market.title;
-                const side = capitalize(message.outcome.toLowerCase()) as "Yes" | "No";
-                const volume = Math.floor(Number(market.volume)).toLocaleString("en-US");
-
-                const closeDate = new Date().toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                });
-
-                if (market.cashPnl > 0) pnlType = "Positive";
-                else if (market.cashPnl < 0) pnlType = "Negative";
-                else pnlType = "Neutral";
-
-                const rawProfitAmount = parseFloat(Math.abs(market.cashPnl).toFixed(2));
-                const entryPercentage = parseFloat((market.avgPrice * 100).toFixed(2));
-                const exitPercentage = parseFloat((market.curPrice * 100).toFixed(2));
+                if (!user || !market) return;
 
                 const txtMessage = generateOrderFilledMessage(message, market.question);
                 const imgBuffer = await generatePnlCard(
-                    pnlType,
+                    market.cashPnl > 0 ? "Positive" : market.cashPnl < 0 ? "Negative" : "Neutral",
                     user.telegram_username,
-                    marketTitle,
-                    side,
-                    volume,
-                    closeDate,
-                    rawProfitAmount,
-                    entryPercentage,
-                    exitPercentage,
+                    market.question || market.title,
+                    capitalize(message.outcome.toLowerCase()) as "Yes" | "No",
+                    Math.floor(Number(market.volume)).toLocaleString("en-US"),
+                    new Date().toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                    }),
+                    parseFloat(Math.abs(market.cashPnl).toFixed(2)),
+                    parseFloat((market.avgPrice * 100).toFixed(2)),
+                    parseFloat((market.curPrice * 100).toFixed(2)),
                     user.show_username_in_cards
                 );
 
@@ -122,7 +107,7 @@ export class PolymarketUserTradeWatcher {
                     parse_mode: "Markdown",
                 });
 
-                this.socket.close();
+                this.close();
             }
 
             console.log("[WS] Message received:", data);
@@ -137,10 +122,23 @@ export class PolymarketUserTradeWatcher {
 
     private onClose(event: CloseEvent) {
         console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+
+        if (!this.hasTriggered) {
+            this.reconnectTimeout = setTimeout(() => {
+                console.log(`[WS] Reconnecting user watcher for ${this.userId}:${this.marketId}`);
+                this.socket = new WebSocket(POLYMARKET_WS_USER_URL);
+                this.registerHandlers();
+            }, this.reconnectDelay);
+        }
     }
 
     public close() {
+        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
         this.socket.close();
+    }
+
+    public isAlive(): boolean {
+        return this.socket.readyState === WebSocket.OPEN;
     }
 }
 
@@ -150,15 +148,16 @@ export class PolymarketMarketTradeWatcher {
     private assetId: string;
     private marketId: string;
     private config: PriceWatchConfig;
-    private hasTriggered: boolean;
+    public hasTriggered: boolean = false;
     private lastBestAsk: number = Infinity;
+    private reconnectTimeout: NodeJS.Timeout | null = null;
+    private reconnectDelay = 5000;
 
     constructor(userId: string, assetId: string, marketId: string, config: PriceWatchConfig) {
         this.userId = userId;
         this.assetId = assetId;
         this.marketId = marketId;
         this.config = config;
-        this.hasTriggered = false;
 
         this.socket = new WebSocket(POLYMARKET_WS_MARKET_URL);
         this.registerHandlers();
@@ -177,7 +176,7 @@ export class PolymarketMarketTradeWatcher {
             assets_ids: [this.assetId],
         };
         this.socket.send(JSON.stringify(msg));
-        console.log("[START] New Connection: ", msg);
+        console.log("[START] New Market WS Connection:", msg);
     }
 
     private async onMessage(event: MessageEvent) {
@@ -185,24 +184,14 @@ export class PolymarketMarketTradeWatcher {
 
         try {
             const eventData = JSON.parse(event.data.toString());
-
-            if (!Array.isArray(eventData) || eventData.length === 0) {
-                return;
-            }
-
             const data = eventData[0];
-
-            if (!data || data.event_type !== "book") return;
-
-            if (!data.asks || !Array.isArray(data.asks) || data.asks.length === 0) return;
+            if (!data || data.event_type !== "book" || !Array.isArray(data.asks)) return;
 
             const asks = data.asks.map((a: any) => parseFloat(a.price)).filter(isFinite);
 
             if (asks.length === 0) return;
 
             const currentAsk = Math.min(...asks);
-
-            if (!isFinite(currentAsk)) return;
 
             const { type, price } = this.config;
             let shouldTrigger = false;
@@ -232,30 +221,23 @@ export class PolymarketMarketTradeWatcher {
             };
 
             if (type === "alert") {
-                try {
-                    await bot.telegram.sendMessage(
-                        this.userId,
-                        generatePriceAlertMessage({ type, ...basePayload }),
-                        {
-                            parse_mode: "HTML",
-                            reply_markup: Markup.inlineKeyboard([
-                                Markup.button.callback(
-                                    "View this Market",
-                                    `view_market:${encodeMarketId(this.marketId)}`
-                                ),
-                            ]).reply_markup,
-                        }
-                    );
-                    await stopPriceAlertWatcher(this.userId, this.marketId);
-                } catch (error) {
-                    console.error("Failed to Send ALERT Message: ", error);
-                }
+                await bot.telegram.sendMessage(
+                    this.userId,
+                    generatePriceAlertMessage({ type, ...basePayload }),
+                    {
+                        parse_mode: "HTML",
+                        reply_markup: Markup.inlineKeyboard([
+                            Markup.button.callback(
+                                "View this Market",
+                                `view_market:${encodeMarketId(this.marketId)}`
+                            ),
+                        ]).reply_markup,
+                    }
+                );
+                await stopPriceAlertWatcher(this.userId, this.marketId);
             } else {
                 const user = await getUserDetails(Number(this.userId));
-                if (!user) {
-                    console.error("Error fetching User Details in TP/SL");
-                    return;
-                }
+                if (!user) return;
 
                 const position = await getUserPositionByMarket(user.wallet_address, this.marketId);
                 if (!position) {
@@ -287,13 +269,7 @@ export class PolymarketMarketTradeWatcher {
 
                 await bot.telegram.sendMessage(
                     this.userId,
-                    generateTPorSLMessage({
-                        question: question || "Unknown Market",
-                        thresholdPrice: price,
-                        currentPrice: currentAsk,
-                        outcomeSide: this.config.outcome,
-                        size: this.config.size,
-                    }),
+                    generateTPorSLMessage({ ...basePayload, size: this.config.size }),
                     { parse_mode: "HTML" }
                 );
 
@@ -316,10 +292,23 @@ export class PolymarketMarketTradeWatcher {
 
     private onClose(event: CloseEvent) {
         console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+
+        if (!this.hasTriggered) {
+            this.reconnectTimeout = setTimeout(() => {
+                console.log(`[WS] Reconnecting market watcher for ${this.userId}:${this.marketId}`);
+                this.socket = new WebSocket(POLYMARKET_WS_MARKET_URL);
+                this.registerHandlers();
+            }, this.reconnectDelay);
+        }
     }
 
     public close() {
+        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
         this.socket.close();
+    }
+
+    public isAlive(): boolean {
+        return this.socket.readyState === WebSocket.OPEN;
     }
 }
 
