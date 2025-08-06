@@ -1,13 +1,10 @@
-import { redisClient } from "@/lib/redis";
-import type { TableRow } from "@/types/supabase";
+import type { TableRow } from "../types/supabase";
 import {
     startWalletMonitoring,
     stopWalletMonitoring,
     updateSubscription,
-} from "@/watcher/copy-trade";
-import { supabase } from "@/lib/supabase";
-
-const activeWalletIntervals = new Map<string, NodeJS.Timeout>();
+} from "../watcher/copy-trade";
+import { supabase } from "../lib/supabase";
 
 export const addWalletMonitor = async (data: TableRow<"Copy_Wallets">) => {
     const { is_enabled, user_id, wallet_address, percent_ratio } = data;

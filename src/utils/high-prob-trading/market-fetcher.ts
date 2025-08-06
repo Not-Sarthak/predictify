@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Market } from "@/utils/polymarket/get-markets";
+import type { Market } from "../../utils/polymarket/get-markets";
 import {
     filterHighProbabilityMarkets,
     type HighProbFilters,

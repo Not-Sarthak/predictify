@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../shared/constants";
-import { env } from "@/config";
+import { env } from "../../config";
 
 const WRAPPED_USDC_ABI = [
     "function approve(address spender, uint256 amount) external returns (bool)",

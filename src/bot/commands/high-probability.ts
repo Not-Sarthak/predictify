@@ -1,13 +1,13 @@
 import { Markup, type Context } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
+import { getUserIdFromCtx } from "../utils";
 import {
     fetchHighProbabilityMarkets,
     DEFAULT_HIGH_PROB_FILTERS,
     type HighProbFilters,
     type HighProbMarket,
-} from "@/utils/high-prob-trading";
-import { formatDollarVolume, escapeMarkdown } from "@/bot/utils";
-import { redisClient } from "@/lib/redis";
+} from "../../utils/high-prob-trading";
+import { formatDollarVolume, escapeMarkdown } from "../utils";
+import { redisClient } from "../../lib/redis";
 
 // Helper function to get user's custom filters or defaults
 async function getUserFilters(userId: number): Promise<HighProbFilters> {

@@ -1,4 +1,4 @@
-import { BACK_TO_MAIN_MENU_BUTTON, BRIDGE_BUTTON, CLOSE_BUTTON } from "@/bot/ui/buttons/common";
+import { BACK_TO_MAIN_MENU_BUTTON, BRIDGE_BUTTON, CLOSE_BUTTON } from "../../ui/buttons/common";
 import { Markup } from "telegraf";
 
 export const MAIN_MENU_BUTTONS = [

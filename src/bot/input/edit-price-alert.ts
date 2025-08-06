@@ -1,12 +1,12 @@
-import { clearUserInputState } from "@/bot/input/state";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { redisClient } from "@/lib/redis";
-import { getMarketQuestion } from "@/notifier/utils";
+import { clearUserInputState } from "../input/state";
+import { getUserIdFromCtx } from "../utils";
+import { redisClient } from "../../lib/redis";
+import { getMarketQuestion } from "../../notifier/utils";
 import {
     startPriceAlertWatcher,
     stopPriceAlertWatcher,
     storePriceAlertInRedis,
-} from "@/notifier/ws";
+} from "../../notifier/ws";
 import type { Context } from "telegraf";
 
 export async function handleEditPriceAlert(ctx: Context, textMessage: string) {

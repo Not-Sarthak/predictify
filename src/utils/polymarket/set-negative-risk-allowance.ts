@@ -2,8 +2,8 @@ import { getContractConfig } from "@polymarket/clob-client";
 import { getCtfContract, getUsdcContract } from "../../helpers/contract-utilities";
 import type { BigNumberish } from "ethers";
 import { ethers } from "ethers";
-import { CHAIN_ID } from "@/shared/constants";
-import { env } from "@/config";
+import { CHAIN_ID } from "../../shared/constants";
+import { env } from "../../config";
 
 // THIS IS A VERY IMPORTANT FUNCTION - TOOK US A MONTH TO REALIZE
 export async function setNegativeRiskAllowance(privateKey: string) {

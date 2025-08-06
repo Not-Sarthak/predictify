@@ -1,15 +1,15 @@
 import type { Context } from "telegraf";
 
-import { getUserIdFromCtx } from "@/bot/utils";
-import { redisClient } from "@/lib/redis";
-import { decodeMarketId } from "@/utils/encoding";
-import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
+import { getUserIdFromCtx } from "../utils";
+import { redisClient } from "../../lib/redis";
+import { decodeMarketId } from "../../utils/encoding";
+import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 import {
     startPriceAlertWatcher,
     storePriceAlertInRedis,
     type PriceWatchConfig,
-} from "@/notifier/ws";
-import { clearUserInputState } from "@/bot/input/state";
+} from "../../notifier/ws";
+import { clearUserInputState } from "../input/state";
 
 export async function handleSetMarketPriceAlert(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);

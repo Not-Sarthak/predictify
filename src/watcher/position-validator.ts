@@ -1,7 +1,7 @@
-import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
-import { db } from "@/lib/supabase";
-import { redisClient } from "@/lib/redis";
-import { hasRecentManualTrade } from "@/utils/trade-tracker";
+import { getUserPositionsFromPolymarket } from "../bot/utils/get-user-positions";
+import { db } from "../lib/supabase";
+import { redisClient } from "../lib/redis";
+import { hasRecentManualTrade } from "../utils/trade-tracker";
 
 interface PositionValidationResult {
     isValid: boolean;

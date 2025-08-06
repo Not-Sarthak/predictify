@@ -1,4 +1,4 @@
-import type { Market } from "@/utils/polymarket/get-markets";
+import type { Market } from "../../utils/polymarket/get-markets";
 
 export interface HighProbMarket extends Market {
     probability: number;

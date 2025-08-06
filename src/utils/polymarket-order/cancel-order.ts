@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
 import { env } from "../../config/env";
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
-import { CHAIN_ID } from "@/shared/constants";
-import { createLegacyWallet } from "@/utils";
+import { CHAIN_ID } from "../../shared/constants";
+import { createLegacyWallet } from "../../utils";
 
 interface CancelOrderRequest {
     privateKey: string;

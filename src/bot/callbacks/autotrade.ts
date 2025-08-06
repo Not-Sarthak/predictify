@@ -1,15 +1,15 @@
-import { setUserInputState, clearUserInputState } from "@/bot/input/state";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { getUserCopyTradeConfig, saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
-import { redisClient } from "@/lib/redis";
-import { db } from "@/lib/supabase";
+import { setUserInputState, clearUserInputState } from "../input/state";
+import { getUserIdFromCtx } from "../utils";
+import { getUserCopyTradeConfig, saveCopyTradeConfig } from "../utils/database/trading-config";
+import { redisClient } from "../../lib/redis";
+import { db } from "../../lib/supabase";
 import { Context, Markup } from "telegraf";
 import {
     startWalletMonitoring,
     stopWalletMonitoring,
     updateSubscription,
     getMonitoringStatus,
-} from "@/watcher/copy-trade";
+} from "../../watcher/copy-trade";
 
 export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();

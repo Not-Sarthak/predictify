@@ -1,4 +1,4 @@
-import { saveCopyTradeConfig } from "@/bot/utils/database/trading-config";
+import { saveCopyTradeConfig } from "../utils/database/trading-config";
 import type { Context } from "telegraf";
 
 export async function handleConfigTextMessage(

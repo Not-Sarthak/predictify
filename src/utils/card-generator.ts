@@ -1,6 +1,6 @@
-import PnlCard from "@/utils/components/PnlCard";
-import PositionCard from "@/utils/components/PositionCard";
-import PortfolioPositionCard from "@/utils/components/PortfolioPositionCard";
+import PnlCard from "../utils/components/PnlCard";
+import PositionCard from "../utils/components/PositionCard";
+import PortfolioPositionCard from "../utils/components/PortfolioPositionCard";
 import { Resvg } from "@resvg/resvg-js";
 import * as fs from "fs";
 import * as fsProm from "fs/promises";

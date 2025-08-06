@@ -1,9 +1,9 @@
 import { env } from "./config/env";
 import { PORT } from "./shared/constants";
 import { bot } from "./bot";
-import { initializeCopyTrading } from "@/watcher/init";
-import { notifier } from "@/notifier";
-import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "@/notifier/ws";
+import { initializeCopyTrading } from "./watcher/init";
+import { notifier } from "./notifier";
+import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "./notifier/ws";
 
 async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours

@@ -1,7 +1,7 @@
-import { CLOSE_BUTTON } from "@/bot/ui/buttons";
-import { padButtonText } from "@/bot/utils";
+import { CLOSE_BUTTON } from "../ui/buttons";
+import { padButtonText } from "../utils";
 import { Markup, type Context } from "telegraf";
-import { encodeMarketId } from "@/utils/encoding";
+import { encodeMarketId } from "../../utils/encoding";
 
 export async function handleMarketTermTextMessage(ctx: Context, textMessage: string) {
     const queryText = textMessage.split(/\s+/)[0].toLowerCase();

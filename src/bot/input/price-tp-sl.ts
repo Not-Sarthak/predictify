@@ -1,7 +1,11 @@
-import { clearUserInputState, setUserInputState } from "@/bot/input/state";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { redisClient } from "@/lib/redis";
-import { startTpSlWatcher, storeTpSlWatcherInRedis, type PriceWatchConfig } from "@/notifier/ws";
+import { clearUserInputState, setUserInputState } from "../input/state";
+import { getUserIdFromCtx } from "../utils";
+import { redisClient } from "../../lib/redis";
+import {
+    startTpSlWatcher,
+    storeTpSlWatcherInRedis,
+    type PriceWatchConfig,
+} from "../../notifier/ws";
 import type { Context } from "telegraf";
 
 export async function handleTpSlShareInput(ctx: Context, textMessage: string) {

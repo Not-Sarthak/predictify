@@ -1,8 +1,8 @@
 import axios from "axios";
-import { redisClient as redis } from "@/lib/redis";
-import { supabase } from "@/lib/supabase";
+import { redisClient as redis } from "../lib/redis";
+import { supabase } from "../lib/supabase";
+import { bot } from "../bot";
 import { executeTrade } from "./helpers";
-import { bot } from "@/bot";
 import { handleCopyTradeError } from "./trade-error-handler";
 
 interface Trade {
@@ -186,7 +186,7 @@ const executeCopyTrade = async (trade: Trade, subscription: WalletSubscription) 
     };
 
     try {
-        const result = await executeTrade(subscription.userId.toString(), formattedTrade);
+        await executeTrade(subscription.userId.toString(), formattedTrade);
 
         await supabase.from("Auto_Trade").insert({
             user_id: subscription.userId,

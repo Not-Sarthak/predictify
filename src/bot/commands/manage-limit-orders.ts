@@ -1,10 +1,10 @@
 import { Markup, type Context } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
-import { encodeMarketId } from "@/utils/encoding";
-import { redisClient } from "@/lib/redis";
-import { CLOSE_BUTTON } from "@/bot/ui/buttons";
-import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
+import { getUserIdFromCtx } from "../utils";
+import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
+import { encodeMarketId } from "../../utils/encoding";
+import { redisClient } from "../../lib/redis";
+import { CLOSE_BUTTON } from "../ui/buttons";
+import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 
 export async function handleCancelOpenOrdersCommand(ctx: Context) {
     const msg = await ctx.reply("⌛ Fetching your Open Limit Orders...");

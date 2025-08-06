@@ -1,11 +1,11 @@
 import { Context, Markup } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
-import { decodeMarketId } from "@/utils/encoding";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { redeemPositions } from "@/utils/polymarket/redeem";
+import { getUserIdFromCtx } from "../utils";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
+import { decodeMarketId } from "../../utils/encoding";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { redeemPositions } from "../../utils/polymarket/redeem";
 
 export async function handleRedeemPosition(ctx: Context, conditionId: string) {
     const decodedConditionId = decodeMarketId(conditionId);

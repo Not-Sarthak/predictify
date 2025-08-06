@@ -1,22 +1,22 @@
-import { POLYMARKET_WS_MARKET_URL, POLYMARKET_WS_USER_URL } from "@/shared/constants";
+import { POLYMARKET_WS_MARKET_URL, POLYMARKET_WS_USER_URL } from "../shared/constants";
 import {
     generateOrderFilledMessage,
     generatePriceAlertMessage,
     generateTPorSLMessage,
     getMarketQuestion,
-} from "@/notifier/utils";
-import { bot } from "@/bot";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
+} from "../notifier/utils";
+import { bot } from "../bot";
+import { getUserDetails } from "../helpers/get-user-details";
+import { buyOrderGTC } from "../utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { redisClient } from "@/lib/redis";
-import { generatePnlCard } from "@/utils/card-generator";
-import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
-import { capitalize } from "@/utils";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+import { decryptPrivateKey } from "../utils/crypto";
+import { redisClient } from "../lib/redis";
+import { generatePnlCard } from "../utils/card-generator";
+import { getMarketByConditionId } from "../utils/polymarket/get-markets";
+import { capitalize } from "../utils";
+import { getUserPositionByMarket } from "../utils/polymarket/get-user-position";
 import { Markup } from "telegraf";
-import { encodeMarketId } from "@/utils/encoding";
+import { encodeMarketId } from "../utils/encoding";
 
 type Auth = {
     apiKey: string;

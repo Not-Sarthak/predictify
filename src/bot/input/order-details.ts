@@ -1,32 +1,33 @@
 import { Markup, type Context } from "telegraf";
-import { redisClient } from "@/lib/redis";
-import { db } from "@/lib/supabase";
-import { getTokenId } from "@/helpers/get-token-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import type { ApiKeyCreds } from "@/types/polymarket/api-key";
-import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
+import { redisClient } from "../../lib/redis";
+import { db } from "../../lib/supabase";
+import { getTokenId } from "../../helpers/get-token-id";
+import { getUserDetails } from "../../helpers/get-user-details";
+import type { ApiKeyCreds } from "../../types/polymarket/api-key";
+import { buyOrderGTC } from "../../utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import {
     ensureTokenApproval,
     marketBuyOrder,
     marketSellOrder,
-} from "@/utils/polymarket-order/market-buy-order";
-import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
+} from "../../utils/polymarket-order/market-buy-order";
+import { feeTransaction, transferFeeToTreasury } from "../../utils/fees/fee";
 import { ethers } from "ethers";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { ADMIN_USERS_ID } from "@/shared/constants/misc";
-import { clearUserInputState } from "@/bot/input/state";
-import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
-import { PolymarketUserTradeWatcher } from "@/notifier/ws";
-import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
-import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
-import { generatePositionCard } from "@/utils/card-generator";
-import { encodeMarketId } from "@/utils/encoding";
-import { trackManualTrade } from "@/utils/trade-tracker";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
+import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { ADMIN_USERS_ID } from "../../shared/constants/misc";
+import { clearUserInputState } from "../input/state";
+import { getMarketByConditionId, getMarketById } from "../../utils/polymarket/get-markets";
+import { PolymarketUserTradeWatcher } from "../../notifier/ws";
+import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
+import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
+import { generatePositionCard } from "../../utils/card-generator";
+import { encodeMarketId } from "../../utils/encoding";
+import { trackManualTrade } from "../../utils/trade-tracker";
+import { updateUserVolume } from "../../helpers/update-user-volume";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -184,7 +185,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
             if (orderResponse && !orderResponse.error) {
                 await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
-                const { updateUserVolume } = await import("@/helpers/update-user-volume");
                 await updateUserVolume(userId, finalAmount);
             }
         } else if (orderType === "fok_sell") {
@@ -241,7 +241,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                         ? JSON.parse(market.outcomePrices)[0]
                         : JSON.parse(market.outcomePrices)[1];
                 const sellVolume = amount * currentPrice;
-                const { updateUserVolume } = await import("@/helpers/update-user-volume");
                 await updateUserVolume(userId, sellVolume);
             }
         } else {

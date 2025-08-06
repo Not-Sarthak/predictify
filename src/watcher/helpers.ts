@@ -1,11 +1,11 @@
-import { env } from "@/config";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { redisClient } from "@/lib/redis";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { marketBuyOrder, marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
+import { env } from "../config";
+import { getUserDetails } from "../helpers/get-user-details";
+import { redisClient } from "../lib/redis";
+import { decryptPrivateKey } from "../utils/crypto";
+import { marketBuyOrder, marketSellOrder } from "../utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
-import { db } from "@/lib/supabase";
+import { db } from "../lib/supabase";
 import {
     validateSellPosition,
     isTradeAlreadyProcessed,
@@ -14,6 +14,7 @@ import {
     setCopyTradeLock,
     releaseCopyTradeLock,
 } from "./position-validator";
+import { updateUserVolume } from "../helpers/update-user-volume";
 
 interface Trade {
     proxyWallet: string;
@@ -226,7 +227,6 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
 
         // Update user's total volume
         const volumeToAdd = trade.side === "BUY" ? amount : trade.size * trade.price;
-        const { updateUserVolume } = await import("@/helpers/update-user-volume");
         await updateUserVolume(Number(userId), volumeToAdd);
 
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;

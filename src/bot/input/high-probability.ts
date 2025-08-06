@@ -1,13 +1,13 @@
 import { type Context } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { clearUserInputState } from "@/bot/input/state";
-import { redisClient } from "@/lib/redis";
+import { getUserIdFromCtx } from "../utils";
+import { clearUserInputState } from "../input/state";
+import { redisClient } from "../../lib/redis";
 import {
     fetchHighProbabilityMarkets,
     validateBatchTrade,
     DEFAULT_HIGH_PROB_FILTERS,
     type HighProbFilters,
-} from "@/utils/high-prob-trading";
+} from "../../utils/high-prob-trading";
 import { Markup } from "telegraf";
 
 // Helper function to get user's custom filters or defaults

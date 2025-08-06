@@ -1,7 +1,7 @@
-import { getUserIdFromCtx } from "@/bot/utils";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getMarketByConditionId } from "@/utils/polymarket/get-markets";
-import { getUserHistory } from "@/utils/polymarket/get-user-history";
+import { getUserIdFromCtx } from "../utils";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
+import { getUserHistory } from "../../utils/polymarket/get-user-history";
 import { Markup, type Context } from "telegraf";
 
 const PAGE_SIZE = 10;

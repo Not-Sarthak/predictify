@@ -1,8 +1,8 @@
-import { getMarketOrderBook } from "@/utils/polymarket/get-markets";
+import { getMarketOrderBook } from "../../utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { createPaginationKeyboard } from "@/bot/ui/messages";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { createPaginationKeyboard } from "../ui/messages";
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);

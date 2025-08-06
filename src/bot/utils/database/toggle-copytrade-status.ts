@@ -1,12 +1,12 @@
 import type { Context } from "telegraf";
 
-import { getUserIdFromCtx } from "@/bot/utils/get-user-id-ctx";
-import { db } from "@/lib/supabase";
+import { getUserIdFromCtx } from "../../utils/get-user-id-ctx";
+import { db } from "../../../lib/supabase";
 import {
     startWalletMonitoring,
     stopWalletMonitoring,
     updateSubscription,
-} from "@/watcher/copy-trade";
+} from "../../../watcher/copy-trade";
 
 export async function handleToggleCopyTradeStatus(ctx: Context, action: boolean) {
     const userId = getUserIdFromCtx(ctx);

@@ -1,8 +1,8 @@
-import { WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
-import { generateWalletDetailsMessage } from "@/bot/ui/messages";
-import { getUserIdFromCtx } from "@/bot/utils/get-user-id-ctx";
-import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { db } from "@/lib/supabase";
+import { WALLET_SETTINGS_MENU } from "../ui/buttons";
+import { generateWalletDetailsMessage } from "../ui/messages";
+import { getUserIdFromCtx } from "../utils/get-user-id-ctx";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { db } from "../../lib/supabase";
 import { Markup, type Context } from "telegraf";
 
 export async function getFundMessage(ctx: Context) {

@@ -5,7 +5,7 @@ import { env } from "../../config/env";
 import { createLegacyWallet } from "../../utils";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { setUSDCAllowance } from "../polymarket/set-allowance";
-import { setNegativeRiskAllowance } from "@/utils/polymarket/set-negative-risk-allowance";
+import { setNegativeRiskAllowance } from "../../utils/polymarket/set-negative-risk-allowance";
 
 interface MarketBuyOrderRequest {
     privateKey: string;

@@ -1,5 +1,5 @@
-import { clearUserInputState } from "@/bot/input/state";
-import { db } from "@/lib/supabase";
+import { clearUserInputState } from "../input/state";
+import { db } from "../../lib/supabase";
 import type { Context } from "telegraf";
 
 export async function handleWalletDetailsTextMessage(

@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import { supabase } from "../../../lib/supabase";
-import { getUserIdFromCtx } from "@/bot/utils/get-user-id-ctx";
-import { decodePrivateKey, decryptPrivateKey } from "@/utils/crypto";
+import { getUserIdFromCtx } from "../../utils/get-user-id-ctx";
+import { decodePrivateKey, decryptPrivateKey } from "../../../utils/crypto";
 
 export async function handleExportPrivateKey(ctx: Context, network: "evm" | "solana") {
     const userId = getUserIdFromCtx(ctx);

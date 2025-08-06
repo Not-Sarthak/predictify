@@ -1,24 +1,21 @@
 import { Markup, type Context } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { setUserInputState, clearUserInputState } from "@/bot/input/state";
-import { redisClient } from "@/lib/redis";
+import { getUserIdFromCtx } from "../utils";
+import { setUserInputState } from "../input/state";
+import { redisClient } from "../../lib/redis";
 import {
     fetchHighProbabilityMarkets,
     executeBatchTrades,
-    validateBatchTrade,
     DEFAULT_HIGH_PROB_FILTERS,
     type HighProbFilters,
     type HighProbMarket,
-    type BatchTradeRequest,
-} from "@/utils/high-prob-trading";
+} from "../../utils/high-prob-trading";
 import {
     handleHighProbabilityCommand,
     handleViewHighProbMarkets,
-    sendPaginatedMarkets,
     handleHighProbHelp,
-} from "@/bot/commands/high-probability";
+} from "../commands/high-probability";
 
-import { escapeMarkdown, formatDollarVolume } from "@/bot/utils";
+import { escapeMarkdown } from "../utils";
 
 // Helper function to get user's custom filters or defaults
 async function getUserFilters(userId: number): Promise<HighProbFilters> {
@@ -257,7 +254,7 @@ async function sendManualSelectionMarkets(
         const marketNum = start + index + 1;
         const probability = Math.round(market.probability * 100);
         const expectedReturn = market.expectedReturn.toFixed(1);
-        const volume = formatDollarVolume(market.volume || 0);
+        // const volume = formatDollarVolume(market.volume || 0);
         const hoursLeft = Math.round(market.hoursUntilExpiry);
         const isSelected = selectedMarkets.includes(market.id);
         const indicator = isSelected ? "✅" : "⭕";

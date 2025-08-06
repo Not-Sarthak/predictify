@@ -1,13 +1,13 @@
 import { Markup, type Context } from "telegraf";
 
-import { handleAutoTradeMenu } from "@/bot/ui/messages";
-import { handleSettingsMenu } from "@/bot/callbacks/settings";
-import { handleSubscriptionsMenu } from "@/bot/callbacks/subscriptions";
-import { handleTradeMenu } from "@/bot/callbacks/trade";
-import { getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
-import { getUserPositionsFromPolymarket } from "@/bot/utils/get-user-positions";
-import { CLOSE_BUTTON } from "@/bot/ui/buttons";
-import { getUserTotalHoldings, getUserTotalPnL } from "@/bot/utils/get-user-polymarket-data";
+import { handleAutoTradeMenu } from "../ui/messages";
+import { handleSettingsMenu } from "../callbacks/settings";
+import { handleSubscriptionsMenu } from "../callbacks/subscriptions";
+import { handleTradeMenu } from "../callbacks/trade";
+import { getUserByIdFromDb, getUserIdFromCtx } from "../utils";
+import { getUserPositionsFromPolymarket } from "../utils/get-user-positions";
+import { CLOSE_BUTTON } from "../ui/buttons";
+import { getUserTotalHoldings, getUserTotalPnL } from "../utils/get-user-polymarket-data";
 
 export async function handleStartMenuCallbacks(ctx: Context, target: string) {
     switch (target) {

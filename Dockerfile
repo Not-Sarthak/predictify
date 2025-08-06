@@ -34,10 +34,8 @@ COPY --from=builder /app/node_modules ./node_modules
 # Environment setup
 ENV NODE_ENV=production
 
-# Expose common ports
+# Expose ports
 EXPOSE 3000
-EXPOSE 4000
-EXPOSE 8080
 
 # Start the compiled app
 CMD ["node", "dist/index.js"]

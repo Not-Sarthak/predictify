@@ -1,5 +1,5 @@
-import { bot } from "@/bot";
-import { db } from "@/lib/supabase";
+import { bot } from "../bot";
+import { db } from "../lib/supabase";
 
 export enum CopyTradeErrorType {
     INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE",

@@ -1,4 +1,4 @@
-import { db } from "@/lib/supabase";
+import { db } from "../lib/supabase";
 
 export async function updateUserVolume(userId: number, volumeToAdd: number): Promise<void> {
     try {

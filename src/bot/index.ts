@@ -12,12 +12,13 @@ import {
     handleHighProbabilityCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
-import { handleCallbackQuery } from "@/bot/callbacks";
-import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
-import { handleViewTradePositions } from "@/bot/callbacks/trade";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
-import { handleAutoTradeMenu } from "@/bot/ui/messages";
-import { handleViewProfileCallback } from "@/bot/callbacks/start";
+import { handleCallbackQuery } from "./callbacks";
+import { handleUserTradeHistoryCommand } from "./commands/history";
+import { handleViewTradePositions } from "./callbacks/trade";
+import { handleCancelOpenOrdersCommand } from "./commands/manage-limit-orders";
+import { handleAutoTradeMenu } from "./ui/messages";
+import { handleViewProfileCallback } from "./callbacks/start";
+import { handleMonitoringStats } from "./callbacks/autotrade";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -44,7 +45,6 @@ bot.command("stats", handleViewProfileCallback);
 bot.command("watchlist", (ctx) => handleWatchlistCommand(ctx));
 bot.command("highprob", handleHighProbabilityCommand);
 bot.command("monitoring", async (ctx) => {
-    const { handleMonitoringStats } = await import("@/bot/callbacks/autotrade");
     return handleMonitoringStats(ctx);
 });
 console.log("[BOT] Command handlers registered");

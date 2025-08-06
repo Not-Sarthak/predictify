@@ -1,13 +1,13 @@
-import type { TableRow } from "@/types/supabase";
+import type { TableRow } from "../types/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../lib/supabase";
 import {
     addWalletMonitor,
     deleteWalletMonitor,
     resumeAllWalletMonitors,
     updateWalletMonitor,
-} from "@/watcher/monitor-handlers";
+} from "../watcher/monitor-handlers";
 
 const CHANNEL_NAME = "copy_wallets_changes";
 const TABLE_NAME = "Copy_Wallets";

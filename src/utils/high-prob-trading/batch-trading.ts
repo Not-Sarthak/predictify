@@ -1,15 +1,16 @@
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
-import { getTokenId } from "@/helpers/get-token-id";
-import { marketBuyOrder } from "@/utils/polymarket-order/market-buy-order";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
+import { getTokenId } from "../../helpers/get-token-id";
+import { marketBuyOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
-import { trackManualTrade } from "@/utils/trade-tracker";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { feeTransaction, transferFeeToTreasury } from "../../utils/fees/fee";
+import { trackManualTrade } from "../../utils/trade-tracker";
 import { ethers } from "ethers";
 import type { HighProbMarket } from "./market-filters";
-import type { ApiKeyCreds } from "@/types/polymarket/api-key";
+import type { ApiKeyCreds } from "../../types/polymarket/api-key";
+import { updateUserVolume } from "../../helpers/update-user-volume";
 
 export interface BatchTradeRequest {
     userId: number;
@@ -202,7 +203,6 @@ async function executeSingleTrade({
         await trackManualTrade(userId, tokenId, "BUY", shares);
 
         // Update user volume
-        const { updateUserVolume } = await import("@/helpers/update-user-volume");
         await updateUserVolume(userId, amount);
 
         return {

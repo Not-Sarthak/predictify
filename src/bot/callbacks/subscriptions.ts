@@ -1,14 +1,14 @@
-import { setUserInputState } from "@/bot/input/state";
+import { setUserInputState } from "../input/state";
 import {
     CLOSE_BUTTON,
     generateSubscriptionButtons,
     SUBSCRIPTIONS_MENU_BUTTONS,
-} from "@/bot/ui/buttons";
-import { formatActiveSubscriptionsMessage, getUserIdFromCtx } from "@/bot/utils";
-import { redisClient } from "@/lib/redis";
-import { getMarketQuestion } from "@/notifier/utils";
-import { CATEGORY_LIST } from "@/shared/constants";
-import { shortHashKey } from "@/utils/crypto";
+} from "../ui/buttons";
+import { formatActiveSubscriptionsMessage, getUserIdFromCtx } from "../utils";
+import { redisClient } from "../../lib/redis";
+import { getMarketQuestion } from "../../notifier/utils";
+import { CATEGORY_LIST } from "../../shared/constants";
+import { shortHashKey } from "../../utils/crypto";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 

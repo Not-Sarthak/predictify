@@ -1,14 +1,14 @@
 import { Context, Markup } from "telegraf";
-import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "../../ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
     getUserIdFromCtx,
-} from "@/bot/utils";
+} from "../../utils";
 import type { InlineKeyboardMarkup } from "telegraf/types";
-import { encodeMarketId } from "@/utils/encoding";
-import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "@/shared/constants";
-import { redisClient } from "@/lib/redis";
+import { encodeMarketId } from "../../../utils/encoding";
+import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
+import { redisClient } from "../../../lib/redis";
 
 export const generateWelcomeMessage = (
     evm_address: string,

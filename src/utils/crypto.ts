@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { env } from "@/config";
+import { env } from "../config";
 import bs58 from "bs58";
 import { Keypair } from "@solana/web3.js";
 

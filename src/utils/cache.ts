@@ -1,6 +1,6 @@
 // TODO:FIX - Apply Caching methods where needed
 
-import { redisClient } from "@/lib/redis";
+import { redisClient } from "../lib/redis";
 
 type CacheType = "str" | "json";
 

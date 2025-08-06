@@ -24,9 +24,9 @@ import {
     handleShowZeroDTEMarketsByCategory,
     handleGeneratePortfolioCard,
 } from "./trade";
-import { getMarketById } from "@/utils/polymarket/get-markets";
-import { formatOrderBook, escapeMarkdown } from "@/bot/utils";
-import { encodeMarketId } from "@/utils/encoding";
+import { getMarketById } from "../../utils/polymarket/get-markets";
+import { formatOrderBook, escapeMarkdown } from "../utils";
+import { encodeMarketId } from "../../utils/encoding";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import {
     handleSubscriptionMenuCallbacks,
@@ -49,51 +49,50 @@ import {
     handleSwapFundsQuoteCallback,
     handleWalletSettingsMenu,
 } from "./settings";
-import { handleExportPrivateKey } from "@/bot/utils/database/export-user-private-key";
-import { handleWithdrawSOL, handleWithdrawUSDC } from "@/utils/withdrawal/index";
+import { handleExportPrivateKey } from "../utils/database/export-user-private-key";
+import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
 import {
     handleBridgeConfirm,
     handleBridgeFunds,
     handleBridgeStatus,
-} from "@/utils/debridge/functions/bridge-handler";
+} from "../../utils/debridge/functions/bridge-handler";
 import { handleHighProbCallbackQuery } from "./high-probability";
-import { redisClient } from "@/lib/redis";
-import { CLOSE_BUTTON, MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { redisClient } from "../../lib/redis";
+import { CLOSE_BUTTON, MAIN_MENU_BUTTONS } from "../ui/buttons";
 import { Markup, type Context } from "telegraf";
 import {
     handleToggleCopyTradeStatus,
     handleToggleWalletCopyTradeStatus,
-} from "@/bot/utils/database/toggle-copytrade-status";
-import { formatSinglePositionMessage, getUserByIdFromDb, getUserIdFromCtx } from "@/bot/utils";
+} from "../utils/database/toggle-copytrade-status";
+import { formatSinglePositionMessage, getUserByIdFromDb, getUserIdFromCtx } from "../utils";
 import {
     generate0DTEMarketCategoryKeyboard,
     generateAutoTradeMenu,
     generateWelcomeMessage,
     handleAutoTradeMenu,
-} from "@/bot/ui/messages";
-import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { handleOrderDetailsTextMessage } from "@/bot/input/order-details";
-import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { decodeMarketId } from "@/utils/encoding";
-import { setUserInputState } from "@/bot/input/state";
-import {
-    handleCancelOpenOrdersCommand,
-    sendPaginatedOrder,
-} from "@/bot/commands/manage-limit-orders";
-import { getUserDetails } from "@/helpers/get-user-details";
-import type { ApiKeyCreds } from "@/types/polymarket";
-import { createLegacyWallet } from "@/utils";
-import { decryptPrivateKey } from "@/utils/crypto";
+} from "../ui/messages";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { handleOrderDetailsTextMessage } from "../input/order-details";
+import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { decodeMarketId } from "../../utils/encoding";
+import { setUserInputState } from "../input/state";
+import { handleCancelOpenOrdersCommand, sendPaginatedOrder } from "../commands/manage-limit-orders";
+import { getUserDetails } from "../../helpers/get-user-details";
+import type { ApiKeyCreds } from "../../types/polymarket";
+import { createLegacyWallet } from "../../utils";
+import { decryptPrivateKey } from "../../utils/crypto";
 import { ethers } from "ethers";
 import { ClobClient } from "@polymarket/clob-client";
-import { CHAIN_ID, HOST } from "@/shared/constants";
-import { sendPaginatedHistory } from "@/bot/commands/history";
-import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
-import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
-import { db } from "@/lib/supabase";
-import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "@/notifier/ws";
-import { getMarketQuestion } from "@/notifier/utils";
+import { CHAIN_ID, HOST } from "../../shared/constants";
+import { sendPaginatedHistory } from "../commands/history";
+import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
+import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
+import { db } from "../../lib/supabase";
+import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws";
+import { getMarketQuestion } from "../../notifier/utils";
+import { handleWatchlistCommand } from "../commands";
+import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
 
 /**
  * TODO:FIX
@@ -562,13 +561,11 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("redeem_position_")) {
         const conditionId = data.replace("redeem_position_", "");
-        const { handleRedeemPosition } = await import("./redeem");
         return handleRedeemPosition(ctx, conditionId);
     }
 
     if (data.startsWith("confirm_redeem_")) {
         const conditionId = data.replace("confirm_redeem_", "");
-        const { handleConfirmRedeem } = await import("./redeem");
         return handleConfirmRedeem(ctx, conditionId);
     }
 
@@ -918,14 +915,12 @@ Example: <code>0.7</code> <code>No</code>`;
 
     if (data === "refresh_watchlist") {
         await ctx.deleteMessage();
-        const { handleWatchlistCommand } = await import("../commands/watchlist");
         return handleWatchlistCommand(ctx);
     }
 
     if (data.startsWith("watchlist_page:")) {
         const page = parseInt(data.split(":")[1]);
         await ctx.deleteMessage();
-        const { handleWatchlistCommand } = await import("../commands/watchlist");
         return handleWatchlistCommand(ctx, page);
     }
 
@@ -945,7 +940,6 @@ Example: <code>0.7</code> <code>No</code>`;
 
     if (data === "back_to_watchlist") {
         await ctx.deleteMessage();
-        const { handleWatchlistCommand } = await import("../commands/watchlist");
         return handleWatchlistCommand(ctx);
     }
 
@@ -1112,7 +1106,6 @@ async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
 
                 // Wait a moment then show the watchlist again
                 setTimeout(async () => {
-                    const { handleWatchlistCommand } = await import("../commands/watchlist");
                     await handleWatchlistCommand(ctx);
                 }, 1000);
             } else {

@@ -1,4 +1,4 @@
-import { redisClient } from "@/lib/redis";
+import { redisClient } from "../lib/redis";
 
 interface ManualTradeRecord {
     userId: number;

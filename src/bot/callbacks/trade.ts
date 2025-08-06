@@ -1,4 +1,4 @@
-import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { TRADE_MENU_BUTTONS } from "../ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -12,42 +12,41 @@ import {
     formatOrderBook,
     formatSinglePositionMessage,
     getUsernameFromCtx,
-} from "@/bot/utils";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { redisClient } from "@/lib/redis";
-import { supabase } from "@/lib/supabase";
-import { CATEGORY_LIST, CHAIN_ID, HOST, MARKET_FILTERS } from "@/shared/constants";
-import { capitalize } from "@/utils/capitalize";
+} from "../utils";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { redisClient } from "../../lib/redis";
+import { CATEGORY_LIST, MARKET_FILTERS } from "../../shared/constants";
+import { capitalize } from "../../utils/capitalize";
 import {
     fetchMarkets,
     getMarketByConditionId,
     getMarketById,
     getMarketOrderBook,
-} from "@/utils/polymarket/get-markets";
-import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+} from "../../utils/polymarket/get-markets";
+import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import axios from "axios";
-import { db } from "@/lib/supabase";
-import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
-import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
+import { db } from "../../lib/supabase";
+import { generateClosePositionButton } from "../ui/buttons/trade";
+import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
-import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
-import type { ApiKeyCreds } from "@/types/polymarket";
-import { setUserInputState } from "@/bot/input/state";
-import { generatePnlCard, generatePortfolioPositionCard } from "@/utils/card-generator";
+import { decodeMarketId, encodeMarketId } from "../../utils/encoding";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
+import type { ApiKeyCreds } from "../../types/polymarket";
+import { setUserInputState } from "../input/state";
+import { generatePnlCard, generatePortfolioPositionCard } from "../../utils/card-generator";
 import {
     startTpSlWatcher,
     stopAllTpSlWatchers,
     storeTpSlWatcherInRedis,
     type PriceWatchConfig,
-} from "@/notifier/ws";
-import { createLegacyWallet } from "@/utils";
-import { ethers } from "ethers";
-import { trackManualTrade } from "@/utils/trade-tracker";
+} from "../../notifier/ws";
+import { trackManualTrade } from "../../utils/trade-tracker";
+import { updateUserVolume } from "../../helpers/update-user-volume";
+import { stopWalletMonitoring } from "../../watcher/copy-trade";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -776,9 +775,6 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
     const userId = getUserIdFromCtx(ctx);
 
     try {
-        // Import at runtime to avoid circular dependency
-        const { stopWalletMonitoring } = await import("@/watcher/copy-trade");
-
         // Stop monitoring first
         await stopWalletMonitoring(walletAddress, userId);
 
@@ -1095,7 +1091,6 @@ export async function handleCloseOpenPosition(
 
     // Update user's total volume (sell amount * current price)
     const sellVolume = sellAmount * userMarketDetails.curPrice;
-    const { updateUserVolume } = await import("@/helpers/update-user-volume");
     await updateUserVolume(userId, sellVolume);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);

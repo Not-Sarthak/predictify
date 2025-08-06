@@ -1,8 +1,8 @@
 import { Markup, type Context } from "telegraf";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { db } from "@/lib/supabase";
-import { getMarketById } from "@/utils/polymarket/get-markets";
-import { formatDate, formatDollarVolume, escapeMarkdown } from "@/bot/utils";
+import { getUserIdFromCtx } from "../utils";
+import { db } from "../../lib/supabase";
+import { getMarketById } from "../../utils/polymarket/get-markets";
+import { formatDate, formatDollarVolume, escapeMarkdown } from "../utils";
 
 export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
     const userId = getUserIdFromCtx(ctx);
