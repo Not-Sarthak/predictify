@@ -5,7 +5,7 @@ import { ChainId } from "../types";
 import type { deBridgeOrderInput } from "../types";
 import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
-import { CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { CLOSE_BUTTON } from "../../../bot/ui/buttons";
 import { executeSolanaTransaction } from "../../solana/transaction";
 import { decryptPrivateKey } from "../../../utils/crypto";
 

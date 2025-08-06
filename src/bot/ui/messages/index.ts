@@ -1,14 +1,14 @@
 import { Context, Markup } from "telegraf";
-import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "../../ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
     getUserIdFromCtx,
-} from "@/bot/utils";
+} from "../../utils";
 import type { InlineKeyboardMarkup } from "telegraf/types";
-import { encodeMarketId } from "@/utils/encoding";
-import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "@/shared/constants";
-import { redisClient } from "@/lib/redis";
+import { encodeMarketId } from "../../../utils/encoding";
+import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
+import { redisClient } from "../../../lib/redis";
 
 export const generateWelcomeMessage = (
     evm_address: string,
@@ -43,13 +43,6 @@ Your wallet’s live. Let’s degen.
 No logins. No browser tabs. Just pure prediction market flow. 🫡
 `.trim();
 };
-
-export const generateSubscribedMessage = (category: string) => `🔔 Subscribed to ${category}`;
-
-export const generateUnsubscribedMessage = (category: string) => `🔕 Unsubscribed from ${category}`;
-
-export const generateActiveSubscriptionsMessage = (categories: string[]) =>
-    `You're Subscribed To:\n• ${categories.join("\n• ")}`;
 
 export const generateWalletDetailsMessage = (
     evmWalletAddress: string,
@@ -193,6 +186,7 @@ export async function createPaginationKeyboard(
                 : []),
         ],
         paginationButtons,
+        [Markup.button.callback("⚡ Generate Portfolio Card", "generate_portfolio_card")],
         [CLOSE_BUTTON],
     ];
 
@@ -200,20 +194,15 @@ export async function createPaginationKeyboard(
 }
 
 export async function handleAutoTradeMenu(ctx: Context) {
-    return ctx.reply(
-        "🚧 *Coming Soon!*\n\nThis feature isn't available yet, but it's in the works. Stay tuned! 👷‍♂️",
-        { parse_mode: "Markdown" }
-    );
+    const menuResult = await generateAutoTradeMenu(ctx);
+    if (!menuResult) return;
 
-    // const menuResult = await generateAutoTradeMenu(ctx);
-    // if (!menuResult) return;
+    const { message, replyMarkup } = menuResult;
 
-    // const { message, replyMarkup } = menuResult;
-
-    // await ctx.reply(message, {
-    //     parse_mode: "Markdown",
-    //     reply_markup: replyMarkup,
-    // });
+    await ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: replyMarkup,
+    });
 }
 
 export async function generate0DTEMarketCategoryKeyboard() {

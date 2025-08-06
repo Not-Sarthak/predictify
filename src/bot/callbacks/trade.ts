@@ -1,4 +1,4 @@
-import { TRADE_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { TRADE_MENU_BUTTONS } from "../ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -12,38 +12,41 @@ import {
     formatOrderBook,
     formatSinglePositionMessage,
     getUsernameFromCtx,
-} from "@/bot/utils";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { redisClient } from "@/lib/redis";
-import { CATEGORY_LIST, MARKET_FILTERS } from "@/shared/constants";
-import { capitalize } from "@/utils/capitalize";
+} from "../utils";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { redisClient } from "../../lib/redis";
+import { CATEGORY_LIST, MARKET_FILTERS } from "../../shared/constants";
+import { capitalize } from "../../utils/capitalize";
 import {
     fetchMarkets,
     getMarketByConditionId,
     getMarketById,
     getMarketOrderBook,
-} from "@/utils/polymarket/get-markets";
-import { getUserPosition, getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
+} from "../../utils/polymarket/get-markets";
+import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 import axios from "axios";
-import { db } from "@/lib/supabase";
-import { generateClosePositionButton } from "@/bot/ui/buttons/trade";
-import { marketSellOrder } from "@/utils/polymarket-order/market-buy-order";
+import { db } from "../../lib/supabase";
+import { generateClosePositionButton } from "../ui/buttons/trade";
+import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
-import { decodeMarketId, encodeMarketId } from "@/utils/encoding";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
-import type { ApiKeyCreds } from "@/types/polymarket";
-import { setUserInputState } from "@/bot/input/state";
-import { generatePnlCard } from "@/utils/card-generator";
+import { decodeMarketId, encodeMarketId } from "../../utils/encoding";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
+import type { ApiKeyCreds } from "../../types/polymarket";
+import { setUserInputState } from "../input/state";
+import { generatePnlCard, generatePortfolioPositionCard } from "../../utils/card-generator";
 import {
     startTpSlWatcher,
     stopAllTpSlWatchers,
     storeTpSlWatcherInRedis,
     type PriceWatchConfig,
-} from "@/notifier/ws";
+} from "../../notifier/ws";
+import { trackManualTrade } from "../../utils/trade-tracker";
+import { updateUserVolume } from "../../helpers/update-user-volume";
+import { stopWalletMonitoring } from "../../watcher/copy-trade";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -220,7 +223,10 @@ export async function handleFetchMarketWithOffsetCallback(
 
     for (const market of marketData) {
         marketTitleButtons.push([
-            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
+            Markup.button.callback(
+                padButtonText(market.title),
+                `selected_market:${encodeMarketId(market.id)}`
+            ),
         ]);
     }
 
@@ -617,12 +623,18 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
                 (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
-            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+            ? Markup.button.callback(
+                  "💔 Remove from Watchlist",
+                  `remove_watchlist:${encodeMarketId(market.id)}`
+              )
+            : Markup.button.callback(
+                  "❤️ Add to My Watchlist",
+                  `add_watchlist:${encodeMarketId(market.id)}`
+              );
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${market.id}`
+            `add_watchlist:${encodeMarketId(market.id)}`
         );
     }
 
@@ -632,10 +644,9 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
@@ -643,7 +654,12 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             ),
         ],
         [watchlistButton],
-        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [
+            Markup.button.callback(
+                "ℹ️ About this Market",
+                `market_details:${encodeMarketId(market.id)}`
+            ),
+        ],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),
@@ -700,12 +716,18 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
                     item.marketId === market.id || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
-            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+            ? Markup.button.callback(
+                  "💔 Remove from Watchlist",
+                  `remove_watchlist:${encodeMarketId(market.id)}`
+              )
+            : Markup.button.callback(
+                  "❤️ Add to My Watchlist",
+                  `add_watchlist:${encodeMarketId(market.id)}`
+              );
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${market.id}`
+            `add_watchlist:${encodeMarketId(market.id)}`
         );
     }
 
@@ -715,10 +737,9 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
         ],
-        [Markup.button.callback("💵 Sell Position", `sell_position:${market.id}`)],
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
@@ -727,7 +748,10 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         ],
         [watchlistButton],
         [
-            Markup.button.callback("🔄 Refresh", `refresh_market_details:${market.id}`),
+            Markup.button.callback(
+                "🔄 Refresh",
+                `refresh_market_details:${encodeMarketId(market.id)}`
+            ),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
@@ -743,6 +767,21 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
     const userId = getUserIdFromCtx(ctx);
 
     try {
+        // Stop monitoring first
+        await stopWalletMonitoring(walletAddress, userId);
+
+        // Remove from watched_wallets array
+        const { data: currentUser } = await db("Users")
+            .select("watched_wallets")
+            .eq("id", userId)
+            .single();
+
+        const currentWallets = currentUser?.watched_wallets || [];
+        const updatedWallets = currentWallets.filter((w) => w !== walletAddress);
+
+        await db("Users").update({ watched_wallets: updatedWallets }).eq("id", userId);
+
+        // Delete from Copy_Wallets table
         const { error } = await db("Copy_Wallets")
             .delete()
             .filter("user_id", "eq", userId)
@@ -750,10 +789,16 @@ export async function handleDeleteUserWallet(ctx: Context, walletAddress: string
 
         if (error) throw new Error(error.message, { cause: error.cause });
 
-        ctx.reply("✅ Wallet Was Successfully Deleted!");
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery("Wallet deleted");
+        }
+        return ctx.reply("✅ Wallet was Successfully Deleted!");
     } catch (error) {
         console.error("Error Deleting User Copy Wallet: ", error);
-        return ctx.reply(`❌ There Was an Error Deleting Copy Wallet! Please Try Again Later.`, {
+        if ("answerCbQuery" in ctx) {
+            await ctx.answerCbQuery("Error occurred");
+        }
+        return ctx.reply(`❌ There was an error deleting the wallet! Please try again later.`, {
             parse_mode: "Markdown",
         });
     }
@@ -1018,11 +1063,13 @@ export async function handleCloseOpenPosition(
         user.show_username_in_cards
     );
 
+    const sellAmount = amountToSell || userMarketDetails.size;
+
     const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
         creds: JSON.parse(data.api_credentials),
         tokenId: userMarketDetails.asset,
-        amount: amountToSell || userMarketDetails.size,
+        amount: sellAmount,
         orderType: OrderType.FOK,
     });
 
@@ -1030,6 +1077,13 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    // Track this manual sell for copy trading system and update volume
+    await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
+
+    // Update user's total volume (sell amount * current price)
+    const sellVolume = sellAmount * userMarketDetails.curPrice;
+    await updateUserVolume(userId, sellVolume);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;
@@ -1138,9 +1192,14 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { marketId, side, orderType } = orderContext;
 
+    console.log("MARKET ID: ", marketId);
+
     const market = marketId.startsWith("0x")
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
+
+    console.log("Market: ", market);
+
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const clobTokenIds = JSON.parse(market.clobTokenIds);
     const endDate = market.endDate || market.events?.[0]?.endDate;
@@ -1201,7 +1260,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
 *Estimated Fill:*
 • Shares: ${shares.toFixed(4)}
-• Execution Price: $${pricePerShare.toFixed(4)}
+• Execution Price: $${side === "YES" ? outcomes[0] : outcomes[1]}
 • Total Cost: $${amount.toFixed(2)}
 • Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
 
@@ -1396,4 +1455,56 @@ export async function handleRefreshTopMarkets(
             }
         }
     }
+}
+
+export async function handleGeneratePortfolioCard(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const user = await getUserDetails(userId);
+
+    if (!user) return;
+
+    if (!user.wallet_address) {
+        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+    }
+
+    const msg = await ctx.reply("⚡ Generating your Portfolio Card...");
+
+    const userPositions = await getUserPosition({ user: user.wallet_address });
+    const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
+
+    if (filteredUserPositions.length === 0) {
+        return ctx.reply("📭 No active positions found to generate portfolio card.");
+    }
+
+    const totalInitialValue = filteredUserPositions.reduce((sum, p) => sum + p.initialValue, 0);
+    const totalCurrentValue = filteredUserPositions.reduce((sum, p) => sum + p.currentValue, 0);
+    const totalPnlDiff = totalCurrentValue - totalInitialValue;
+
+    const topPositions = filteredUserPositions
+        .sort((a, b) => Math.abs(b.cashPnl) - Math.abs(a.cashPnl))
+        .slice(0, 5);
+
+    const marketData = topPositions.map((position) => ({
+        title: position.title,
+        pnl: position.cashPnl,
+    }));
+
+    const pnlDiffSign = totalPnlDiff >= 0 ? "+" : "-";
+
+    const cardBuffer = await generatePortfolioPositionCard(
+        user.telegram_username,
+        user.show_username_in_cards,
+        totalInitialValue.toFixed(2),
+        pnlDiffSign,
+        Math.abs(totalPnlDiff).toFixed(2),
+        marketData
+    );
+
+    await ctx.deleteMessage(msg.message_id);
+    await ctx.replyWithPhoto(
+        { source: cardBuffer },
+        {
+            caption: `📊 Portfolio Summary for @${user.telegram_username}`,
+        }
+    );
 }

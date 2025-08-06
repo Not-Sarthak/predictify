@@ -67,7 +67,6 @@ jobs:
                         --env-file /home/ubuntu/tg-bot/.env.staging \
                         --restart unless-stopped \
                         -p 3000:3000 \
-                        -p 4000:4000 \
                         $IMAGE
 
                       echo "Pruning old images..."

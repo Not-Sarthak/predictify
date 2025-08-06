@@ -1,14 +1,15 @@
 import type { Context } from "telegraf";
+
 import { Markup } from "telegraf";
-import { db } from "@/lib/supabase";
-import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
-import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
-import { CHAIN_ID, HOST } from "@/shared/constants";
-import { encryptPrivateKey } from "@/utils/crypto";
-import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
-import { generateRandomString } from "@/utils/encoding";
-import { clearUserInputState } from "@/bot/input/state";
+import { db } from "../../lib/supabase";
+import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
+import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
+import { CHAIN_ID, HOST } from "../../shared/constants";
+import { encryptPrivateKey } from "../../utils/crypto";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { MAIN_MENU_BUTTONS } from "../ui/buttons";
+import { generateRandomString } from "../../utils/encoding";
+import { clearUserInputState } from "../input/state";
 
 export async function handleReferralCodeTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);

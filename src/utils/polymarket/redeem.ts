@@ -1,6 +1,6 @@
 import { Contract, ethers } from "ethers";
-import { env } from "@/config";
-import type { ApiKeyCreds } from "@/types/polymarket";
+import { env } from "../../config";
+import type { ApiKeyCreds } from "../../types/polymarket";
 import { ClobClient } from "@polymarket/clob-client";
 
 const CTF_EXCHANGE_ABI = [

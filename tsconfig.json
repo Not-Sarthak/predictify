@@ -1,4 +1,3 @@
-// TODO:FIX - ADD ALL THE PATHS FOR FOLDERS
 {
   "compilerOptions": {
     // Enable latest features
@@ -26,17 +25,6 @@
     "noPropertyAccessFromIndexSignature": false,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-
-    "outDir": "dist",
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["*"],
-      "@/api/*": ["api/*"],
-      "@/bot/*": ["bot/*"],
-      "@/config/*": ["config/*"],
-      "@/lib/*": ["lib/*"],
-      "@/shared/*": ["shared/*"]
-    }
   },
   "include": ["src"]
 }

@@ -1,24 +1,25 @@
 import type { Context } from "telegraf";
 
-import { getUserIdFromCtx } from "@/bot/utils";
-import { handleWalletDetailsTextMessage } from "@/bot/input/wallet-details";
-import { handleMarketTermTextMessage } from "@/bot/input/market-term";
-import { handleWalletMontiorTextMessage } from "@/bot/input/wallet-monitor";
-import { handleConfigTextMessage } from "@/bot/input/config-details";
-// import { handleReferralCodeTextMessage } from "@/bot/input/referral-code";
+import { getUserIdFromCtx } from "../utils";
+import { handleWalletDetailsTextMessage } from "../input/wallet-details";
+import { handleMarketTermTextMessage } from "../input/market-term";
+import { handleWalletMontiorTextMessage } from "../input/wallet-monitor";
+import { handleConfigTextMessage } from "../input/config-details";
+// import { handleReferralCodeTextMessage } from "../input/referral-code";
+import { handleCloseOpenPosition, handleConfirmOrder, handleShowMarkets } from "../callbacks/trade";
+import { handleWithdrawalInput } from "../../utils/withdrawal/index";
+import { getUserInputState } from "../input/state";
+import { redisClient } from "../../lib/redis";
+import { handleCustomCategoryInput } from "../callbacks/subscriptions";
+import { handleSetMarketPriceAlert } from "../input/price_alert";
+import { handleTakeProfitOrStopLossExecution, handleTpSlShareInput } from "../input/price-tp-sl";
+import { getEventBySlug } from "../../utils/polymarket/get-markets";
+import { handleEditPriceAlert } from "../input/edit-price-alert";
+import { handleSetWalletPercentage } from "../callbacks/autotrade";
 import {
-    handleCloseOpenPosition,
-    handleConfirmOrder,
-    handleShowMarkets,
-} from "@/bot/callbacks/trade";
-import { handleWithdrawalInput } from "@/utils/withdrawal/index";
-import { getUserInputState } from "@/bot/input/state";
-import { redisClient } from "@/lib/redis";
-import { handleCustomCategoryInput } from "@/bot/callbacks/subscriptions";
-import { handleSetMarketPriceAlert } from "@/bot/input/price_alert";
-import { handleTakeProfitOrStopLossExecution, handleTpSlShareInput } from "@/bot/input/price-tp-sl";
-import { getEventBySlug } from "@/utils/polymarket/get-markets";
-import { handleEditPriceAlert } from "@/bot/input/edit-price-alert";
+    handleHighProbAutoSplitAmount,
+    handleHighProbManualAmount,
+} from "../input/high-probability";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -81,6 +82,20 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "edit_price_alert":
             await handleEditPriceAlert(ctx, textMessage);
+            break;
+        case "wallet_percentage":
+            const walletData = await redisClient.hGetAll(`user:config_input:${userId}`);
+            const walletAddress = walletData.walletAddress;
+            if (!walletAddress) {
+                return ctx.reply("❌ Error: Wallet address not found. Please try again.");
+            }
+            await handleSetWalletPercentage(ctx, walletAddress, textMessage);
+            break;
+        case "highprob_autosplit_amount":
+            await handleHighProbAutoSplitAmount(ctx, textMessage);
+            break;
+        case "highprob_manual_amount":
+            await handleHighProbManualAmount(ctx, textMessage);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");

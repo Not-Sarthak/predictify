@@ -1,5 +1,5 @@
-import { getUserWatchedWalletsCount } from "@/bot/utils";
-import { db } from "@/lib/supabase";
+import { getUserWatchedWalletsCount } from "../utils";
+import { db } from "../../lib/supabase";
 import type { Context } from "telegraf";
 
 export async function handleWalletMontiorTextMessage(

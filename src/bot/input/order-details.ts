@@ -1,31 +1,33 @@
 import { Markup, type Context } from "telegraf";
-import { redisClient } from "@/lib/redis";
-import { db } from "@/lib/supabase";
-import { getTokenId } from "@/helpers/get-token-id";
-import { getUserDetails } from "@/helpers/get-user-details";
-import type { ApiKeyCreds } from "@/types/polymarket/api-key";
-import { buyOrderGTC } from "@/utils/polymarket-order/buy-order-gtc";
+import { redisClient } from "../../lib/redis";
+import { db } from "../../lib/supabase";
+import { getTokenId } from "../../helpers/get-token-id";
+import { getUserDetails } from "../../helpers/get-user-details";
+import type { ApiKeyCreds } from "../../types/polymarket/api-key";
+import { buyOrderGTC } from "../../utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import {
     ensureTokenApproval,
     marketBuyOrder,
     marketSellOrder,
-} from "@/utils/polymarket-order/market-buy-order";
-import { feeTransaction, transferFeeToTreasury } from "@/utils/fees/fee";
+} from "../../utils/polymarket-order/market-buy-order";
+import { feeTransaction, transferFeeToTreasury } from "../../utils/fees/fee";
 import { ethers } from "ethers";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
-import { getUserPositionByMarket } from "@/utils/polymarket/get-user-position";
-import { getUserAddressFromId } from "@/helpers/get-user-address-from-id";
-import { ADMIN_USERS_ID } from "@/shared/constants/misc";
-import { clearUserInputState } from "@/bot/input/state";
-import { getMarketByConditionId, getMarketById } from "@/utils/polymarket/get-markets";
-import { PolymarketUserTradeWatcher } from "@/notifier/ws";
-import { cancelOrder } from "@/utils/polymarket-order/cancel-order";
-import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
-import { generatePositionCard } from "@/utils/card-generator";
-import { encodeMarketId } from "@/utils/encoding";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
+import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
+import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
+import { ADMIN_USERS_ID } from "../../shared/constants/misc";
+import { clearUserInputState } from "../input/state";
+import { getMarketByConditionId, getMarketById } from "../../utils/polymarket/get-markets";
+import { PolymarketUserTradeWatcher } from "../../notifier/ws";
+import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
+import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
+import { generatePositionCard } from "../../utils/card-generator";
+import { encodeMarketId } from "../../utils/encoding";
+import { trackManualTrade } from "../../utils/trade-tracker";
+import { updateUserVolume } from "../../helpers/update-user-volume";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -180,6 +182,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 side: Side.BUY,
                 orderType: OrderType.FOK,
             });
+
+            if (orderResponse && !orderResponse.error) {
+                await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
+                await updateUserVolume(userId, finalAmount);
+            }
         } else if (orderType === "fok_sell") {
             const isAutoExecute = orderContext.autoExecute === "true";
             const amount = isAutoExecute ? Number(orderContext.amount) : Number(textMessage.trim());
@@ -224,6 +231,18 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 amount: amount,
                 orderType: OrderType.FOK,
             });
+
+            // Track manual sell order and update volume
+            if (orderResponse && !orderResponse.error) {
+                await trackManualTrade(userId, tokenId, "SELL", amount);
+                const market = await getMarketByConditionId(marketId);
+                const currentPrice =
+                    position.outcome.toLowerCase() === "yes"
+                        ? JSON.parse(market.outcomePrices)[0]
+                        : JSON.parse(market.outcomePrices)[1];
+                const sellVolume = amount * currentPrice;
+                await updateUserVolume(userId, sellVolume);
+            }
         } else {
             return ctx.reply("❌ Invalid Order Type!");
         }
@@ -253,8 +272,8 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             try {
                 await db("Users")
                     .update({
-                        amount_deposited: data?.amount_deposited || 0 + finalAmount,
-                        fees_total: data?.fees_total || 0 + fee,
+                        amount_deposited: (data?.amount_deposited || 0) + finalAmount,
+                        fees_total: (data?.fees_total || 0) + fee,
                     })
                     .eq("id", userId);
             } catch (error) {
@@ -265,7 +284,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         try {
             await db("Users")
                 .update({
-                    total_volume: data?.total_volume || 0 + finalAmount,
+                    total_volume: (data?.total_volume || 0) + finalAmount,
                 })
                 .eq("id", userId);
         } catch (error) {

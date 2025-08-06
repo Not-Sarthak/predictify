@@ -1,21 +1,23 @@
 import { Markup, type Context } from "telegraf";
 
-import { getUserIdFromCtx, getUsernameFromCtx } from "@/bot/utils";
-import { getUserByIdFromDb } from "@/bot/utils/database/get-user-db";
-import { getSOLBalance, getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { generateWelcomeMessage } from "@/bot/ui/messages";
-import { MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
-import { setUserInputState } from "@/bot/input/state";
-import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
-import { CHAIN_ID, HOST } from "@/shared/constants";
-import { encryptPrivateKey } from "@/utils/crypto";
-import { db } from "@/lib/supabase";
-import { generateRandomString } from "@/utils/encoding";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getLockedBalance } from "@/utils/polymarket/get-locked-balance";
+import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
+import { getUserByIdFromDb } from "../utils/database/get-user-db";
+import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { generateWelcomeMessage } from "../ui/messages";
+import { MAIN_MENU_BUTTONS } from "../ui/buttons";
+import { setUserInputState } from "../input/state";
+import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
+import { CHAIN_ID, HOST } from "../../shared/constants";
+import { encryptPrivateKey } from "../../utils/crypto";
+import { db } from "../../lib/supabase";
+import { generateRandomString } from "../../utils/encoding";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 
 export async function handleStartCommand(ctx: Context) {
+    console.log("[START] Command received from user:", ctx.from?.id, ctx.from?.username);
     const userId = getUserIdFromCtx(ctx);
+    console.log("[START] Processing for user ID:", userId);
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {

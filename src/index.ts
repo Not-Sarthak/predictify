@@ -1,20 +1,11 @@
 import { env } from "./config/env";
-import { API_SERVER_PORT, PORT } from "./shared/constants";
-import { apiServer } from "@/api";
+import { PORT } from "./shared/constants";
 import { bot } from "./bot";
-// import { connectToSupabaseRealtime } from "@/watcher";
-import { tryCatch } from "./utils";
-import { notifier } from "@/notifier";
-import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "@/notifier/ws";
+import { initializeCopyTrading } from "./watcher/init";
+import { notifier } from "./notifier";
+import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "./notifier/ws";
 
 async function main() {
-    // Starts the API Server
-    const { error } = await tryCatch(apiServer.listen({ port: API_SERVER_PORT, host: "0.0.0.0" }));
-    if (error) {
-        apiServer.log.error(error, "Failed to Start API Server");
-        process.exit(1);
-    }
-
     // CRON JOB: Fetch New Markets every 12 Hours
     console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
     notifier.start();
@@ -27,12 +18,12 @@ async function main() {
     console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
 
     /**
-     * DISABLED AUTOTRADING TEMPORARILY
+     * COPY TRADING SYSTEM
+     * Initialize the wallet monitoring and copy trading functionality
      */
-    // Listens to copy wallets db updates
-    // await connectToSupabaseRealtime();
+    await initializeCopyTrading();
 
-    // Initialize Telegram Bot Webhook
+    // Initialize Telegram Bot w/ Webhook
     bot.launch(
         {
             webhook: {

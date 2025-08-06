@@ -9,14 +9,16 @@ import {
     handleSubscriptionsCommand,
     handleTradeCommand,
     handleWatchlistCommand,
+    handleHighProbabilityCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
-import { handleCallbackQuery } from "@/bot/callbacks";
-import { handleUserTradeHistoryCommand } from "@/bot/commands/history";
-import { handleViewTradePositions } from "@/bot/callbacks/trade";
-import { handleCancelOpenOrdersCommand } from "@/bot/commands/manage-limit-orders";
-import { handleAutoTradeMenu } from "@/bot/ui/messages";
-import { handleViewProfileCallback } from "@/bot/callbacks/start";
+import { handleCallbackQuery } from "./callbacks";
+import { handleUserTradeHistoryCommand } from "./commands/history";
+import { handleViewTradePositions } from "./callbacks/trade";
+import { handleCancelOpenOrdersCommand } from "./commands/manage-limit-orders";
+import { handleAutoTradeMenu } from "./ui/messages";
+import { handleViewProfileCallback } from "./callbacks/start";
+import { handleMonitoringStats } from "./callbacks/autotrade";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -27,7 +29,11 @@ bot.use(requireId);
 bot.use(rejectBotSenders);
 
 // Command Handlers
-bot.command("start", handleStartCommand);
+console.log("[BOT] Registering command handlers...");
+bot.command("start", (ctx) => {
+    console.log("[BOT] Start command triggered");
+    return handleStartCommand(ctx);
+});
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeMenu);
@@ -36,7 +42,12 @@ bot.command("history", handleUserTradeHistoryCommand);
 bot.command("portfolio", handleViewTradePositions);
 bot.command("manage", handleCancelOpenOrdersCommand);
 bot.command("stats", handleViewProfileCallback);
-bot.command("watchlist", handleWatchlistCommand);
+bot.command("watchlist", (ctx) => handleWatchlistCommand(ctx));
+bot.command("highprob", handleHighProbabilityCommand);
+bot.command("monitoring", async (ctx) => {
+    return handleMonitoringStats(ctx);
+});
+console.log("[BOT] Command handlers registered");
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
@@ -45,8 +56,15 @@ bot.on(message("text"), handleUserTextMessage);
 bot.on("callback_query", handleCallbackQuery);
 
 // Error Handling
-bot.catch((err, _ctx) => {
+bot.catch((err, ctx) => {
     try {
+        console.error("[BOT] Error occurred:", err);
+        console.error("[BOT] Context:", {
+            updateType: ctx.updateType,
+            chatId: ctx.chat?.id,
+            userId: ctx.from?.id,
+            username: ctx.from?.username,
+        });
         if (err) {
             console.error(err);
         }

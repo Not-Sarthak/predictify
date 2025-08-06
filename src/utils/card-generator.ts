@@ -1,11 +1,12 @@
-import PnlCard from "@/utils/components/PnlCard";
-import PositionCard from "@/utils/components/PositionCard";
+import PnlCard from "../utils/components/PnlCard";
+import PositionCard from "../utils/components/PositionCard";
+import PortfolioPositionCard from "../utils/components/PortfolioPositionCard";
 import { Resvg } from "@resvg/resvg-js";
 import * as fs from "fs";
 import * as fsProm from "fs/promises";
 import path from "path";
 import React from "react";
-import satori from "satori";
+import satori, { type SatoriOptions } from "satori";
 
 type PnlStatus = "Positive" | "Negative" | "Neutral";
 
@@ -14,6 +15,25 @@ type PredictionType = "Yes" | "No";
 // Load Fonts
 const fontDataRegular = fs.readFileSync(path.resolve("./assets/fonts/SpaceGrotesk-Regular.ttf"));
 const fontDataBold = fs.readFileSync(path.resolve("./assets/fonts/SpaceGrotesk-Bold.ttf"));
+
+const fontSettings: SatoriOptions = {
+    width: 1280,
+    height: 720,
+    fonts: [
+        {
+            name: "Space Grotesk",
+            data: fontDataRegular,
+            weight: 400,
+            style: "normal",
+        },
+        {
+            name: "Space Grotesk",
+            data: fontDataBold,
+            weight: 700,
+            style: "normal",
+        },
+    ],
+};
 
 // Images to Base64
 const logoBuffer = await fsProm.readFile(path.resolve("./assets/logo.png"));
@@ -27,6 +47,9 @@ const patternBase64Green = `data:image/png;base64,${patternBufferGreen.toString(
 
 const patternBufferRed = await fsProm.readFile(path.resolve("./assets/patterns/red.png"));
 const patternBase64Red = `data:image/png;base64,${patternBufferRed.toString("base64")}`;
+
+const patternBufferBlue = await fsProm.readFile(path.resolve("./assets/patterns/blue.png"));
+const patternBase64Blue = `data:image/png;base64,${patternBufferBlue.toString("base64")}`;
 
 export async function generatePnlCard(
     pnlStatus: PnlStatus,
@@ -71,24 +94,7 @@ export async function generatePnlCard(
                 patternToShow,
                 showUsername,
             }),
-            {
-                width: 1280,
-                height: 720,
-                fonts: [
-                    {
-                        name: "Space Grotesk",
-                        data: fontDataRegular,
-                        weight: 400,
-                        style: "normal",
-                    },
-                    {
-                        name: "Space Grotesk",
-                        data: fontDataBold,
-                        weight: 700,
-                        style: "normal",
-                    },
-                ],
-            }
+            fontSettings
         );
 
         const resvg = new Resvg(svg);
@@ -127,24 +133,40 @@ export async function generatePositionCard(
                 size,
                 showUsername,
             } as any),
-            {
-                width: 1280,
-                height: 720,
-                fonts: [
-                    {
-                        name: "Space Grotesk",
-                        data: fontDataRegular,
-                        weight: 400,
-                        style: "normal",
-                    },
-                    {
-                        name: "Space Grotesk",
-                        data: fontDataBold,
-                        weight: 700,
-                        style: "normal",
-                    },
-                ],
-            }
+            fontSettings
+        );
+
+        const resvg = new Resvg(svg);
+        const pngBuffer = resvg.render().asPng();
+
+        return pngBuffer;
+    } catch (error) {
+        console.error("Error generating Predictify card:", error);
+        throw error;
+    }
+}
+
+export async function generatePortfolioPositionCard(
+    username: string,
+    showUsername: boolean,
+    initialValue: string,
+    pnlDiffSign: string,
+    totalPnlDiff: string,
+    marketData: Array<{ title: string; pnl: number }>
+) {
+    try {
+        const svg = await satori(
+            React.createElement(PortfolioPositionCard, {
+                bgBase: patternBase64Blue,
+                logoBase: logoBase64,
+                username,
+                showUsername,
+                initialValue,
+                pnlDiffSign,
+                totalPnlDiff,
+                marketData,
+            }),
+            fontSettings
         );
 
         const resvg = new Resvg(svg);

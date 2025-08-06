@@ -1,14 +1,14 @@
 import { Markup, type Context } from "telegraf";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { getUserWrappedUSDCBalance } from "@/helpers/get-user-balance";
-import { CLOSE_BUTTON } from "@/bot/ui/buttons";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import { CLOSE_BUTTON } from "../../bot/ui/buttons";
 import { ethers } from "ethers";
-import { env } from "@/config";
+import { env } from "../../config";
 import { getBridgeQuote } from "../debridge/functions/get-bridge-quote";
 import { ChainId } from "../debridge/types";
 import { executeSwapUSDCeToUSDC } from "../uniswap";
-import { decryptPrivateKey } from "@/utils/crypto";
-import { clearUserInputState, setUserInputState } from "@/bot/input/state";
+import { decryptPrivateKey } from "../../utils/crypto";
+import { clearUserInputState, setUserInputState } from "../../bot/input/state";
 
 interface WithdrawalData {
     type: "sol" | "usdc";

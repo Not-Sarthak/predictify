@@ -1,13 +1,13 @@
-import type { TableRow } from "@/types/supabase";
+import type { TableRow } from "../types/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../lib/supabase";
 import {
     addWalletMonitor,
     deleteWalletMonitor,
     resumeAllWalletMonitors,
     updateWalletMonitor,
-} from "@/watcher/monitor-handlers";
+} from "../watcher/monitor-handlers";
 
 const CHANNEL_NAME = "copy_wallets_changes";
 const TABLE_NAME = "Copy_Wallets";
@@ -16,7 +16,7 @@ let channel: RealtimeChannel | null = null;
 let retrying = false;
 let retryCount = 0;
 const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY = 2000; // 2 seconds
+const RETRY_BASE_DELAY = 2000; // 2 Seconds
 
 export const subscribe = async () => {
     if (channel) {

@@ -1,6 +1,6 @@
-import { db } from "@/lib/supabase";
-import type { DBError } from "@/shared/errors";
-import type { TableRow } from "@/types/supabase/tables";
+import { db } from "../../../lib/supabase";
+import type { DBError } from "../../../shared/errors";
+import type { TableRow } from "../../../types/supabase/tables";
 
 export async function getUserByIdFromDb(
     userId: number

@@ -3,13 +3,12 @@ import {
     Transaction,
     VersionedTransaction,
     TransactionMessage,
-    PublicKey,
     clusterApiUrl,
     type SendOptions,
     type Commitment,
 } from "@solana/web3.js";
-import { decodePrivateKey } from "@/utils/crypto";
-import { env } from "@/config";
+import { decodePrivateKey } from "../../utils/crypto";
+import { env } from "../../config";
 
 const SOLANA_RPC_URL = env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta");
 const DEFAULT_COMMITMENT: Commitment = "confirmed";

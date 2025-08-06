@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { EXCHANGE_ADDRESS, USDC_ADDRESS } from "../../shared/constants";
-import { env } from "@/config";
+import { env } from "../../config";
 
 const WRAPPED_USDC_ABI = [
     "function approve(address spender, uint256 amount) external returns (bool)",
@@ -20,21 +20,23 @@ export async function setUSDCAllowance(wallet: ethers.Wallet, amount: string) {
             EXCHANGE_ADDRESS
         );
 
-        const amountInUnits = ethers.parseUnits(Number(amount).toFixed(2), 6);
+        const formattedAmount = parseFloat(amount).toFixed(6);
+        const amountInUnits = ethers.parseUnits(formattedAmount, 6);
 
         if (currentAllowance < amountInUnits) {
-            const allowanceAmount = ethers.parseUnits(amount, 6); // 1M USDC allowance
+            const allowanceAmount = amountInUnits;
 
             const tx = await usdcContract.approve(EXCHANGE_ADDRESS, allowanceAmount);
 
             const receipt = await tx.wait();
-            console.log("Transaction Receipt for Wallet `", wallet.address, "`: ", receipt);
+            console.log(`Set Allowance For Wallet ${wallet.address}: ${formattedAmount} USDC`);
 
             return receipt.hash;
         }
 
         return null;
     } catch (error) {
-        console.error("Error Setting USDC Allowance for Wallet: ", wallet.address, error);
+        console.error(`Error Setting USDC Allowance For Wallet ${wallet.address}:`, error);
+        throw error;
     }
 }

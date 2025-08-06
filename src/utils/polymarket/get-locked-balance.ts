@@ -1,5 +1,5 @@
-import { redisClient } from "@/lib/redis";
-import { getUnmatchedOpenOrders } from "@/utils/polymarket/get-non-matched-orders";
+import { redisClient } from "../../lib/redis";
+import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
 
 export async function getLockedBalance(userId: number): Promise<number> {
     const trackedOrderIds = await redisClient.lRange(`user:order_ids:${userId}`, 0, -1);

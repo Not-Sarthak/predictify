@@ -1,4 +1,4 @@
-import { SUBSCRIPTIONS_MENU_BUTTONS } from "@/bot/ui/buttons";
+import { SUBSCRIPTIONS_MENU_BUTTONS } from "../ui/buttons";
 import { Markup, type Context } from "telegraf";
 
 export async function handleSubscriptionsCommand(ctx: Context) {

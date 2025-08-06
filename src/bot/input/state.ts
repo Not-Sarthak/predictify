@@ -1,4 +1,4 @@
-import { redisClient } from "@/lib/redis";
+import { redisClient } from "../../lib/redis";
 
 const key = (userId: string) => `user:input_state:${userId}`;
 

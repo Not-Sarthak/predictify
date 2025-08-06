@@ -1,4 +1,4 @@
-import { db } from "@/lib/supabase";
+import { db } from "../../../lib/supabase";
 
 export async function saveCopyTradeConfig(userId: string, configType: string, configValue: string) {
     const { error } = await db("Users")

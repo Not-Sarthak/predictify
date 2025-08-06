@@ -1,13 +1,13 @@
-import { WALLET_SETTINGS_MENU } from "@/bot/ui/buttons";
-import { getUserIdFromCtx } from "@/bot/utils";
-import { getFundMessage } from "@/bot/utils/get-fund-message";
-import { getUserUSDCBalance } from "@/helpers/get-user-balance";
-import { getUserDetails } from "@/helpers/get-user-details";
-import { db } from "@/lib/supabase";
-import { CHAIN_ID, HOST } from "@/shared/constants";
-import { decryptPrivateKey, encryptPrivateKey } from "@/utils/crypto";
-import { generateAPIKeyAndWallet } from "@/utils/polymarket/generate-user";
-import { executeSwap, getQuote } from "@/utils/uniswap";
+import { WALLET_SETTINGS_MENU } from "../ui/buttons";
+import { getUserIdFromCtx } from "../utils";
+import { getFundMessage } from "../utils/get-fund-message";
+import { getUserUSDCBalance } from "../../helpers/get-user-balance";
+import { getUserDetails } from "../../helpers/get-user-details";
+import { db } from "../../lib/supabase";
+import { CHAIN_ID, HOST } from "../../shared/constants";
+import { decryptPrivateKey, encryptPrivateKey } from "../../utils/crypto";
+import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
+import { executeSwap, getQuote } from "../../utils/uniswap";
 import { ethers } from "ethers";
 import { Markup, type Context } from "telegraf";
 

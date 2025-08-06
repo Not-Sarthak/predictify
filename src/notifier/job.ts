@@ -1,12 +1,12 @@
-import type { EventData } from "@/types/polymarket";
+import type { EventData } from "../types/polymarket";
 
-import { redisClient } from "@/lib/redis";
-import { HALF_DAY_IN_MS } from "@/shared/constants";
-import { bot } from "@/bot";
+import { redisClient } from "../lib/redis";
+import { HALF_DAY_IN_MS } from "../shared/constants";
+import { bot } from "../bot";
 import { Markup } from "telegraf";
-import { layoutButtons } from "@/bot/utils";
-import { normalizeTitle } from "@/notifier/utils";
-import { capitalize } from "@/utils";
+import { layoutButtons } from "../bot/utils";
+import { normalizeTitle } from "../notifier/utils";
+import { capitalize } from "../utils";
 
 export const notifyUsersAboutNewMarkets = async () => {
     const now = Date.now();
