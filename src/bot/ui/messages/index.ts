@@ -44,13 +44,6 @@ No logins. No browser tabs. Just pure prediction market flow. 🫡
 `.trim();
 };
 
-export const generateSubscribedMessage = (category: string) => `🔔 Subscribed to ${category}`;
-
-export const generateUnsubscribedMessage = (category: string) => `🔕 Unsubscribed from ${category}`;
-
-export const generateActiveSubscriptionsMessage = (categories: string[]) =>
-    `You're Subscribed To:\n• ${categories.join("\n• ")}`;
-
 export const generateWalletDetailsMessage = (
     evmWalletAddress: string,
     solanaWalletAddress: string | null,

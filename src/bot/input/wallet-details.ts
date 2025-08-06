@@ -1,7 +1,6 @@
 import { clearUserInputState } from "@/bot/input/state";
 import { db } from "@/lib/supabase";
 import type { Context } from "telegraf";
-import { startWalletMonitoring } from "@/watcher/copy-trade";
 
 export async function handleWalletDetailsTextMessage(
     ctx: Context,

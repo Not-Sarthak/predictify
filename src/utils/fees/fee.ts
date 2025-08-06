@@ -146,37 +146,4 @@ export function calculateTotalCostWithFee(positionAmount: number) {
     };
 }
 
-export function validateBalanceWithFee(userBalance: number, positionAmount: number): boolean {
-    const { totalCost } = calculateTotalCostWithFee(positionAmount);
-    return userBalance >= totalCost;
-}
-
-export async function processOrderWithTreasuryFee(params: TreasuryFeeTransferParams) {
-    const { userWallet, positionAmount, transactionType } = params;
-
-    const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
-    const connectedWallet = userWallet.connect(provider);
-    const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, connectedWallet);
-
-    const userBalance = await usdcContract.balanceOf(userWallet.address);
-    const userBalanceFormatted = parseFloat(ethers.formatUnits(userBalance, 6));
-
-    const requiredBalance =
-        transactionType === "OPEN"
-            ? calculateTotalCostWithFee(positionAmount).totalCost
-            : calculateFee(positionAmount);
-
-    if (userBalanceFormatted < requiredBalance) {
-        return {
-            success: false,
-            feeAmount: calculateFee(positionAmount),
-            txHash: null,
-            gasUsed: null,
-            error: `Insufficient Balance. Required: ${requiredBalance.toFixed(6)} USDC, Available: ${userBalanceFormatted.toFixed(6)} USDC`,
-        };
-    }
-
-    return await transferFeeToTreasury(params);
-}
-
 export type { TreasuryFeeTransferParams };

@@ -60,8 +60,6 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
 
-    console.log(orderContext);
-
     const { tokenId, marketId, outcome, type, action } = orderContext;
 
     const config: PriceWatchConfig = {

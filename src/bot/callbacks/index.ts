@@ -197,7 +197,7 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleViewProfileCallback(ctx);
     }
 
-    if (data === "show_portfolio") {
+    if (data === "show_portfolio" || data === "trade_position_view") {
         return handleViewTradePositions(ctx);
     }
 
@@ -297,14 +297,10 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleResetWallet(ctx);
     }
 
-    if (data.startsWith("selected_market:")) {
+    if (data.startsWith("selected_market:") || data.startsWith("view_market:")) {
         const encodedMarketId = data.split(":")[1];
         const marketId = decodeMarketId(encodedMarketId);
         return handleViewMarket(ctx, marketId);
-    }
-
-    if (data === "trade_position_view") {
-        return handleViewTradePositions(ctx);
     }
 
     if (data.startsWith("portfolio_page")) {
@@ -377,12 +373,6 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("view_markets:")) {
         const eventId = Number(data.split(":")[1]);
         return handleShowMarkets(ctx, eventId);
-    }
-
-    if (data.startsWith("view_market:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
-        return handleViewMarket(ctx, marketId);
     }
 
     if (data.startsWith("market_details:")) {

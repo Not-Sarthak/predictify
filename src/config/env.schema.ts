@@ -17,15 +17,9 @@ export const envSchema = z.object({
 
     MAINNET_RPC_URL: z.string().url("MAINNET_RPC_URL must be a valid URL"),
 
-    TESTNET_RPC_URL: z.string().url("TESTNET_RPC_URL must be a valid URL"),
-
     PRIVATE_KEY: z
         .string()
         .regex(/^0x[a-fA-F0-9]{64}$/, "PRIVATE_KEY must be a 64-char hex string starting with 0x"),
-
-    WALLET_ADDRESS: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]{40}$/, "WALLET_ADDRESS must be a valid address"),
 
     CLOB_API_URL: z.string().url("CLOB_API_URL must be a valid URL"),
 

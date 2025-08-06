@@ -3,7 +3,6 @@ import {
     Transaction,
     VersionedTransaction,
     TransactionMessage,
-    PublicKey,
     clusterApiUrl,
     type SendOptions,
     type Commitment,

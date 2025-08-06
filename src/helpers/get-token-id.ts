@@ -37,34 +37,3 @@ export async function getTokenId(decision: string, marketId: string) {
         return null;
     }
 }
-
-export async function getTokenIds(marketId: string): Promise<string[] | null> {
-    try {
-        const response = await fetch(`https://gamma-api.polymarket.com/markets?id=${marketId}`);
-        const data = await response.json();
-
-        if (!data || !Array.isArray(data) || data.length === 0) {
-            console.error(`No market data found for Market ID ${marketId}`);
-            return null;
-        }
-
-        const marketData = data[0];
-
-        if (!marketData.clobTokenIds) {
-            console.error(`clobTokenIds not found for Market ID ${marketId}`);
-            return null;
-        }
-
-        const tokenIds = JSON.parse(marketData.clobTokenIds);
-
-        if (!Array.isArray(tokenIds)) {
-            console.error(`Invalid tokenIds format for Market ID ${marketId}`);
-            return null;
-        }
-
-        return tokenIds;
-    } catch (error) {
-        console.error(`Error fetching Token IDs for Market with ID ${marketId}: `, error);
-        return null;
-    }
-}

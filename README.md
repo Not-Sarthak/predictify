@@ -21,10 +21,4 @@ TODO:
 5. Tag Bot and Give Info
 6. Twitter Bot
 
-Sarthak:
-
-- strategy 1 -> take notes from scalper
-
-Monday:
-
 - share on x in position card

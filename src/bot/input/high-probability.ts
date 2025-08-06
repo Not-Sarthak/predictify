@@ -4,11 +4,9 @@ import { clearUserInputState } from "@/bot/input/state";
 import { redisClient } from "@/lib/redis";
 import {
     fetchHighProbabilityMarkets,
-    executeBatchTrades,
     validateBatchTrade,
     DEFAULT_HIGH_PROB_FILTERS,
     type HighProbFilters,
-    type BatchTradeRequest,
 } from "@/utils/high-prob-trading";
 import { Markup } from "telegraf";
 

@@ -6,7 +6,7 @@ import {
     type HighProbFilters,
     type HighProbMarket,
 } from "@/utils/high-prob-trading";
-import { formatDate, formatDollarVolume, escapeMarkdown } from "@/bot/utils";
+import { formatDollarVolume, escapeMarkdown } from "@/bot/utils";
 import { redisClient } from "@/lib/redis";
 
 // Helper function to get user's custom filters or defaults

@@ -34,29 +34,6 @@ export function formatDate(dateString: string): string {
     return `${month} ${day}${getOrdinal(day)}, ${year}`;
 }
 
-export function formatUnixDate(timestamp: number): string {
-    const date = new Date(timestamp * 1000);
-    const month = date.toLocaleString("en-US", { month: "long" });
-    const day = date.getDate();
-    const year = date.getFullYear();
-
-    const getOrdinal = (n: number) => {
-        if (n > 3 && n < 21) return "th";
-        switch (n % 10) {
-            case 1:
-                return "st";
-            case 2:
-                return "nd";
-            case 3:
-                return "rd";
-            default:
-                return "th";
-        }
-    };
-
-    return `${month} ${day}${getOrdinal(day)}, ${year}`;
-}
-
 export function formatActiveSubscriptionsMessage(categories: string[]): string {
     return `Your Subscriptions:\n• ${categories.join("\n• ")}`;
 }
@@ -94,9 +71,6 @@ ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPr
 
     return userPositionsMessages;
 }
-
-export const formatBidLine = ({ price, size }: { price: string; size: string }) =>
-    `$${price} × ${Number(size).toLocaleString()}`;
 
 export function formatDollarVolume(n: number): string {
     if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
