@@ -55,6 +55,7 @@ import {
     handleBridgeFunds,
     handleBridgeStatus,
 } from "@/utils/debridge/functions/bridge-handler";
+import { handleHighProbCallbackQuery } from "./high-probability";
 import { redisClient } from "@/lib/redis";
 import { CLOSE_BUTTON, MAIN_MENU_BUTTONS } from "@/bot/ui/buttons";
 import { Markup, type Context } from "telegraf";
@@ -115,6 +116,10 @@ export async function handleCallbackQuery(ctx: Context) {
     /**
      * Handle Callbacks based on Data Value
      */
+
+    if (data.startsWith("highprob:")) {
+        return handleHighProbCallbackQuery(ctx, data);
+    }
 
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
