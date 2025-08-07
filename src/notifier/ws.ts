@@ -3,7 +3,6 @@ import {
     generateOrderFilledMessage,
     generatePriceAlertMessage,
     generateTPorSLMessage,
-    getMarketQuestion,
 } from "../notifier/utils";
 import { bot } from "../bot";
 import { getUserDetails } from "../helpers/get-user-details";
@@ -16,7 +15,6 @@ import { getMarketByConditionId } from "../utils/polymarket/get-markets";
 import { capitalize } from "../utils";
 import { getUserPositionByMarket } from "../utils/polymarket/get-user-position";
 import { Markup } from "telegraf";
-import { encodeMarketId } from "../utils/encoding";
 
 type Auth = {
     apiKey: string;
@@ -211,9 +209,11 @@ export class PolymarketMarketTradeWatcher {
 
             this.hasTriggered = true;
 
-            const question = await getMarketQuestion(this.marketId);
+            const markets = await getMarketByConditionId(this.marketId);
+            const market = markets[0];
+
             const basePayload = {
-                question: question || "Unknown Market",
+                question: market.question || "Unknown Market",
                 thresholdPrice: price,
                 currentPrice: currentAsk,
                 outcomeSide: this.config.outcome,
@@ -226,10 +226,7 @@ export class PolymarketMarketTradeWatcher {
                     {
                         parse_mode: "HTML",
                         reply_markup: Markup.inlineKeyboard([
-                            Markup.button.callback(
-                                "View this Market",
-                                `view_market:${encodeMarketId(this.marketId)}`
-                            ),
+                            Markup.button.callback("View this Market", `view_market:${market.id}`),
                         ]).reply_markup,
                     }
                 );

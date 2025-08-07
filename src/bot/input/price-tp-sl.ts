@@ -7,7 +7,6 @@ import {
     type PriceWatchConfig,
 } from "../../notifier/ws";
 import type { Context } from "telegraf";
-import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 
 export async function handleTpSlShareInput(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
