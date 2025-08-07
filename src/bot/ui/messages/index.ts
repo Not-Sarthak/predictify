@@ -9,6 +9,7 @@ import type { InlineKeyboardMarkup } from "telegraf/types";
 import { encodeMarketId } from "../../../utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
 import { redisClient } from "../../../lib/redis";
+import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
 
 export const generateWelcomeMessage = (
     evm_address: string,
@@ -117,7 +118,8 @@ export async function createPaginationKeyboard(
     conditionId: string,
     index: number,
     total: number,
-    userId: string
+    userId: string,
+    outcomeIndex: number
 ) {
     const redisKey = `user:tp_sl_watchers:${userId}`;
     const tpSlEntries = await redisClient.hGetAll(redisKey); // Get all fields + values
@@ -138,6 +140,7 @@ export async function createPaginationKeyboard(
         }
     }
 
+    const market = await getMarketByConditionId(conditionId);
     const paginationButtons = [];
 
     if (index > 0) {
@@ -156,8 +159,14 @@ export async function createPaginationKeyboard(
             Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
         ],
         [
-            Markup.button.callback("Buy More Market", `buy_market_${encodeMarketId(conditionId)}`),
-            Markup.button.callback("Buy More Limit", `buy_limit_${encodeMarketId(conditionId)}`),
+            Markup.button.callback(
+                "Buy More Market",
+                `market_order:${market.id}:${outcomeIndex === 0 ? "yes" : "no"}`
+            ),
+            Markup.button.callback(
+                "Buy More Limit",
+                `limit_order:${market.id}:${outcomeIndex === 0 ? "yes" : "no"}`
+            ),
         ],
         [
             Markup.button.callback(

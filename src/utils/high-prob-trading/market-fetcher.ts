@@ -6,48 +6,79 @@ import {
     type HighProbMarket,
     DEFAULT_HIGH_PROB_FILTERS,
 } from "./market-filters";
+import { CATEGORY_LIST } from "../../shared/constants";
+
+/**
+ * Fetches markets from multiple categories using the correct markets API endpoint
+ */
+async function fetchMarketsFromCategory(category: string, limit: number = 20): Promise<Market[]> {
+    try {
+        // Use the correct markets API endpoint instead of events
+        const BASE_URL = "https://gamma-api.polymarket.com/markets";
+
+        let categorySlug = category.toLowerCase();
+        if (categorySlug === "geo-politics") categorySlug = "geopolitics";
+
+        const params = new URLSearchParams({
+            limit: limit.toString(),
+            offset: "0",
+            active: "true",
+            archived: "false",
+            closed: "false",
+            tag: categorySlug, // Use 'tag' instead of 'tag_slug' for markets endpoint
+            order: "volume24hr",
+            ascending: "false",
+        });
+
+        const response = await axios.get(`${BASE_URL}?${params.toString()}`);
+        const markets = response.data.data || response.data || [];
+
+        return markets.slice(0, limit);
+    } catch (error) {
+        console.error(`❌ Error fetching markets from category ${category}:`, error);
+        return [];
+    }
+}
 
 /**
  * Fetches markets from Polymarket API with high probability focus
+ * Now includes all categories to ensure broader market coverage
  */
 export async function fetchHighProbabilityMarkets(
     filters: HighProbFilters = DEFAULT_HIGH_PROB_FILTERS,
     limit: number = 50
 ): Promise<HighProbMarket[]> {
-    const BASE_URL = "https://gamma-api.polymarket.com/events/pagination";
-
-    const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
-    const now = new Date();
-    const endOfWindow = new Date(now.getTime() + timeFilterHours * 60 * 60 * 1000);
-
-    const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: "0",
-        active: "true",
-        archived: "false",
-        closed: "false",
-        order: "volume24hr",
-        ascending: "false",
-        end_date_min: now.toISOString(),
-        end_date_max: endOfWindow.toISOString(),
-    });
-
     try {
-        const response = await axios.get(`${BASE_URL}?${params.toString()}`);
-        const events = response.data.data || [];
+        // Get markets from multiple categories to ensure good coverage
+        const categoriesToFetch = filters.excludeCrypto
+            ? CATEGORY_LIST.filter((cat) => cat !== "Crypto")
+            : CATEGORY_LIST;
 
-        // Extract all markets from events
+        // Fetch markets from different categories in parallel
+        const categoryPromises = categoriesToFetch.map((category) =>
+            fetchMarketsFromCategory(category, 15)
+        );
+
+        const categoryResults = await Promise.all(categoryPromises);
+
+        // Combine all markets
         const allMarkets: Market[] = [];
-        for (const event of events) {
-            if (event.markets && Array.isArray(event.markets)) {
-                allMarkets.push(...event.markets);
-            }
+        for (const markets of categoryResults) {
+            allMarkets.push(...markets);
         }
 
+        // Remove duplicates based on market ID
+        const uniqueMarkets = allMarkets.filter(
+            (market, index, self) => index === self.findIndex((m) => m.id === market.id)
+        );
+
         // Filter and sort high probability markets
-        return filterHighProbabilityMarkets(allMarkets, filters);
+        const highProbMarkets = filterHighProbabilityMarkets(uniqueMarkets, filters);
+
+        // Return up to the requested limit
+        return highProbMarkets.slice(0, limit);
     } catch (error) {
-        console.error("Error fetching high probability markets:", error);
+        console.error("❌ Error fetching high probability markets:", error);
         return [];
     }
 }

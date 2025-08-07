@@ -20,7 +20,6 @@ import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "../../shared/constants/misc";
 import { clearUserInputState } from "../input/state";
 import { getMarketByConditionId, getMarketById } from "../../utils/polymarket/get-markets";
-import { PolymarketUserTradeWatcher } from "../../notifier/ws";
 import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
@@ -28,6 +27,7 @@ import { generatePositionCard } from "../../utils/card-generator";
 import { encodeMarketId } from "../../utils/encoding";
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
+import { startUserTradeWatcher } from "../../notifier/ws/limit-order-watcher";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -331,7 +331,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     : "show_portfolio";
 
             if (orderType === "gtc" && orderResponse.response.status !== "matched") {
-                new PolymarketUserTradeWatcher(
+                startUserTradeWatcher(
                     userId.toString(),
                     JSON.parse(userDetails.api_credentials),
                     marketId
@@ -355,7 +355,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 year: "numeric",
             });
             const toWin = amount / currentPrice;
-            const odds = currentPrice * 100;
+            const odds = Number((currentPrice * 100).toFixed(2));
 
             await ctx.telegram.editMessageText(
                 ctx.chat!.id,

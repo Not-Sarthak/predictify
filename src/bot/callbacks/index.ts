@@ -77,7 +77,12 @@ import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { decodeMarketId } from "../../utils/encoding";
 import { setUserInputState } from "../input/state";
-import { handleCancelOpenOrdersCommand, sendPaginatedOrder } from "../commands/manage-limit-orders";
+import {
+    handleCancelOpenOrdersCommand,
+    handleShowOpenTpSlOrders,
+    sendPaginatedOrder,
+    sendPaginatedTpSlOrder,
+} from "../commands/manage-limit-orders";
 import { getUserDetails } from "../../helpers/get-user-details";
 import type { ApiKeyCreds } from "../../types/polymarket";
 import { createLegacyWallet } from "../../utils";
@@ -89,10 +94,10 @@ import { sendPaginatedHistory } from "../commands/history";
 import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { db } from "../../lib/supabase";
-import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws";
 import { getMarketQuestion } from "../../notifier/utils";
 import { handleWatchlistCommand } from "../commands";
 import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
+import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
 
 /**
  * TODO:FIX
@@ -154,10 +159,10 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.answerCbQuery("❌ Alert not found.");
         }
 
-        const [marketId, ,] = fullFieldKey.split(":");
+        const [marketId, assetId] = fullFieldKey.split(":");
         await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
         await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-        stopPriceAlertWatcher(userIdStr, marketId);
+        stopPriceAlertWatcher(userIdStr, marketId, assetId);
 
         await ctx.answerCbQuery("✅ Alert deleted");
         return handleShowCurrentPriceAlerts(ctx, 0, true);
@@ -397,8 +402,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("limit_order:")) {
-        const [encodedMarketId, side] = data.split(":").slice(1);
-        const marketId = decodeMarketId(encodedMarketId);
+        const [marketId, side] = data.split(":").slice(1);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
@@ -648,6 +652,10 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleCancelOpenOrdersCommand(ctx);
     }
 
+    if (data === "view_tp_sl_order_menu") {
+        return handleShowOpenTpSlOrders(ctx);
+    }
+
     if (data.startsWith("orders:")) {
         const [, _, offsetStr] = data.split(":");
         const offset = parseInt(offsetStr, 10);
@@ -661,6 +669,52 @@ export async function handleCallbackQuery(ctx: Context) {
         }
 
         return sendPaginatedOrder(ctx, unmatchedOrders, offset);
+    }
+
+    if (data.startsWith("tp_sl:refresh:")) {
+        const offset = parseInt(data.split(":")[2], 10);
+
+        const keys = await redisClient.keys(`user:tp_sl_watchers:${userId}*`);
+        const allConfigs = [];
+
+        for (const key of keys) {
+            const entries = await redisClient.hGetAll(key);
+            for (const configStr of Object.values(entries)) {
+                const config = JSON.parse(configStr);
+                allConfigs.push(config);
+            }
+        }
+
+        if (allConfigs.length === 0) {
+            return ctx
+                .editMessageText("✅ No TP/SL orders found.")
+                .catch(() => ctx.reply("✅ No TP/SL orders found."));
+        }
+
+        return sendPaginatedTpSlOrder(ctx, allConfigs, offset);
+    }
+
+    if (data.startsWith("tp_sl:")) {
+        const [, , offsetStr] = data.split(":");
+        const offset = parseInt(offsetStr, 10);
+        const keys = await redisClient.keys(`user:tp_sl_watchers:${userId}*`);
+        const allConfigs = [];
+
+        for (const key of keys) {
+            const entries = await redisClient.hGetAll(key);
+            for (const configStr of Object.values(entries)) {
+                const config = JSON.parse(configStr);
+                allConfigs.push(config);
+            }
+        }
+
+        if (allConfigs.length === 0) {
+            return ctx
+                .editMessageText("✅ No TP/SL orders found.")
+                .catch(() => ctx.reply("✅ No TP/SL orders found."));
+        }
+
+        return sendPaginatedTpSlOrder(ctx, allConfigs, offset);
     }
 
     if (data.startsWith("refresh_order:")) {
@@ -1194,8 +1248,8 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(

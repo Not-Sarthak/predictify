@@ -38,15 +38,15 @@ import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "../../types/polymarket";
 import { setUserInputState } from "../input/state";
 import { generatePnlCard, generatePortfolioPositionCard } from "../../utils/card-generator";
-import {
-    startTpSlWatcher,
-    stopAllTpSlWatchers,
-    storeTpSlWatcherInRedis,
-    type PriceWatchConfig,
-} from "../../notifier/ws";
+
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { stopWalletMonitoring } from "../../watcher/copy-trade";
+import {
+    startTpSlWatcher,
+    stopAllTpSlWatchers,
+    type PriceWatchConfig,
+} from "../../notifier/ws/price-watcher";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -644,8 +644,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(
@@ -737,8 +737,8 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(
@@ -1112,13 +1112,6 @@ export async function handleCloseOpenPosition(
     await stopAllTpSlWatchers(userId.toString(), conditionId);
 
     if (updatedConfig) {
-        await storeTpSlWatcherInRedis(
-            userId.toString(),
-            updatedConfig,
-            decodedConditionId,
-            userMarketDetails.asset
-        );
-
         startTpSlWatcher(
             userId.toString(),
             decodedConditionId,
@@ -1192,13 +1185,9 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { marketId, side, orderType } = orderContext;
 
-    console.log("MARKET ID: ", marketId);
-
     const market = marketId.startsWith("0x")
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
-
-    console.log("Market: ", market);
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const clobTokenIds = JSON.parse(market.clobTokenIds);

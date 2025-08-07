@@ -122,20 +122,68 @@ export function calculateExpectedReturn(
  * Converts raw market data to HighProbMarket format
  */
 export function convertToHighProbMarket(market: any): HighProbMarket {
-    const outcomes = JSON.parse(market.outcomePrices);
-    const yesPrice = outcomes[0];
-    const noPrice = outcomes[1];
+    let yesPrice = 0.5;
+    let noPrice = 0.5;
+    let priceSource = "default";
+
+    // Handle different market data structures
+    if (market.outcomePrices) {
+        try {
+            const outcomes =
+                typeof market.outcomePrices === "string"
+                    ? JSON.parse(market.outcomePrices)
+                    : market.outcomePrices;
+            if (Array.isArray(outcomes) && outcomes.length >= 2) {
+                yesPrice = parseFloat(outcomes[0]) || 0.5;
+                noPrice = parseFloat(outcomes[1]) || 0.5;
+                priceSource = "outcomePrices";
+            }
+        } catch (error) {
+            console.warn("Error parsing outcomePrices:", error);
+        }
+    } else if (market.outcomes && Array.isArray(market.outcomes)) {
+        // Alternative structure from events API
+        if (market.outcomes.length >= 2) {
+            yesPrice = parseFloat(market.outcomes[0]?.price) || 0.5;
+            noPrice = parseFloat(market.outcomes[1]?.price) || 0.5;
+            priceSource = "outcomes";
+        }
+    } else if (market.prices && Array.isArray(market.prices)) {
+        // Another possible structure
+        if (market.prices.length >= 2) {
+            yesPrice = parseFloat(market.prices[0]) || 0.5;
+            noPrice = parseFloat(market.prices[1]) || 0.5;
+            priceSource = "prices";
+        }
+    }
 
     const bestOutcome = yesPrice >= noPrice ? "yes" : "no";
     const bestPrice = Math.max(yesPrice, noPrice);
     const probability = bestPrice;
+    const hoursUntilExpiry = calculateHoursUntilExpiry(market.endDate);
+
+    // Log some sample conversions for debugging
+    if (Math.random() < 0.01) {
+        // Log 1% of conversions
+        console.log(`🔄 Sample market conversion:`, {
+            question: market.question?.substring(0, 50),
+            priceSource,
+            yesPrice,
+            noPrice,
+            probability,
+            volume: market.volume,
+            hoursUntilExpiry,
+            active: market.active,
+            acceptingOrders: market.acceptingOrders,
+        });
+    }
 
     return {
         ...market,
         probability,
         bestOutcome,
         bestPrice,
-        hoursUntilExpiry: calculateHoursUntilExpiry(market.endDate),
+        hoursUntilExpiry,
         liquidityWithin2Percent: estimateLiquidityWithin2Percent(market),
         expectedReturn: calculateExpectedReturn(probability, 100), // Calculate for $100 investment
         isCryptoMarket: isCryptoMarket(market),
@@ -149,40 +197,71 @@ export function filterHighProbabilityMarkets(
     markets: Market[],
     filters: HighProbFilters = DEFAULT_HIGH_PROB_FILTERS
 ): HighProbMarket[] {
-    const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
+    console.log(`start filter log ${markets.length} markets with criteria:`, {
+        timeFilter: filters.timeFilter,
+        minVolume: filters.minVolume,
+        minProbability: filters.minProbability,
+        maxProbability: filters.maxProbability,
+        excludeCrypto: filters.excludeCrypto,
+    });
 
-    return markets
+    const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
+    const filteredCount = {
+        timeFilter: 0,
+        inactive: 0,
+        volume: 0,
+        liquidity: 0,
+        probability: 0,
+        crypto: 0,
+        passed: 0,
+    };
+
+    const highProbMarkets = markets
         .map(convertToHighProbMarket)
         .filter((market) => {
             // Time filter - more relaxed, allow up to 1.5x the time filter
-            if (market.hoursUntilExpiry > timeFilterHours * 1.5) return false;
+            if (market.hoursUntilExpiry > timeFilterHours * 1.5) {
+                filteredCount.timeFilter++;
+                return false;
+            }
 
             // Must be active and accepting orders
-            if (!market.active || !market.acceptingOrders || market.closed) return false;
+            if (!market.active || !market.acceptingOrders || market.closed) {
+                filteredCount.inactive++;
+                return false;
+            }
 
             // Volume filter - more relaxed
-            if ((market.volume || 0) < filters.minVolume) return false;
+            if ((market.volume || 0) < filters.minVolume) {
+                filteredCount.volume++;
+                return false;
+            }
 
             // Liquidity filter - more relaxed, or skip if no liquidity data
             if (
                 market.liquidityWithin2Percent > 0 &&
                 market.liquidityWithin2Percent < filters.minLiquidityWithin2Percent
-            )
+            ) {
+                filteredCount.liquidity++;
                 return false;
+            }
 
             // Probability range filter
             if (
                 market.probability < filters.minProbability ||
                 market.probability > filters.maxProbability
-            )
+            ) {
+                filteredCount.probability++;
                 return false;
+            }
 
             // Crypto exclusion filter
-            if (filters.excludeCrypto && market.isCryptoMarket) return false;
+            if (filters.excludeCrypto && market.isCryptoMarket) {
+                filteredCount.crypto++;
+                return false;
+            }
 
-            // Allow markets with any expected return (even negative for learning purposes)
-            // if (market.expectedReturn <= 0) return false;
-
+            filteredCount.passed++;
             return true;
         })
         .sort((a, b) => {
@@ -192,4 +271,20 @@ export function filterHighProbabilityMarkets(
             }
             return b.probability - a.probability;
         });
+
+    console.log(`filtering results logs:`, {
+        total: markets.length,
+        filtered_out: {
+            timeFilter: filteredCount.timeFilter,
+            inactive: filteredCount.inactive,
+            volume: filteredCount.volume,
+            liquidity: filteredCount.liquidity,
+            probability: filteredCount.probability,
+            crypto: filteredCount.crypto,
+        },
+        passed: filteredCount.passed,
+        final_count: highProbMarkets.length,
+    });
+
+    return highProbMarkets;
 }

@@ -1,13 +1,9 @@
 import { clearUserInputState, setUserInputState } from "../input/state";
 import { getUserIdFromCtx } from "../utils";
 import { redisClient } from "../../lib/redis";
-import {
-    startTpSlWatcher,
-    storeTpSlWatcherInRedis,
-    type PriceWatchConfig,
-} from "../../notifier/ws";
+
 import type { Context } from "telegraf";
-import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
+import { startTpSlWatcher, type PriceWatchConfig } from "../../notifier/ws/price-watcher";
 
 export async function handleTpSlShareInput(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -88,7 +84,6 @@ export async function handleTakeProfitOrStopLossExecution(ctx: Context, textMess
 
     clearUserInputState(userId.toString());
 
-    await storeTpSlWatcherInRedis(userId.toString(), config, marketId, tokenId);
     startTpSlWatcher(userId.toString(), marketId, tokenId, config);
 
     await ctx.reply(

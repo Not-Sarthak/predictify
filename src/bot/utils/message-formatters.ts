@@ -165,6 +165,7 @@ export async function formatSinglePositionMessage(
         percentPnl,
         conditionId,
         outcome,
+        outcomeIndex,
         size,
         avgPrice,
         curPrice,
@@ -209,7 +210,7 @@ ${statusLine}
 💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
     `.trim();
 
-    const markup = await createPaginationKeyboard(conditionId, index, total, userId);
+    const markup = await createPaginationKeyboard(conditionId, index, total, userId, outcomeIndex);
 
     return { text, markup };
 }
