@@ -38,15 +38,15 @@ import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "../../types/polymarket";
 import { setUserInputState } from "../input/state";
 import { generatePnlCard, generatePortfolioPositionCard } from "../../utils/card-generator";
-import {
-    startTpSlWatcher,
-    stopAllTpSlWatchers,
-    storeTpSlWatcherInRedis,
-    type PriceWatchConfig,
-} from "../../notifier/ws";
+
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { stopWalletMonitoring } from "../../watcher/copy-trade";
+import {
+    startTpSlWatcher,
+    stopAllTpSlWatchers,
+    type PriceWatchConfig,
+} from "../../notifier/ws/price-watcher";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1112,13 +1112,6 @@ export async function handleCloseOpenPosition(
     await stopAllTpSlWatchers(userId.toString(), conditionId);
 
     if (updatedConfig) {
-        await storeTpSlWatcherInRedis(
-            userId.toString(),
-            updatedConfig,
-            decodedConditionId,
-            userMarketDetails.asset
-        );
-
         startTpSlWatcher(
             userId.toString(),
             decodedConditionId,

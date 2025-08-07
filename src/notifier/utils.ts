@@ -64,17 +64,22 @@ export function generatePriceAlertMessage(params: {
     const typeLabel = {
         take_profit: "✅ <b>Take Profit Triggered!</b>",
         stop_loss: "🛑 <b>Stop Loss Triggered!</b>",
-        alert: "📈 <b>Price Alert </b>",
+        alert: "📈 <b>Price Alert</b>",
     }[type];
 
     const outcomeLine = outcomeSide ? `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` : "";
+
+    const priceDiff = currentPrice - thresholdPrice;
+    const movementEmoji = priceDiff >= 0 ? "📈" : "📉";
+    const priceMovement = `${movementEmoji} <b>Price Movement:</b> ${priceDiff >= 0 ? "+" : "-"}$${Math.abs(priceDiff).toFixed(4)}\n`;
 
     return (
         `${typeLabel}\n\n` +
         `<b>Market:</b> ${question}\n` +
         outcomeLine +
         `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
-        `<b>Current Price:</b> $${currentPrice.toFixed(4)}`
+        `<b>Current Price:</b> $${currentPrice.toFixed(4)}\n` +
+        priceMovement
     );
 }
 

@@ -3,7 +3,11 @@ import { PORT } from "./shared/constants";
 import { bot } from "./bot";
 import { initializeCopyTrading } from "./watcher/init";
 import { notifier } from "./notifier";
-import { restoreTpSlWatchersFromRedis, restoreWatchersFromRedis } from "./notifier/ws";
+import { restoreUserTradeWatchers } from "./notifier/ws/limit-order-watcher";
+import {
+    restoreTpSlWatchersFromRedis,
+    restorePriceWatchersFromRedis,
+} from "./notifier/ws/price-watcher";
 
 async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours
@@ -11,11 +15,14 @@ async function main() {
     notifier.start();
 
     // Restores Watchers
-    await restoreWatchersFromRedis();
+    await restorePriceWatchersFromRedis();
     console.log(`[${new Date().toISOString()}] ✅ Restored Price Alert Watchers...`);
 
     await restoreTpSlWatchersFromRedis();
     console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
+
+    await restoreUserTradeWatchers();
+    console.log(`[${new Date().toISOString()}] ✅ Restored Limit Order Watchers...`);
 
     /**
      * COPY TRADING SYSTEM

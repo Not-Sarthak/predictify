@@ -2,12 +2,8 @@ import { clearUserInputState } from "../input/state";
 import { getUserIdFromCtx } from "../utils";
 import { redisClient } from "../../lib/redis";
 import { getMarketQuestion } from "../../notifier/utils";
-import {
-    startPriceAlertWatcher,
-    stopPriceAlertWatcher,
-    storePriceAlertInRedis,
-} from "../../notifier/ws";
 import type { Context } from "telegraf";
+import { startPriceAlertWatcher, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
 
 export async function handleEditPriceAlert(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -54,15 +50,7 @@ export async function handleEditPriceAlert(ctx: Context, textMessage: string) {
     // Delete old alert
     await redisClient.hDel(`user:price_alerts:${userId}`, fullKey);
     await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-    stopPriceAlertWatcher(userId.toString(), oldConfig.marketId);
-
-    // Save new alert
-    await storePriceAlertInRedis(
-        userId.toString(),
-        newConfig,
-        oldConfig.marketId,
-        oldConfig.assetId
-    );
+    stopPriceAlertWatcher(userId.toString(), oldConfig.marketId, oldConfig.assetId);
     startPriceAlertWatcher(userId.toString(), oldConfig.marketId, oldConfig.assetId, newConfig);
 
     const marketTitle = await getMarketQuestion(oldConfig.marketId);

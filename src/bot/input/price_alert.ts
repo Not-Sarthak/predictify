@@ -4,12 +4,8 @@ import { getUserIdFromCtx } from "../utils";
 import { redisClient } from "../../lib/redis";
 import { decodeMarketId } from "../../utils/encoding";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
-import {
-    startPriceAlertWatcher,
-    storePriceAlertInRedis,
-    type PriceWatchConfig,
-} from "../../notifier/ws";
 import { clearUserInputState } from "../input/state";
+import { startPriceAlertWatcher, type PriceWatchConfig } from "../../notifier/ws/price-watcher";
 
 export async function handleSetMarketPriceAlert(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -54,7 +50,6 @@ export async function handleSetMarketPriceAlert(ctx: Context, textMessage: strin
         outcome: side,
     };
 
-    await storePriceAlertInRedis(userId.toString(), alertConfig, decodedMarketId, assetId);
     startPriceAlertWatcher(userId.toString(), decodedMarketId, assetId, alertConfig);
 
     return ctx.reply(

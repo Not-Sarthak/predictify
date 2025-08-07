@@ -89,10 +89,10 @@ import { sendPaginatedHistory } from "../commands/history";
 import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { db } from "../../lib/supabase";
-import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws";
 import { getMarketQuestion } from "../../notifier/utils";
 import { handleWatchlistCommand } from "../commands";
 import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
+import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
 
 /**
  * TODO:FIX
@@ -154,10 +154,10 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.answerCbQuery("❌ Alert not found.");
         }
 
-        const [marketId, ,] = fullFieldKey.split(":");
+        const [marketId, assetId] = fullFieldKey.split(":");
         await redisClient.hDel(`user:price_alerts:${userId}`, fullFieldKey);
         await redisClient.hDel(`user:price_alert_keys:${userId}`, shortKey);
-        stopPriceAlertWatcher(userIdStr, marketId);
+        stopPriceAlertWatcher(userIdStr, marketId, assetId);
 
         await ctx.answerCbQuery("✅ Alert deleted");
         return handleShowCurrentPriceAlerts(ctx, 0, true);
