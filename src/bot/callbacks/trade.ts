@@ -1185,13 +1185,9 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { marketId, side, orderType } = orderContext;
 
-    console.log("MARKET ID: ", marketId);
-
     const market = marketId.startsWith("0x")
         ? await getMarketByConditionId(marketId)
         : await getMarketById(marketId);
-
-    console.log("Market: ", market);
 
     const outcomes: number[] = JSON.parse(market.outcomePrices);
     const clobTokenIds = JSON.parse(market.clobTokenIds);

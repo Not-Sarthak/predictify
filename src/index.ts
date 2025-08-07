@@ -11,8 +11,8 @@ import {
 
 async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours
-    console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
     notifier.start();
+    console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
 
     // Restores Watchers
     await restorePriceWatchersFromRedis();
@@ -42,7 +42,7 @@ async function main() {
             },
         },
         () => {
-            console.log("Bot Server Listening...");
+            console.log(`[${new Date().toISOString()}] ✅ Bot Server Listening...`);
         }
     );
 }

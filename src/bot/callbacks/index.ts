@@ -397,8 +397,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("limit_order:")) {
-        const [encodedMarketId, side] = data.split(":").slice(1);
-        const marketId = decodeMarketId(encodedMarketId);
+        const [marketId, side] = data.split(":").slice(1);
 
         await redisClient.hSet(`user:order_context:${userId}`, {
             marketId,
