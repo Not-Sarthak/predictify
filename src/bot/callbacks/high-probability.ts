@@ -364,6 +364,19 @@ export async function handleFiltersMenu(ctx: Context) {
     const maxProb = Math.round(userFilters.maxProbability * 100);
     const excludeCrypto = userFilters.excludeCrypto;
 
+    // Create ticks for selected options
+    const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
+    const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
+
+    const volumeTick70k = volume === 70000 ? "✅" : "💰";
+    const volumeTick5k = volume === 5000 ? "✅" : "💰";
+
+    const probTickStrict = minProb === 85 && maxProb === 95 ? "✅" : "🎯";
+    const probTickRelaxed = minProb === 65 && maxProb === 98 ? "✅" : "🎯";
+
+    const cryptoTickExclude = excludeCrypto ? "✅" : "🚫";
+    const cryptoTickInclude = !excludeCrypto ? "✅" : "✅";
+
     const message = `
 ⚙️ **High-Probability Market Filters**
 
@@ -379,20 +392,29 @@ export async function handleFiltersMenu(ctx: Context) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⏰ Time: 24h", "highprob:filter:time:24h"),
-            Markup.button.callback("⏰ Time: 48h", "highprob:filter:time:48h"),
+            Markup.button.callback(`${timeFilterTick24h} Time: 24h`, "highprob:filter:time:24h"),
+            Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
         ],
         [
-            Markup.button.callback("💰 Volume: $70k", "highprob:filter:volume:70000"),
-            Markup.button.callback("💰 Volume: $5k", "highprob:filter:volume:5000"),
+            Markup.button.callback(`${volumeTick70k} Volume: $70k`, "highprob:filter:volume:70000"),
+            Markup.button.callback(`${volumeTick5k} Volume: $5k`, "highprob:filter:volume:5000"),
         ],
         [
-            Markup.button.callback("🎯 Prob: 85-95%", "highprob:filter:prob:strict"),
-            Markup.button.callback("🎯 Prob: 65-98%", "highprob:filter:prob:relaxed"),
+            Markup.button.callback(`${probTickStrict} Prob: 85-95%`, "highprob:filter:prob:strict"),
+            Markup.button.callback(
+                `${probTickRelaxed} Prob: 65-98%`,
+                "highprob:filter:prob:relaxed"
+            ),
         ],
         [
-            Markup.button.callback("🚫 No Crypto", "highprob:filter:crypto:exclude"),
-            Markup.button.callback("✅ Include Crypto", "highprob:filter:crypto:include"),
+            Markup.button.callback(
+                `${cryptoTickExclude} No Crypto`,
+                "highprob:filter:crypto:exclude"
+            ),
+            Markup.button.callback(
+                `${cryptoTickInclude} Include Crypto`,
+                "highprob:filter:crypto:include"
+            ),
         ],
         [
             Markup.button.callback("🔄 Test Filters", "highprob:view:24h"),
@@ -465,6 +487,19 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
     const maxProb = Math.round(parseFloat(userFilters.maxProbability) * 100);
     const excludeCrypto = userFilters.excludeCrypto === "true";
 
+    // Create ticks for selected options
+    const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
+    const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
+
+    const volumeTick70k = volume === 70000 ? "✅" : "💰";
+    const volumeTick5k = volume === 5000 ? "✅" : "💰";
+
+    const probTickStrict = minProb === 85 && maxProb === 95 ? "✅" : "🎯";
+    const probTickRelaxed = minProb === 65 && maxProb === 98 ? "✅" : "🎯";
+
+    const cryptoTickExclude = excludeCrypto ? "✅" : "🚫";
+    const cryptoTickInclude = !excludeCrypto ? "✅" : "✅";
+
     const message = `
 ⚙️ **High-Probability Market Filters**
 
@@ -480,20 +515,29 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⏰ Time: 24h", "highprob:filter:time:24h"),
-            Markup.button.callback("⏰ Time: 48h", "highprob:filter:time:48h"),
+            Markup.button.callback(`${timeFilterTick24h} Time: 24h`, "highprob:filter:time:24h"),
+            Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
         ],
         [
-            Markup.button.callback("💰 Volume: $70k", "highprob:filter:volume:70000"),
-            Markup.button.callback("💰 Volume: $5k", "highprob:filter:volume:5000"),
+            Markup.button.callback(`${volumeTick70k} Volume: $70k`, "highprob:filter:volume:70000"),
+            Markup.button.callback(`${volumeTick5k} Volume: $5k`, "highprob:filter:volume:5000"),
         ],
         [
-            Markup.button.callback("🎯 Prob: 85-95%", "highprob:filter:prob:strict"),
-            Markup.button.callback("🎯 Prob: 65-98%", "highprob:filter:prob:relaxed"),
+            Markup.button.callback(`${probTickStrict} Prob: 85-95%`, "highprob:filter:prob:strict"),
+            Markup.button.callback(
+                `${probTickRelaxed} Prob: 65-98%`,
+                "highprob:filter:prob:relaxed"
+            ),
         ],
         [
-            Markup.button.callback("🚫 No Crypto", "highprob:filter:crypto:exclude"),
-            Markup.button.callback("✅ Include Crypto", "highprob:filter:crypto:include"),
+            Markup.button.callback(
+                `${cryptoTickExclude} No Crypto`,
+                "highprob:filter:crypto:exclude"
+            ),
+            Markup.button.callback(
+                `${cryptoTickInclude} Include Crypto`,
+                "highprob:filter:crypto:include"
+            ),
         ],
         [
             Markup.button.callback("🔄 Test Filters", "highprob:view:24h"),
