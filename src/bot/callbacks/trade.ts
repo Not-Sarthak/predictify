@@ -644,8 +644,8 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(
@@ -737,8 +737,8 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
             Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${encodeMarketId(market.id)}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${encodeMarketId(market.id)}:no`),
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(

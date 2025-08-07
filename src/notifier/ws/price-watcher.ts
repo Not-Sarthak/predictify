@@ -302,7 +302,7 @@ export async function storeTpSlWatcherInRedis(
     assetId: string
 ) {
     const key = `${TPSL_REDIS_KEY_PREFIX}${userId}`;
-    const field = `${marketId}:${assetId}`;
+    const field = `${marketId}:${assetId}:${config.type}`;
     const value = JSON.stringify({ ...config, marketId, assetId });
     await redisClient.hSet(key, field, value);
 }
@@ -320,15 +320,19 @@ export async function stopAllTpSlWatchers(
         sl: "stop_loss",
     };
 
-    for (const [field, value] of Object.entries(entries)) {
-        const [storedMarketId, assetId] = field.split(":");
+    for (const [field, _] of Object.entries(entries)) {
+        const [storedMarketId, assetId, typeStr] = field.split(":");
         if (storedMarketId !== marketId) continue;
 
         try {
-            const parsed = JSON.parse(value);
-            if (type === "all" || parsed.type === typeMap[type]) {
+            if (type === "all" || typeMap[type] === typeStr) {
                 await redisClient.hDel(redisKey, field);
-                stopTpSlWatcher(userId, marketId, assetId, parsed.type);
+                stopTpSlWatcher(
+                    userId,
+                    storedMarketId,
+                    assetId,
+                    typeStr as "take_profit" | "stop_loss"
+                );
             }
         } catch (err) {
             console.error(`Invalid JSON for field ${field}:`, err);

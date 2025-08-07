@@ -355,7 +355,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 year: "numeric",
             });
             const toWin = amount / currentPrice;
-            const odds = currentPrice * 100;
+            const odds = Number((currentPrice * 100).toFixed(2));
 
             await ctx.telegram.editMessageText(
                 ctx.chat!.id,
