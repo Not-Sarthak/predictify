@@ -8,6 +8,7 @@ import {
     restoreTpSlWatchersFromRedis,
     restorePriceWatchersFromRedis,
 } from "./notifier/ws/price-watcher";
+import { startHighProbAlerts } from "./notifier/high-prob-alerts";
 
 async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours
@@ -23,6 +24,10 @@ async function main() {
 
     await restoreUserTradeWatchers();
     console.log(`[${new Date().toISOString()}] ✅ Restored Limit Order Watchers...`);
+
+    // Start High-Probability Market Alerts
+    startHighProbAlerts();
+    console.log(`[${new Date().toISOString()}] ✅ Started High-Probability Market Alerts...`);
 
     /**
      * COPY TRADING SYSTEM
