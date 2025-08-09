@@ -14,11 +14,16 @@ import {
     handleViewHighProbMarkets,
     handleHighProbHelp,
 } from "../commands/high-probability";
+import {
+    getAlertStatusMessage,
+    enableAlertsForUser,
+    disableAlertsForUser,
+} from "../../notifier/high-prob-alerts";
 
 import { escapeMarkdown } from "../utils";
 
 // Helper function to get user's custom filters or defaults
-async function getUserFilters(userId: number): Promise<HighProbFilters> {
+export async function getUserFilters(userId: number): Promise<HighProbFilters> {
     try {
         const userFilters = await redisClient.hGetAll(`user:highprob_filters:${userId}`);
 
@@ -29,15 +34,10 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         return {
             timeFilter:
                 (userFilters.timeFilter as "24h" | "48h") || DEFAULT_HIGH_PROB_FILTERS.timeFilter,
-            minVolume: parseInt(userFilters.minVolume) || DEFAULT_HIGH_PROB_FILTERS.minVolume,
-            minLiquidityWithin2Percent:
-                parseInt(userFilters.minLiquidityWithin2Percent) ||
-                DEFAULT_HIGH_PROB_FILTERS.minLiquidityWithin2Percent,
-            minProbability:
-                parseFloat(userFilters.minProbability) || DEFAULT_HIGH_PROB_FILTERS.minProbability,
-            maxProbability:
-                parseFloat(userFilters.maxProbability) || DEFAULT_HIGH_PROB_FILTERS.maxProbability,
-            excludeCrypto: userFilters.excludeCrypto === "true",
+            tradingMode:
+                (userFilters.tradingMode as "normal" | "degen") ||
+                DEFAULT_HIGH_PROB_FILTERS.tradingMode,
+            excludeCrypto: true, // Always true
         };
     } catch (error) {
         console.error("Error getting user filters:", error);
@@ -359,33 +359,29 @@ export async function handleFiltersMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const userFilters = await getUserFilters(userId);
 
-    const volume = userFilters.minVolume;
-    const minProb = Math.round(userFilters.minProbability * 100);
-    const maxProb = Math.round(userFilters.maxProbability * 100);
-    const excludeCrypto = userFilters.excludeCrypto;
+    const probabilityThreshold = userFilters.tradingMode === "normal" ? "≥95%" : "≥85%";
+    const riskLevel = userFilters.tradingMode === "normal" ? "Lower Risk" : "Higher Risk";
 
     // Create ticks for selected options
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
     const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
 
-    const volumeTick70k = volume === 70000 ? "✅" : "💰";
-    const volumeTick5k = volume === 5000 ? "✅" : "💰";
+    const modeTickNormal = userFilters.tradingMode === "normal" ? "✅" : "🎯";
+    const modeTickDegen = userFilters.tradingMode === "degen" ? "✅" : "⚡";
 
-    const probTickStrict = minProb === 85 && maxProb === 95 ? "✅" : "🎯";
-    const probTickRelaxed = minProb === 65 && maxProb === 98 ? "✅" : "🎯";
-
-    const cryptoTickExclude = excludeCrypto ? "✅" : "🚫";
-    const cryptoTickInclude = !excludeCrypto ? "✅" : "✅";
+    // Get alert status
+    const alertStatus = await getAlertStatusMessage(userId.toString());
 
     const message = `
 ⚙️ **High-Probability Market Filters**
 
 **Current Settings:**
 • **Time Filter:** ${userFilters.timeFilter}
-• **Min Volume:** $${volume.toLocaleString()}
-• **Min Liquidity:** $200 within 2% spread
-• **Probability Range:** ${minProb}% - ${maxProb}%
-• **Crypto Markets:** ${excludeCrypto ? "Excluded" : "Included"}
+• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Normal" : "Degen"}
+• **Probability:** ${probabilityThreshold}
+• **Risk Level:** ${riskLevel}
+• **Crypto Markets:** Excluded (permanently)
+${alertStatus}
 
 **Filter Options:**
     `;
@@ -396,28 +392,18 @@ export async function handleFiltersMenu(ctx: Context) {
             Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
         ],
         [
-            Markup.button.callback(`${volumeTick70k} Volume: $70k`, "highprob:filter:volume:70000"),
-            Markup.button.callback(`${volumeTick5k} Volume: $5k`, "highprob:filter:volume:5000"),
-        ],
-        [
-            Markup.button.callback(`${probTickStrict} Prob: 85-95%`, "highprob:filter:prob:strict"),
             Markup.button.callback(
-                `${probTickRelaxed} Prob: 65-98%`,
-                "highprob:filter:prob:relaxed"
-            ),
-        ],
-        [
-            Markup.button.callback(
-                `${cryptoTickExclude} No Crypto`,
-                "highprob:filter:crypto:exclude"
+                `${modeTickNormal} Normal Mode (≥95%)`,
+                "highprob:filter:mode:normal"
             ),
             Markup.button.callback(
-                `${cryptoTickInclude} Include Crypto`,
-                "highprob:filter:crypto:include"
+                `${modeTickDegen} Degen Mode (≥85%)`,
+                "highprob:filter:mode:degen"
             ),
         ],
+        [Markup.button.callback("� Toggle Alerts", "highprob:filter:alerts:toggle")],
         [
-            Markup.button.callback("🔄 Test Filters", "highprob:view:24h"),
+            Markup.button.callback("�🔄 Test Filters", "highprob:view:24h"),
             Markup.button.callback("🔙 Back to Menu", "highprob:menu"),
         ],
     ]);
@@ -439,11 +425,7 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
         if (Object.keys(userFilters).length === 0) {
             userFilters = {
                 timeFilter: DEFAULT_HIGH_PROB_FILTERS.timeFilter,
-                minVolume: DEFAULT_HIGH_PROB_FILTERS.minVolume.toString(),
-                minLiquidityWithin2Percent:
-                    DEFAULT_HIGH_PROB_FILTERS.minLiquidityWithin2Percent.toString(),
-                minProbability: DEFAULT_HIGH_PROB_FILTERS.minProbability.toString(),
-                maxProbability: DEFAULT_HIGH_PROB_FILTERS.maxProbability.toString(),
+                tradingMode: DEFAULT_HIGH_PROB_FILTERS.tradingMode,
                 excludeCrypto: DEFAULT_HIGH_PROB_FILTERS.excludeCrypto.toString(),
             };
         }
@@ -453,20 +435,24 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
             case "time":
                 userFilters.timeFilter = filterValue as "24h" | "48h";
                 break;
-            case "volume":
-                userFilters.minVolume = filterValue;
+            case "mode":
+                userFilters.tradingMode = filterValue as "normal" | "degen";
                 break;
-            case "prob":
-                if (filterValue === "strict") {
-                    userFilters.minProbability = "0.85";
-                    userFilters.maxProbability = "0.95";
-                } else if (filterValue === "relaxed") {
-                    userFilters.minProbability = "0.65";
-                    userFilters.maxProbability = "0.98";
+            case "alerts":
+                if (filterValue === "toggle") {
+                    // Toggle alerts
+                    const alertSettings = await import("../../notifier/high-prob-alerts").then(
+                        (m) => m.getUserAlertSettings(userId.toString())
+                    );
+                    if (alertSettings.enabled) {
+                        await disableAlertsForUser(userId.toString());
+                        await ctx.answerCbQuery("🔕 Alerts disabled");
+                    } else {
+                        await enableAlertsForUser(userId.toString());
+                        await ctx.answerCbQuery("🔔 Alerts enabled!");
+                    }
+                    return handleFiltersMenu(ctx); // Refresh the menu
                 }
-                break;
-            case "crypto":
-                userFilters.excludeCrypto = (filterValue === "exclude").toString();
                 break;
         }
 
@@ -482,33 +468,30 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
 }
 
 async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
-    const volume = parseInt(userFilters.minVolume);
-    const minProb = Math.round(parseFloat(userFilters.minProbability) * 100);
-    const maxProb = Math.round(parseFloat(userFilters.maxProbability) * 100);
-    const excludeCrypto = userFilters.excludeCrypto === "true";
+    const probabilityThreshold = userFilters.tradingMode === "normal" ? "≥95%" : "≥85%";
+    const riskLevel = userFilters.tradingMode === "normal" ? "Lower Risk" : "Higher Risk";
 
     // Create ticks for selected options
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
     const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
 
-    const volumeTick70k = volume === 70000 ? "✅" : "💰";
-    const volumeTick5k = volume === 5000 ? "✅" : "💰";
+    const modeTickNormal = userFilters.tradingMode === "normal" ? "✅" : "🎯";
+    const modeTickDegen = userFilters.tradingMode === "degen" ? "✅" : "⚡";
 
-    const probTickStrict = minProb === 85 && maxProb === 95 ? "✅" : "🎯";
-    const probTickRelaxed = minProb === 65 && maxProb === 98 ? "✅" : "🎯";
-
-    const cryptoTickExclude = excludeCrypto ? "✅" : "🚫";
-    const cryptoTickInclude = !excludeCrypto ? "✅" : "✅";
+    // Get alert status
+    const userId = getUserIdFromCtx(ctx);
+    const alertStatus = await getAlertStatusMessage(userId.toString());
 
     const message = `
-⚙️ **High-Probability Market Filters**
+⚙️ **High-Probability Market Filters** ✅ Updated!
 
 **Current Settings:**
 • **Time Filter:** ${userFilters.timeFilter}
-• **Min Volume:** $${volume.toLocaleString()}
-• **Min Liquidity:** $200 within 2% spread
-• **Probability Range:** ${minProb}% - ${maxProb}%
-• **Crypto Markets:** ${excludeCrypto ? "Excluded" : "Included"}
+• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Normal" : "Degen"}
+• **Probability:** ${probabilityThreshold}
+• **Risk Level:** ${riskLevel}
+• **Crypto Markets:** Excluded (permanently)
+${alertStatus}
 
 **Filter Options:**
     `;
@@ -519,28 +502,18 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
             Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
         ],
         [
-            Markup.button.callback(`${volumeTick70k} Volume: $70k`, "highprob:filter:volume:70000"),
-            Markup.button.callback(`${volumeTick5k} Volume: $5k`, "highprob:filter:volume:5000"),
-        ],
-        [
-            Markup.button.callback(`${probTickStrict} Prob: 85-95%`, "highprob:filter:prob:strict"),
             Markup.button.callback(
-                `${probTickRelaxed} Prob: 65-98%`,
-                "highprob:filter:prob:relaxed"
-            ),
-        ],
-        [
-            Markup.button.callback(
-                `${cryptoTickExclude} No Crypto`,
-                "highprob:filter:crypto:exclude"
+                `${modeTickNormal} Normal Mode (≥95%)`,
+                "highprob:filter:mode:normal"
             ),
             Markup.button.callback(
-                `${cryptoTickInclude} Include Crypto`,
-                "highprob:filter:crypto:include"
+                `${modeTickDegen} Degen Mode (≥85%)`,
+                "highprob:filter:mode:degen"
             ),
         ],
+        [Markup.button.callback("� Toggle Alerts", "highprob:filter:alerts:toggle")],
         [
-            Markup.button.callback("🔄 Test Filters", "highprob:view:24h"),
+            Markup.button.callback("�🔄 Test Filters", "highprob:view:24h"),
             Markup.button.callback("🔙 Back to Menu", "highprob:menu"),
         ],
     ]);

@@ -12,20 +12,14 @@ export interface HighProbMarket extends Market {
 
 export interface HighProbFilters {
     timeFilter: "24h" | "48h";
-    minVolume: number;
-    minLiquidityWithin2Percent: number;
-    minProbability: number;
-    maxProbability: number;
-    excludeCrypto: boolean;
+    tradingMode: "normal" | "degen";
+    excludeCrypto: boolean; // Will be permanently true
 }
 
 export const DEFAULT_HIGH_PROB_FILTERS: HighProbFilters = {
     timeFilter: "24h",
-    minVolume: 70000, // Minimum $70,000 trading volume
-    minLiquidityWithin2Percent: 200, // Minimum $200 liquidity within 2% spread
-    minProbability: 0.85, // Minimum 85% probability
-    maxProbability: 0.95, // Maximum 95% probability
-    excludeCrypto: true, // Exclude crypto markets
+    tradingMode: "normal", // 95% probability threshold
+    excludeCrypto: true, // Permanently exclude crypto
 };
 
 /**
@@ -197,20 +191,14 @@ export function filterHighProbabilityMarkets(
     markets: Market[],
     filters: HighProbFilters = DEFAULT_HIGH_PROB_FILTERS
 ): HighProbMarket[] {
-    console.log(`start filter log ${markets.length} markets with criteria:`, {
-        timeFilter: filters.timeFilter,
-        minVolume: filters.minVolume,
-        minProbability: filters.minProbability,
-        maxProbability: filters.maxProbability,
-        excludeCrypto: filters.excludeCrypto,
-    });
-
     const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
+
+    // Set probability threshold based on trading mode
+    const probabilityThreshold = filters.tradingMode === "normal" ? 0.95 : 0.85;
+
     const filteredCount = {
         timeFilter: 0,
         inactive: 0,
-        volume: 0,
-        liquidity: 0,
         probability: 0,
         crypto: 0,
         passed: 0,
@@ -231,31 +219,13 @@ export function filterHighProbabilityMarkets(
                 return false;
             }
 
-            // Volume filter - more relaxed
-            if ((market.volume || 0) < filters.minVolume) {
-                filteredCount.volume++;
-                return false;
-            }
-
-            // Liquidity filter - more relaxed, or skip if no liquidity data
-            if (
-                market.liquidityWithin2Percent > 0 &&
-                market.liquidityWithin2Percent < filters.minLiquidityWithin2Percent
-            ) {
-                filteredCount.liquidity++;
-                return false;
-            }
-
-            // Probability range filter
-            if (
-                market.probability < filters.minProbability ||
-                market.probability > filters.maxProbability
-            ) {
+            // Probability filter based on trading mode
+            if (market.probability < probabilityThreshold) {
                 filteredCount.probability++;
                 return false;
             }
 
-            // Crypto exclusion filter
+            // Crypto exclusion filter (permanently true)
             if (filters.excludeCrypto && market.isCryptoMarket) {
                 filteredCount.crypto++;
                 return false;
@@ -271,20 +241,6 @@ export function filterHighProbabilityMarkets(
             }
             return b.probability - a.probability;
         });
-
-    console.log(`filtering results logs:`, {
-        total: markets.length,
-        filtered_out: {
-            timeFilter: filteredCount.timeFilter,
-            inactive: filteredCount.inactive,
-            volume: filteredCount.volume,
-            liquidity: filteredCount.liquidity,
-            probability: filteredCount.probability,
-            crypto: filteredCount.crypto,
-        },
-        passed: filteredCount.passed,
-        final_count: highProbMarkets.length,
-    });
 
     return highProbMarkets;
 }

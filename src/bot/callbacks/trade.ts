@@ -566,7 +566,9 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         const probability = Math.round(yesPrice * 100);
 
         message += `**${i + 1}.** ${escapeMarkdown(market.groupItemTitle)} • ${probability}%\n`;
-        marketButtons.push(Markup.button.callback(`#${i + 1}`, `view_market:${market.id}`));
+        marketButtons.push(
+            Markup.button.callback(`#${i + 1}`, `view_market:${encodeMarketId(market.id)}`)
+        );
     }
 
     const marketButtonsLayout = layoutButtons(marketButtons);
