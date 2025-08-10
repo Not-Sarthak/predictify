@@ -98,6 +98,7 @@ import { getMarketQuestion } from "../../notifier/utils";
 import { handleWatchlistCommand } from "../commands";
 import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
 import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
+import { handleRefreshReferralStats } from "../commands/referral";
 
 /**
  * TODO:FIX
@@ -124,6 +125,43 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("highprob:")) {
         return handleHighProbCallbackQuery(ctx, data);
+    }
+
+    if (data.startsWith("referral:")) {
+        const action = data.split(":")[1];
+        if (action === "refresh") {
+            return handleRefreshReferralStats(ctx);
+        }
+    }
+
+    if (data === "main_menu") {
+        // Handle main menu callback (used by referral dashboard)
+        const userId = getUserIdFromCtx(ctx);
+        const { data: user } = await getUserByIdFromDb(userId);
+
+        if (!user) {
+            return ctx.reply("❌ User not found");
+        }
+
+        const [balance, solBalance, lockedBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(user.wallet_address),
+            getSOLBalance(user.solana_address!),
+            getLockedBalance(userId),
+        ]);
+
+        const message = generateWelcomeMessage(
+            user.wallet_address,
+            user.solana_address || "N/A",
+            balance.toString(),
+            solBalance,
+            lockedBalance
+        );
+
+        await ctx.editMessageText(message, {
+            parse_mode: "HTML",
+            reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
+        });
+        return;
     }
 
     if (data.startsWith("start:")) {

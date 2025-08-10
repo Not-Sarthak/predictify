@@ -3,6 +3,7 @@ import { env } from "../../config/env";
 import { USDC_ADDRESS } from "../../shared/constants";
 import USDC_ABI from "../../shared/abi/usdc.json";
 import { db } from "../../lib/supabase";
+import { calculateReferralEarnings } from "../referral/referral-tracker";
 
 export const FEES_PERCENTAGE = 0.005;
 export const REFERRAL_COMMISSION_PERCENTAGE = 0.25;
@@ -56,10 +57,11 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
         let referralCommission = 0;
         let mainTreasuryFee = totalFeeAmount;
 
-        if (userData?.referred_code) {
+        if (userData?.referred_code && userData.referred_code !== "OPEN") {
+            // Look up referrer by username (stored in referred_code for new referral links)
             const { data: referrerData } = await db("Users")
                 .select("treasury_wallet_address")
-                .eq("referral_code", userData.referred_code)
+                .eq("telegram_username", userData.referred_code)
                 .single();
 
             if (referrerData?.treasury_wallet_address) {
@@ -112,6 +114,8 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
             treasuryAddress: env.TREASURY_ADDRESS,
             referrerAddress: referrerTreasuryAddress,
         });
+
+        await calculateReferralEarnings(userId, positionAmount, totalFeeAmount);
 
         return {
             success: true,

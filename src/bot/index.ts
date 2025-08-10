@@ -10,6 +10,7 @@ import {
     handleTradeCommand,
     handleWatchlistCommand,
     handleHighProbabilityCommand,
+    handleRefCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "./callbacks";
@@ -44,6 +45,7 @@ bot.command("manage", handleShowManageOrdersMainMenu);
 bot.command("stats", handleViewProfileCallback);
 bot.command("watchlist", (ctx) => handleWatchlistCommand(ctx));
 bot.command("highprob", handleHighProbabilityCommand);
+bot.command("ref", handleRefCommand);
 bot.command("monitoring", async (ctx) => {
     return handleMonitoringStats(ctx);
 });
