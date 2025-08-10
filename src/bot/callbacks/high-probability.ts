@@ -18,6 +18,7 @@ import {
     getAlertStatusMessage,
     enableAlertsForUser,
     disableAlertsForUser,
+    getUserAlertSettings,
 } from "../../notifier/high-prob-alerts";
 
 import { escapeMarkdown } from "../utils";
@@ -441,9 +442,7 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
             case "alerts":
                 if (filterValue === "toggle") {
                     // Toggle alerts
-                    const alertSettings = await import("../../notifier/high-prob-alerts").then(
-                        (m) => m.getUserAlertSettings(userId.toString())
-                    );
+                    const alertSettings = await getUserAlertSettings(userId.toString());
                     if (alertSettings.enabled) {
                         await disableAlertsForUser(userId.toString());
                         await ctx.answerCbQuery("🔕 Alerts disabled");
