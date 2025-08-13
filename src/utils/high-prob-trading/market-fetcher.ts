@@ -49,10 +49,8 @@ export async function fetchHighProbabilityMarkets(
     limit: number = 50
 ): Promise<HighProbMarket[]> {
     try {
-        // Get markets from multiple categories to ensure good coverage
-        const categoriesToFetch = filters.excludeCrypto
-            ? CATEGORY_LIST.filter((cat) => cat !== "Crypto")
-            : CATEGORY_LIST;
+        // Always exclude crypto - get markets from non-crypto categories only
+        const categoriesToFetch = CATEGORY_LIST.filter((cat) => cat !== "Crypto");
 
         // Fetch markets from different categories in parallel
         const categoryPromises = categoriesToFetch.map((category) =>

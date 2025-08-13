@@ -258,7 +258,7 @@ export async function handleViewTopMarketsByCategory(
     offset: number = 0
 ) {
     const LIMIT = 8;
-    let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+    let message = `🔥 Top Markets for *${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}* — _${capitalize(filter)}_\n\n`;
     const markets = await fetchMarkets(marketCategory, filter, offset);
 
     const filteredMarkets =
@@ -273,7 +273,7 @@ export async function handleViewTopMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${market.title}**
+        message += `${i + 1}. *${escapeMarkdown(market.title)}*
 💧 Volume : ${fVolumne}
 ⌛ Ends: ${fDate}
 
@@ -623,18 +623,12 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
                 (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback(
-                  "💔 Remove from Watchlist",
-                  `remove_watchlist:${encodeMarketId(market.id)}`
-              )
-            : Markup.button.callback(
-                  "❤️ Add to My Watchlist",
-                  `add_watchlist:${encodeMarketId(market.id)}`
-              );
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${encodeMarketId(market.id)}`
+            `add_watchlist:${market.id}`
         );
     }
 
@@ -716,18 +710,12 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
                     item.marketId === market.id || item.conditionId === market.conditionId
             ) || false;
         watchlistButton = isInWatchlist
-            ? Markup.button.callback(
-                  "💔 Remove from Watchlist",
-                  `remove_watchlist:${encodeMarketId(market.id)}`
-              )
-            : Markup.button.callback(
-                  "❤️ Add to My Watchlist",
-                  `add_watchlist:${encodeMarketId(market.id)}`
-              );
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
     } else {
         watchlistButton = Markup.button.callback(
             "❤️ Add to My Watchlist",
-            `add_watchlist:${encodeMarketId(market.id)}`
+            `add_watchlist:${market.id}`
         );
     }
 

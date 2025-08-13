@@ -98,6 +98,7 @@ import { getMarketQuestion } from "../../notifier/utils";
 import { handleWatchlistCommand } from "../commands";
 import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
 import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
+import { handleRefreshReferralStats } from "../commands/referral";
 
 /**
  * TODO:FIX
@@ -115,6 +116,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (!data) return;
 
+    console.log(data);
+
     const userId = getUserIdFromCtx(ctx);
     const userIdStr = userId.toString();
 
@@ -124,6 +127,43 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data.startsWith("highprob:")) {
         return handleHighProbCallbackQuery(ctx, data);
+    }
+
+    if (data.startsWith("referral:")) {
+        const action = data.split(":")[1];
+        if (action === "refresh") {
+            return handleRefreshReferralStats(ctx);
+        }
+    }
+
+    if (data === "main_menu") {
+        // Handle main menu callback (used by referral dashboard)
+        const userId = getUserIdFromCtx(ctx);
+        const { data: user } = await getUserByIdFromDb(userId);
+
+        if (!user) {
+            return ctx.reply("❌ User not found");
+        }
+
+        const [balance, solBalance, lockedBalance] = await Promise.all([
+            getUserWrappedUSDCBalance(user.wallet_address),
+            getSOLBalance(user.solana_address!),
+            getLockedBalance(userId),
+        ]);
+
+        const message = generateWelcomeMessage(
+            user.wallet_address,
+            user.solana_address || "N/A",
+            balance.toString(),
+            solBalance,
+            lockedBalance
+        );
+
+        await ctx.editMessageText(message, {
+            parse_mode: "HTML",
+            reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
+        });
+        return;
     }
 
     if (data.startsWith("start:")) {
@@ -960,14 +1000,12 @@ Example: <code>0.7</code> <code>No</code>`;
     }
 
     if (data.startsWith("add_watchlist:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleAddToWatchlist(ctx, marketId);
     }
 
     if (data.startsWith("remove_watchlist:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleRemoveFromWatchlist(ctx, marketId);
     }
 
@@ -1086,11 +1124,11 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
                 row.map((button) => {
                     if (
                         "callback_data" in button &&
-                        button.callback_data === `add_watchlist:${encodeMarketId(marketId)}`
+                        button.callback_data === `add_watchlist:${marketId}`
                     ) {
                         return Markup.button.callback(
                             "💔 Remove from Watchlist",
-                            `remove_watchlist:${encodeMarketId(marketId)}`
+                            `remove_watchlist:${marketId}`
                         );
                     }
                     return button;
@@ -1172,11 +1210,11 @@ async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
                     row.map((button) => {
                         if (
                             "callback_data" in button &&
-                            button.callback_data === `remove_watchlist:${encodeMarketId(marketId)}`
+                            button.callback_data === `remove_watchlist:${marketId}`
                         ) {
                             return Markup.button.callback(
                                 "❤️ Add to My Watchlist",
-                                `add_watchlist:${encodeMarketId(marketId)}`
+                                `add_watchlist:${marketId}`
                             );
                         }
                         return button;
@@ -1257,12 +1295,7 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
                 `set_price_alert:${encodeMarketId(market.conditionId)}`
             ),
         ],
-        [
-            Markup.button.callback(
-                "💔 Remove from Watchlist",
-                `remove_watchlist:${encodeMarketId(market.id)}`
-            ),
-        ],
+        [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
         [
             Markup.button.callback(
                 "ℹ️ About this Market",
