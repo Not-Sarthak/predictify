@@ -6,6 +6,7 @@ export * from "./subscriptions";
 export * from "./trade";
 export * from "./watchlist";
 export * from "./high-probability";
+export * from "./referral";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -52,5 +53,9 @@ export const botCommands: BotCommand[] = [
     {
         command: "highprob",
         description: "Trade high-probability markets (85-95% odds)",
+    },
+    {
+        command: "ref",
+        description: "View referral stats and share your referral link",
     },
 ];

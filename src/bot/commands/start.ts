@@ -13,11 +13,15 @@ import { db } from "../../lib/supabase";
 import { generateRandomString } from "../../utils/encoding";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
+import { trackReferralRelationship } from "../../utils/referral/referral-tracker";
 
 export async function handleStartCommand(ctx: Context) {
     console.log("[START] Command received from user:", ctx.from?.id, ctx.from?.username);
     const userId = getUserIdFromCtx(ctx);
     console.log("[START] Processing for user ID:", userId);
+
+    const referrerUsername =
+        ctx.message && "text" in ctx.message ? ctx.message.text.split(" ")[1] : undefined;
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
     if (dbError) {
@@ -52,17 +56,7 @@ export async function handleStartCommand(ctx: Context) {
         });
     }
 
-    // For new users, ask for referral code
-    // TEMPORARILY DISABLED - Bot is open for everyone
-    // await setUserInputState(userId.toString(), "referral");
-
-    // return ctx.reply(
-    //     "👋 Welcome to PolyMarket Trading Bot!\n\n" +
-    //         "To get started, please enter a valid invite code.",
-    //     { parse_mode: "HTML" }
-    // );
-
-    // Instead, create new user directly without invite code
+    // Create new user
     try {
         const { address, privateKey, apiCreds, solanaAddress, solanaPrivateKey } =
             await generateAPIKeyAndWallet({
@@ -73,6 +67,20 @@ export async function handleStartCommand(ctx: Context) {
         const newUserReferralCode = generateRandomString(6);
         const userName = getUsernameFromCtx(ctx);
 
+        // Determine referral relationship
+        let referredCode = "OPEN"; // Default for open registration
+
+        if (referrerUsername) {
+            // Track referral relationship
+            const result = await trackReferralRelationship(userId, referrerUsername);
+            if (result.success) {
+                referredCode = referrerUsername;
+                console.log(`✅ New user ${userId} referred by ${referrerUsername}`);
+            } else {
+                console.log(`⚠️ Referral tracking failed: ${result.error}`);
+            }
+        }
+
         const { error: insertError } = await db("Users").insert([
             {
                 id: userId,
@@ -82,7 +90,7 @@ export async function handleStartCommand(ctx: Context) {
                 api_credentials: JSON.stringify(apiCreds),
                 solana_address: solanaAddress,
                 solana_private_key: encryptPrivateKey(solanaPrivateKey),
-                referred_code: "OPEN", // Default value for open registration
+                referred_code: referredCode,
                 referral_code: newUserReferralCode,
                 treasury_wallet_address: address,
             },
@@ -104,13 +112,20 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Internal Server Error");
         }
 
-        const message = generateWelcomeMessage(
+        let message = generateWelcomeMessage(
             address,
             solanaAddress || "N/A",
             balance.toString(),
             solBalance,
             lockedBalance
         );
+
+        // Add referral success message if applicable
+        if (referredCode !== "OPEN") {
+            message += `\n\n🎉 **Welcome!** You've been referred by @${referrerUsername}!\n`;
+            message += `Both you and your referrer will earn from your trading activity! 💰`;
+        }
+
         const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
 
         return ctx.reply(message, {
