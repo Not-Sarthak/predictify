@@ -9,7 +9,6 @@ import { buyOrderGTC } from "../../utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { redisClient } from "../../lib/redis";
-import { encodeMarketId } from "../../utils/encoding";
 
 export type PriceWatchConfig =
     | { type: "take_profit"; price: number; outcome: string; size: number }
@@ -119,10 +118,7 @@ export class PolymarketMarketTradeWatcher {
                     {
                         parse_mode: "HTML",
                         reply_markup: Markup.inlineKeyboard([
-                            Markup.button.callback(
-                                "View this Market",
-                                `view_market:${encodeMarketId(market.id)}`
-                            ),
+                            Markup.button.callback("View this Market", `view_market:${market.id}`),
                         ]).reply_markup,
                     }
                 );

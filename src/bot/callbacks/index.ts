@@ -116,6 +116,8 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (!data) return;
 
+    console.log(data);
+
     const userId = getUserIdFromCtx(ctx);
     const userIdStr = userId.toString();
 
@@ -998,14 +1000,12 @@ Example: <code>0.7</code> <code>No</code>`;
     }
 
     if (data.startsWith("add_watchlist:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleAddToWatchlist(ctx, marketId);
     }
 
     if (data.startsWith("remove_watchlist:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleRemoveFromWatchlist(ctx, marketId);
     }
 
@@ -1124,11 +1124,11 @@ async function handleAddToWatchlist(ctx: Context, marketId: string) {
                 row.map((button) => {
                     if (
                         "callback_data" in button &&
-                        button.callback_data === `add_watchlist:${encodeMarketId(marketId)}`
+                        button.callback_data === `add_watchlist:${marketId}`
                     ) {
                         return Markup.button.callback(
                             "💔 Remove from Watchlist",
-                            `remove_watchlist:${encodeMarketId(marketId)}`
+                            `remove_watchlist:${marketId}`
                         );
                     }
                     return button;
@@ -1210,11 +1210,11 @@ async function handleRemoveFromWatchlist(ctx: Context, marketId: string) {
                     row.map((button) => {
                         if (
                             "callback_data" in button &&
-                            button.callback_data === `remove_watchlist:${encodeMarketId(marketId)}`
+                            button.callback_data === `remove_watchlist:${marketId}`
                         ) {
                             return Markup.button.callback(
                                 "❤️ Add to My Watchlist",
-                                `add_watchlist:${encodeMarketId(marketId)}`
+                                `add_watchlist:${marketId}`
                             );
                         }
                         return button;
@@ -1295,12 +1295,7 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
                 `set_price_alert:${encodeMarketId(market.conditionId)}`
             ),
         ],
-        [
-            Markup.button.callback(
-                "💔 Remove from Watchlist",
-                `remove_watchlist:${encodeMarketId(market.id)}`
-            ),
-        ],
+        [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
         [
             Markup.button.callback(
                 "ℹ️ About this Market",
