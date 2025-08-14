@@ -5,7 +5,7 @@ import USDC_ABI from "../../shared/abi/usdc.json";
 import { db } from "../../lib/supabase";
 import { calculateReferralEarnings } from "../referral/referral-tracker";
 
-export const FEES_PERCENTAGE = 0.005;
+export const FEES_PERCENTAGE = 0.06;
 export const REFERRAL_COMMISSION_PERCENTAGE = 0.25;
 
 interface TreasuryFeeTransferParams {
