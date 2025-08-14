@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabase";
 import { bot } from "../bot";
 import { executeTrade } from "./helpers";
 import { handleCopyTradeError } from "./trade-error-handler";
+import { Markup } from "telegraf";
+import { getMarketByConditionId } from "../utils/polymarket/get-markets";
 
 interface Trade {
     proxyWallet: string;
@@ -30,6 +32,8 @@ interface FormattedTrade {
     value: number;
     hash: string;
     timestamp: string;
+    originalSize: number;
+    originalValue: number;
 }
 
 interface WalletSubscription {
@@ -235,18 +239,45 @@ const recordFailedTrade = async (
 };
 
 const sendTradeNotification = async (userId: number, trade: Trade) => {
-    await bot.telegram.sendMessage(
-        userId,
-        `🔔 New Trade Detected\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `💼 Wallet: ${trade.proxyWallet}\n` +
-            `🎯 Market: ${trade.title}\n` +
-            `🎲 Outcome: ${trade.outcome}\n` +
-            `📊 Side: ${trade.side}\n` +
-            `💰 Size: ${trade.size}\n` +
-            `💵 Price: ${trade.price}\n` +
-            `💸 Value: ${(trade.size * trade.price).toFixed(4)} USDC`
-    );
+    try {
+        const market = await getMarketByConditionId(trade.conditionId);
+
+        let keyboard = undefined;
+        if (market && market.slug) {
+            const polymarketUrl = `https://polymarket.com/market/${encodeURIComponent(market.slug)}`;
+            keyboard = Markup.inlineKeyboard([
+                [Markup.button.url("🏛️ Go to Market", polymarketUrl)],
+            ]);
+        }
+
+        await bot.telegram.sendMessage(
+            userId,
+            `🔔 New Trade Detected\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `💼 Wallet: ${trade.proxyWallet}\n` +
+                `🎯 Market: ${trade.title}\n` +
+                `🎲 Outcome: ${trade.outcome}\n` +
+                `📊 Side: ${trade.side}\n` +
+                `💰 Size: ${trade.size}\n` +
+                `💵 Price: ${trade.price}\n` +
+                `💸 Value: ${(trade.size * trade.price).toFixed(4)} USDC`,
+            keyboard ? { reply_markup: keyboard.reply_markup } : undefined
+        );
+    } catch (error) {
+        console.error("Error sending trade notification:", error);
+        await bot.telegram.sendMessage(
+            userId,
+            `🔔 New Trade Detected\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `💼 Wallet: ${trade.proxyWallet}\n` +
+                `🎯 Market: ${trade.title}\n` +
+                `🎲 Outcome: ${trade.outcome}\n` +
+                `📊 Side: ${trade.side}\n` +
+                `💰 Size: ${trade.size}\n` +
+                `💵 Price: ${trade.price}\n` +
+                `💸 Value: ${(trade.size * trade.price).toFixed(4)} USDC`
+        );
+    }
 };
 
 const pollWallet = async (monitor: WalletMonitor) => {
