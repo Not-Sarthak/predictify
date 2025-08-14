@@ -48,7 +48,7 @@ export const AUTO_TRADE_MENU_BUTTONS = [
     ],
     [
         Markup.button.callback("👁️ View Watched Wallets", "view_watched_wallets"),
-        Markup.button.callback("💰 Configure", "copy_trade_configure"),
+        Markup.button.callback("💰 Configure", "copy_trade_configure_menu"),
     ],
     [CLOSE_BUTTON],
 ];
