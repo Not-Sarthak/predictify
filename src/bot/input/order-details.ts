@@ -24,7 +24,7 @@ import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { generatePositionCard } from "../../utils/card-generator";
-import { encodeMarketId } from "../../utils/encoding";
+import { encodeMarketConditionId } from "../../utils/encoding";
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { startUserTradeWatcher } from "../../notifier/ws/limit-order-watcher";
@@ -369,15 +369,15 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                         [
                             Markup.button.callback(
                                 "🔔 Set Price Alert",
-                                `set_price_alert:${encodeMarketId(market.conditionId)}`
+                                `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
                             ),
                             Markup.button.callback(
                                 "💸 Take Profit",
-                                `take_profit:${encodeMarketId(market.conditionId)}`
+                                `take_profit:${encodeMarketConditionId(market.conditionId)}`
                             ),
                             Markup.button.callback(
                                 "🛑 Stop Loss",
-                                `stop_loss:${encodeMarketId(market.conditionId)}`
+                                `stop_loss:${encodeMarketConditionId(market.conditionId)}`
                             ),
                         ],
                     ]).reply_markup,

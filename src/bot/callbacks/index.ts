@@ -26,7 +26,7 @@ import {
 } from "./trade";
 import { getMarketById } from "../../utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "../utils";
-import { encodeMarketId } from "../../utils/encoding";
+import { encodeMarketConditionId } from "../../utils/encoding";
 import { handleStartMenuCallbacks, handleViewProfileCallback } from "./start";
 import {
     handleSubscriptionMenuCallbacks,
@@ -425,8 +425,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("market_details:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleMarketDetails(ctx, marketId);
     }
 
@@ -1292,16 +1291,11 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
+                `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
             ),
         ],
         [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
-        [
-            Markup.button.callback(
-                "ℹ️ About this Market",
-                `market_details:${encodeMarketId(market.id)}`
-            ),
-        ],
+        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
             Markup.button.callback("⬅️ Back to Watchlist", "back_to_watchlist"),
             Markup.button.callback("❌ Close", "close_message"),

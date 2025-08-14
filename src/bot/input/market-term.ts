@@ -1,7 +1,7 @@
 import { CLOSE_BUTTON } from "../ui/buttons";
 import { padButtonText } from "../utils";
 import { Markup, type Context } from "telegraf";
-import { encodeMarketId } from "../../utils/encoding";
+import { encodeMarketConditionId } from "../../utils/encoding";
 
 export async function handleMarketTermTextMessage(ctx: Context, textMessage: string) {
     const queryText = textMessage.split(/\s+/)[0].toLowerCase();
@@ -21,7 +21,7 @@ export async function handleMarketTermTextMessage(ctx: Context, textMessage: str
         marketTitleButtons.push([
             Markup.button.callback(
                 padButtonText(market.markets[0].question),
-                `selected_market:${encodeMarketId(market.markets[0].id)}`
+                `selected_market:${encodeMarketConditionId(market.markets[0].id)}`
             ),
         ]);
     }
