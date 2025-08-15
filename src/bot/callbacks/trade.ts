@@ -1,4 +1,4 @@
-import { TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "../ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -223,10 +223,7 @@ export async function handleFetchMarketWithOffsetCallback(
 
     for (const market of marketData) {
         marketTitleButtons.push([
-            Markup.button.callback(
-                padButtonText(market.title),
-                `selected_market:${encodeMarketConditionId(market.id)}`
-            ),
+            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
         ]);
     }
 
@@ -245,7 +242,7 @@ export async function handleFetchMarketWithOffsetCallback(
     marketTitleButtons.push(offsetButtons);
 
     await ctx.editMessageText("Markets: ", {
-        reply_markup: Markup.inlineKeyboard(marketTitleButtons).reply_markup,
+        reply_markup: Markup.inlineKeyboard([...marketTitleButtons, [CLOSE_BUTTON]]).reply_markup,
     });
 
     await ctx.answerCbQuery();
@@ -378,7 +375,7 @@ export async function handleShowZeroDTEMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVol = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${market.title}**
+        message += `${i + 1}. **${escapeMarkdown(market.title)}**
 💧 Volume: ${fVol}
 ⌛ Ends: ${fDate}
 

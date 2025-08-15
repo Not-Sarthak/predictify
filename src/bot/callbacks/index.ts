@@ -342,8 +342,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("selected_market:")) {
-        const encodedMarketId = data.split(":")[1];
-        const marketId = decodeMarketId(encodedMarketId);
+        const marketId = data.split(":")[1];
         return handleViewMarket(ctx, marketId);
     }
 
