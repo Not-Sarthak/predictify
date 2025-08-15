@@ -1,4 +1,4 @@
-import { TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "../ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -32,7 +32,7 @@ import { db } from "../../lib/supabase";
 import { generateClosePositionButton } from "../ui/buttons/trade";
 import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
-import { decodeMarketId, encodeMarketId } from "../../utils/encoding";
+import { decodeMarketId, encodeMarketConditionId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "../../types/polymarket";
@@ -120,7 +120,7 @@ export async function handleCloseTradePositions(ctx: Context) {
         ctx.reply(data.message, {
             parse_mode: "Markdown",
             reply_markup: Markup.inlineKeyboard([
-                generateClosePositionButton(encodeMarketId(data.marketId)),
+                generateClosePositionButton(encodeMarketConditionId(data.marketId)),
             ]).reply_markup,
         })
     );
@@ -223,10 +223,7 @@ export async function handleFetchMarketWithOffsetCallback(
 
     for (const market of marketData) {
         marketTitleButtons.push([
-            Markup.button.callback(
-                padButtonText(market.title),
-                `selected_market:${encodeMarketId(market.id)}`
-            ),
+            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
         ]);
     }
 
@@ -245,7 +242,7 @@ export async function handleFetchMarketWithOffsetCallback(
     marketTitleButtons.push(offsetButtons);
 
     await ctx.editMessageText("Markets: ", {
-        reply_markup: Markup.inlineKeyboard(marketTitleButtons).reply_markup,
+        reply_markup: Markup.inlineKeyboard([...marketTitleButtons, [CLOSE_BUTTON]]).reply_markup,
     });
 
     await ctx.answerCbQuery();
@@ -378,7 +375,7 @@ export async function handleShowZeroDTEMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVol = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${market.title}**
+        message += `${i + 1}. **${escapeMarkdown(market.title)}**
 💧 Volume: ${fVol}
 ⌛ Ends: ${fDate}
 
@@ -644,16 +641,11 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
+                `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
             ),
         ],
         [watchlistButton],
-        [
-            Markup.button.callback(
-                "ℹ️ About this Market",
-                `market_details:${encodeMarketId(market.id)}`
-            ),
-        ],
+        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
             Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),
@@ -731,14 +723,14 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(market.conditionId)}`
+                `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
             ),
         ],
         [watchlistButton],
         [
             Markup.button.callback(
                 "🔄 Refresh",
-                `refresh_market_details:${encodeMarketId(market.id)}`
+                `refresh_market_details:${encodeMarketConditionId(market.id)}`
             ),
             Markup.button.callback("❌ Close", "close_message"),
         ],

@@ -1,7 +1,7 @@
 import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import { getUnmatchedOpenOrders } from "../../utils/polymarket/get-non-matched-orders";
-import { encodeMarketId } from "../../utils/encoding";
+import { encodeMarketConditionId } from "../../utils/encoding";
 import { redisClient } from "../../lib/redis";
 import { CLOSE_BUTTON } from "../ui/buttons";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
@@ -51,7 +51,7 @@ export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: nu
 🎯 *Outcome:* ${order.outcome}
     `.trim();
 
-    const encodedOrderId = encodeMarketId(order.id);
+    const encodedOrderId = encodeMarketConditionId(order.id);
     const navButtons = [];
 
     if (offset > 0) {
@@ -155,8 +155,8 @@ export async function sendPaginatedTpSlOrder(ctx: Context, orders: any[], offset
         navButtons.push(Markup.button.callback("➡️ Next", `tp_sl:next:${offset + 1}`));
 
     const cancelBtnData = isOrderTp
-        ? `stop_tp:${encodeMarketId(order.marketId)}`
-        : `stop_sl:${encodeMarketId(order.marketId)}`;
+        ? `stop_tp:${encodeMarketConditionId(order.marketId)}`
+        : `stop_sl:${encodeMarketConditionId(order.marketId)}`;
     const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("❌ Cancel", cancelBtnData)],
         navButtons,

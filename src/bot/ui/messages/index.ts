@@ -6,7 +6,7 @@ import {
     getUserIdFromCtx,
 } from "../../utils";
 import type { InlineKeyboardMarkup } from "telegraf/types";
-import { encodeMarketId } from "../../../utils/encoding";
+import { encodeMarketConditionId } from "../../../utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
 import { redisClient } from "../../../lib/redis";
 import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
@@ -154,9 +154,12 @@ export async function createPaginationKeyboard(
 
     const rows = [
         [
-            Markup.button.callback("Sell 50%", `sell_50_${encodeMarketId(conditionId)}`),
-            Markup.button.callback("Sell 100%", `sell_100_${encodeMarketId(conditionId)}`),
-            Markup.button.callback("Sell Custom", `sell_custom_${encodeMarketId(conditionId)}`),
+            Markup.button.callback("Sell 50%", `sell_50_${encodeMarketConditionId(conditionId)}`),
+            Markup.button.callback("Sell 100%", `sell_100_${encodeMarketConditionId(conditionId)}`),
+            Markup.button.callback(
+                "Sell Custom",
+                `sell_custom_${encodeMarketConditionId(conditionId)}`
+            ),
         ],
         [
             Markup.button.callback(
@@ -171,17 +174,23 @@ export async function createPaginationKeyboard(
         [
             Markup.button.callback(
                 "🔔 Set Price Alert",
-                `set_price_alert:${encodeMarketId(conditionId)}`
+                `set_price_alert:${encodeMarketConditionId(conditionId)}`
             ),
-            Markup.button.callback("💸 Take Profit", `take_profit:${encodeMarketId(conditionId)}`),
-            Markup.button.callback("🛑 Stop Loss", `stop_loss:${encodeMarketId(conditionId)}`),
+            Markup.button.callback(
+                "💸 Take Profit",
+                `take_profit:${encodeMarketConditionId(conditionId)}`
+            ),
+            Markup.button.callback(
+                "🛑 Stop Loss",
+                `stop_loss:${encodeMarketConditionId(conditionId)}`
+            ),
         ],
         [
             ...(showStopTP
                 ? [
                       Markup.button.callback(
                           "❌ Cancel Take Profit",
-                          `stop_tp:${encodeMarketId(conditionId)}`
+                          `stop_tp:${encodeMarketConditionId(conditionId)}`
                       ),
                   ]
                 : []),
@@ -189,7 +198,7 @@ export async function createPaginationKeyboard(
                 ? [
                       Markup.button.callback(
                           "❌ Cancel Stop Loss",
-                          `stop_sl:${encodeMarketId(conditionId)}`
+                          `stop_sl:${encodeMarketConditionId(conditionId)}`
                       ),
                   ]
                 : []),

@@ -1,4 +1,4 @@
-export function encodeMarketId(marketId: string) {
+export function encodeMarketConditionId(marketId: string) {
     const hex = marketId.startsWith("0x") ? marketId.slice(2) : marketId;
     const buf = Buffer.from(hex, "hex");
     return buf.toString("base64");
