@@ -16,27 +16,40 @@ export const generateWelcomeMessage = (
     solana_address: string,
     usdcBalance: string,
     solBalance: number,
-    lockedBalance: number
+    lockedBalance: number,
+    polBalance?: number
 ): string => {
+    let balanceSection = `💰 Your Balances
+• Total Balance: $${usdcBalance}
+• Available Balance: $${Number(usdcBalance) - lockedBalance}
+• SOL: ${solBalance} SOL
+• Locked Balance: $${lockedBalance}`;
+
+    if (polBalance !== undefined) {
+        balanceSection += `
+• POL: ${polBalance.toFixed(4)} POL`;
+        if (polBalance < 5) {
+            balanceSection += ` ⚠️ (Low - Auto Acquisition Enabled)`;
+        } else {
+            balanceSection += ` ✅`;
+        }
+    }
+
     return `
 Welcome to Predictify
 We trade headlines for breakfast. 📰⚔
-Your wallet’s live. Let’s degen.
+Your wallet's live. Let's degen.
 
 🔐 Your Wallets
 • Solana Address: <code>${solana_address}</code>
 • Polygon Address: <code>${evm_address}</code>
 
-💰 Your Balances
-• Total Balance: $${usdcBalance}
-• Available Balance: $${Number(usdcBalance) - lockedBalance}
-• SOL: ${solBalance} SOL
-• Locked Balance: $${lockedBalance}
+${balanceSection}
 
 🔥 What you can do:
 • Blast YES/NO bets with market or limit orders
 • Copy top wallets instantly
-• Get alerts by category — “Elections”, “Crypto”, “AI”
+• Get alerts by category — "Elections", "Crypto", "AI"
 • Track PnL and open positions
 • Fund your wallet with SOL or Polygon USDC — your choice
 
@@ -49,8 +62,25 @@ export const generateWalletDetailsMessage = (
     evmWalletAddress: string,
     solanaWalletAddress: string | null,
     usdcBalance: number,
-    solBalance: number
+    solBalance: number,
+    polBalance?: number
 ) => {
+    let balanceSection = `
+<b>💰 Balances</b>
+<b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
+<b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL`;
+
+    if (polBalance !== undefined) {
+        balanceSection += `\n<b>⛽ POL:</b> ${polBalance.toFixed(4)} POL`;
+
+        // Add gas fee status
+        if (polBalance < 5) {
+            balanceSection += ` <b>⚠️ (Low - Auto-acquire available)</b>`;
+        } else {
+            balanceSection += ` <b>✅ (Sufficient for gas)</b>`;
+        }
+    }
+
     return `
 <b>💼 Wallet Overview</b>
 
@@ -58,9 +88,7 @@ export const generateWalletDetailsMessage = (
 <b>EVM:</b> <code>${evmWalletAddress}</code>
 <b>Solana:</b> <code>${solanaWalletAddress || "N/A"}</code>
 
-<b>💰 Balances</b>
-<b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
-<b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL
+${balanceSection}
 `.trim();
 };
 
