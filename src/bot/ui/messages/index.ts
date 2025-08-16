@@ -29,7 +29,7 @@ export const generateWelcomeMessage = (
         balanceSection += `
 • POL: ${polBalance.toFixed(4)} POL`;
         if (polBalance < 5) {
-            balanceSection += ` ⚠️ (Low - Bridge will auto-acquire gas fees)`;
+            balanceSection += ` ⚠️ (Low - Auto Acquisition Enabled)`;
         } else {
             balanceSection += ` ✅`;
         }
