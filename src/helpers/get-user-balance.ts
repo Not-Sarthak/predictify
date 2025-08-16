@@ -74,3 +74,32 @@ export const getSOLBalance = async (address: string): Promise<number> => {
         return 0;
     }
 };
+
+/**
+ * Get POL (Polygon native token) balance for a given address
+ * @param address - The wallet address to check
+ * @returns POL balance in ether units
+ */
+export const getPOLBalance = async (address: string): Promise<number> => {
+    try {
+        if (!ethers.isAddress(address)) {
+            console.warn(`Invalid address format: ${address}`);
+            return 0;
+        }
+
+        const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
+
+        const balanceInWei = await Promise.race([
+            provider.getBalance(address),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("RPC call timeout")), 10000)
+            ),
+        ]);
+
+        const balanceInEther = parseFloat(ethers.formatEther(balanceInWei));
+        return balanceInEther;
+    } catch (error) {
+        console.error(`Error fetching POL balance for ${address}:`, error);
+        return 0;
+    }
+};
