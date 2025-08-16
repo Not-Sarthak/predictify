@@ -7,6 +7,7 @@ export * from "./trade";
 export * from "./watchlist";
 export * from "./high-probability";
 export * from "./referral";
+export * from "./health";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -57,5 +58,9 @@ export const botCommands: BotCommand[] = [
     {
         command: "ref",
         description: "View referral stats and share your referral link",
+    },
+    {
+        command: "health",
+        description: "Test database connectivity (for troubleshooting)",
     },
 ];
