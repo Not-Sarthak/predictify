@@ -1,7 +1,11 @@
 import { WALLET_SETTINGS_MENU } from "../ui/buttons";
 import { generateWalletDetailsMessage } from "../ui/messages";
 import { getUserIdFromCtx } from "../utils/get-user-id-ctx";
-import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
+import {
+    getSOLBalance,
+    getUserWrappedUSDCBalance,
+    getPOLBalance,
+} from "../../helpers/get-user-balance";
 import { db } from "../../lib/supabase";
 import { Markup, type Context } from "telegraf";
 
@@ -20,16 +24,18 @@ export async function getFundMessage(ctx: Context) {
     const evmWalletAddress = user.wallet_address;
     const solanaWalletAddress = user.solana_address;
 
-    const [usdcBalance, solBalance] = await Promise.all([
+    const [usdcBalance, solBalance, polBalance] = await Promise.all([
         getUserWrappedUSDCBalance(evmWalletAddress),
         solanaWalletAddress ? getSOLBalance(solanaWalletAddress) : Promise.resolve(0),
+        getPOLBalance(evmWalletAddress),
     ]);
 
     const message = generateWalletDetailsMessage(
         evmWalletAddress,
         solanaWalletAddress,
         usdcBalance,
-        solBalance
+        solBalance,
+        polBalance
     );
 
     const walletSettingsMenu = Markup.inlineKeyboard(WALLET_SETTINGS_MENU);

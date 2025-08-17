@@ -8,6 +8,7 @@ export * from "./watchlist";
 export * from "./high-probability";
 export * from "./referral";
 export * from "./health";
+export * from "./test-pol";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -62,5 +63,13 @@ export const botCommands: BotCommand[] = [
     {
         command: "health",
         description: "Test database connectivity (for troubleshooting)",
+    },
+    {
+        command: "test_pol",
+        description: "[Admin] Test POL auto-acquisition feature",
+    },
+    {
+        command: "check_prices",
+        description: "[Admin] Check current SOL/POL prices",
     },
 ];

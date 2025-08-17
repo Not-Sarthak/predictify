@@ -8,6 +8,12 @@ import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { CLOSE_BUTTON } from "../../../bot/ui/buttons";
 import { executeSolanaTransaction } from "../../solana/transaction";
 import { decryptPrivateKey } from "../../../utils/crypto";
+import { needsPOLForGas } from "../../../helpers/get-pol-balance";
+import { calculateBridgeAllocation, createPOLBridgeOrder } from "./pol-bridge-handler";
+import {
+    MIN_POL_BALANCE_THRESHOLD,
+    POL_ACQUISITION_AMOUNT,
+} from "../../../shared/constants/polymarket";
 
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
@@ -21,6 +27,10 @@ interface BridgeQuoteData {
     estimatedOutput: string;
     fees: string;
     quoteData: any;
+    polAllocation?: number;
+    usdcAllocation?: number;
+    needsPOL?: boolean;
+    polBridgeData?: any;
 }
 
 const bridgeQuotes = new Map<string, BridgeQuoteData>();
@@ -94,13 +104,10 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         const solBalance = await getSOLBalance(user.solana_address);
 
         // Deduct 0.03 SOL from balance to ensure transaction success
-        // This covers all fees and leaves a safe buffer
-        const RESERVE_AMOUNT = 0.03; // 0.03 SOL reserved for all fees and buffer
+        const RESERVE_AMOUNT = 0.03;
         const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
-        const maxBridgeableLamports = Math.floor(maxBridgeableSOL * 1e9);
 
-        if (maxBridgeableLamports <= 1000000) {
-            // Less than 0.001 SOL available to bridge
+        if (maxBridgeableSOL <= 0.001) {
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
@@ -110,8 +117,41 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             return;
         }
 
-        const bridgeAmount = maxBridgeableSOL;
-        const lamportsAmount = maxBridgeableLamports.toString();
+        // Check if user needs POL for gas fees
+        const needsPOL = await needsPOLForGas(user.wallet_address);
+
+        let polAllocation = 0;
+        let usdcAllocation = maxBridgeableSOL;
+        let polBridgeData = null;
+
+        if (needsPOL) {
+            // Calculate allocation for POL and USDC
+            const allocation = await calculateBridgeAllocation(
+                maxBridgeableSOL,
+                0, // Already reserved above
+                POL_ACQUISITION_AMOUNT
+            );
+
+            polAllocation = allocation.polAllocation;
+            usdcAllocation = allocation.usdcAllocation;
+
+            // Get POL bridge quote
+            try {
+                polBridgeData = await createPOLBridgeOrder({
+                    solAmount: allocation.polAllocationLamports,
+                    recipientAddress: user.wallet_address,
+                    senderAddress: user.solana_address,
+                });
+            } catch (error) {
+                console.warn("Failed to get POL bridge quote:", error);
+                // Fall back to USDC-only bridge
+                polAllocation = 0;
+                usdcAllocation = maxBridgeableSOL;
+            }
+        }
+
+        const bridgeAmount = usdcAllocation;
+        const lamportsAmount = Math.floor(bridgeAmount * 1e9).toString();
 
         const bridgeParams: deBridgeOrderInput = {
             srcChainId: SOLANA_CHAIN_ID,
@@ -138,30 +178,47 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             parseFloat(quote.estimation.dstChainTokenOut.amount) /
             Math.pow(10, quote.estimation.dstChainTokenOut.decimals);
 
-        // For quote, we show what user will get for their exact amount
-        const inputAmount = bridgeAmount;
+        // Calculate total input amount for display
+        const totalInputAmount = polAllocation + bridgeAmount;
         const bridgeFee = 0; // Quote doesn't include fees in the calculation
 
         const quoteKey = `bridge_quote_${userId}`;
         bridgeQuotes.set(quoteKey, {
             userId,
-            amount: bridgeAmount.toString(),
+            amount: totalInputAmount.toString(),
             estimatedOutput: outputAmount.toString(),
             fees: bridgeFee.toString(),
             quoteData: bridgeParams,
+            polAllocation,
+            usdcAllocation,
+            needsPOL,
+            polBridgeData,
         });
 
-        const quoteMessage = `🌉 **Bridge Quote**
+        // Generate quote message with POL information
+        let quoteMessage = `🌉 **Bridge Quote**\n\n`;
 
-**You Send:** ${inputAmount.toFixed(4)} SOL (Solana)
-**You Receive:** ${outputAmount.toFixed(2)} USDC (Polygon)
+        if (needsPOL && polAllocation > 0) {
+            quoteMessage += `💡 **Auto POL Acquisition Enabled**\n`;
+            quoteMessage += `Your wallet has insufficient POL for gas fees (< ${MIN_POL_BALANCE_THRESHOLD} POL)\n\n`;
+            quoteMessage += `**Bridge Breakdown:**\n`;
+            quoteMessage += `• ${polAllocation.toFixed(4)} SOL → POL tokens (gas fees)\n`;
+            quoteMessage += `• ${bridgeAmount.toFixed(4)} SOL → ${outputAmount.toFixed(2)} USDC\n\n`;
+            quoteMessage += `**Total:** ${totalInputAmount.toFixed(4)} SOL\n`;
+        } else {
+            quoteMessage += `**You Send:** ${totalInputAmount.toFixed(4)} SOL (Solana)\n`;
+            quoteMessage += `**You Receive:** ${outputAmount.toFixed(2)} USDC (Polygon)\n\n`;
+        }
 
-**Exchange Rate:** 1 SOL ≈ ${(outputAmount / inputAmount).toFixed(2)} USDC
-**Wallet Balance:** ${solBalance.toFixed(4)} SOL
-**Reserved for Fees:** ${RESERVE_AMOUNT} SOL
+        quoteMessage += `**Exchange Rate:** 1 SOL ≈ ${(outputAmount / bridgeAmount).toFixed(2)} USDC\n`;
+        quoteMessage += `**Wallet Balance:** ${solBalance.toFixed(4)} SOL\n`;
+        quoteMessage += `**Reserved for Fees:** ${RESERVE_AMOUNT} SOL\n\n`;
 
-⚠️ *This is the Maximum Amount you can Safely Bridge*
-`;
+        if (needsPOL && polAllocation > 0) {
+            quoteMessage += `✅ This will provide sufficient POL for ~100-200 transactions\n`;
+        }
+
+        quoteMessage += `⚠️ *This is the Maximum Amount you can Safely Bridge*`;
 
         const confirmButtons = [
             [Markup.button.callback("✅ Confirm Bridge", `bridge_confirm:${userId}`)],
@@ -213,6 +270,54 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             return;
         }
 
+        if (!user.solana_private_key) {
+            throw new Error("Solana private key not found");
+        }
+
+        const decryptedPrivateKey = decryptPrivateKey(user.solana_private_key);
+        let polTxSignature: string | null = null;
+        let usdcTxSignature: string | null = null;
+
+        // Execute POL bridge first if needed
+        if (storedQuote.needsPOL && storedQuote.polBridgeData) {
+            try {
+                await ctx.telegram.editMessageText(
+                    processingMsg.chat.id,
+                    processingMsg.message_id,
+                    undefined,
+                    "🔄 Step 1/2: Acquiring POL tokens for gas fees..."
+                );
+
+                polTxSignature = await executeSolanaTransaction(
+                    decryptedPrivateKey,
+                    storedQuote.polBridgeData.tx.data
+                );
+
+                await ctx.telegram.editMessageText(
+                    processingMsg.chat.id,
+                    processingMsg.message_id,
+                    undefined,
+                    "✅ POL acquisition initiated\n🔄 Step 2/2: Bridging SOL to USDC..."
+                );
+            } catch (error) {
+                console.error("POL bridge failed:", error);
+                await ctx.telegram.editMessageText(
+                    processingMsg.chat.id,
+                    processingMsg.message_id,
+                    undefined,
+                    "⚠️ POL acquisition failed, proceeding with USDC bridge only..."
+                );
+            }
+        } else {
+            await ctx.telegram.editMessageText(
+                processingMsg.chat.id,
+                processingMsg.message_id,
+                undefined,
+                "🔄 Signing and sending bridge transaction..."
+            );
+        }
+
+        // Execute USDC bridge
         const bridgeResult = await createDebridgeBridgeOrder(storedQuote.quoteData);
 
         if (!bridgeResult || !bridgeResult.tx || !bridgeResult.tx.data) {
@@ -220,48 +325,45 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
                 processingMsg.chat.id,
                 processingMsg.message_id,
                 undefined,
-                "❌ Failed to create bridge transaction. Please try again."
+                "❌ Failed to create USDC bridge transaction. Please try again."
             );
             return;
         }
 
-        // Execute the Solana transaction
-        let txSignature: string;
         try {
-            await ctx.telegram.editMessageText(
-                processingMsg.chat.id,
-                processingMsg.message_id,
-                undefined,
-                "🔄 Signing and sending transaction..."
+            usdcTxSignature = await executeSolanaTransaction(
+                decryptedPrivateKey,
+                bridgeResult.tx.data
             );
-
-            if (!user.solana_private_key) {
-                throw new Error("Solana private key not found");
-            }
-
-            const decryptedPrivateKey = decryptPrivateKey(user.solana_private_key);
-            txSignature = await executeSolanaTransaction(decryptedPrivateKey, bridgeResult.tx.data);
         } catch (error) {
             await ctx.telegram.editMessageText(
                 processingMsg.chat.id,
                 processingMsg.message_id,
                 undefined,
-                `❌ Failed to execute bridge transaction: ${error instanceof Error ? error.message : "Unknown error"}`
+                `❌ Failed to execute USDC bridge transaction: ${error instanceof Error ? error.message : "Unknown error"}`
             );
             return;
         }
 
         bridgeQuotes.delete(quoteKey);
 
-        const successMessage = `✅ **Bridge Transaction Submitted**
+        // Generate success message
+        let successMessage = `✅ **Bridge Transaction(s) Submitted**\n\n`;
 
-**Amount:** ${storedQuote.amount} SOL → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC
-**Network:** Solana → Polygon
+        if (storedQuote.needsPOL && polTxSignature) {
+            successMessage += `🔸 **POL Acquisition:** ${storedQuote.polAllocation?.toFixed(4)} SOL → POL tokens\n`;
+            successMessage += `[View POL Tx](https://solscan.io/tx/${polTxSignature})\n\n`;
+        }
 
-🔄 **Status:** Processing
+        successMessage += `🔸 **Main Bridge:** ${storedQuote.usdcAllocation?.toFixed(4)} SOL → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC\n`;
+        successMessage += `**Network:** Solana → Polygon\n\n`;
+        successMessage += `🔄 **Status:** Processing\n\n`;
+        successMessage += `[View USDC Bridge](https://solscan.io/tx/${usdcTxSignature})\n`;
+        successMessage += `[Track on DeBridge](https://app.debridge.finance/order?orderId=${bridgeResult.orderId || ""})\n\n`;
 
-[View on Solscan](https://solscan.io/tx/${txSignature})
-[Track on DeBridge](https://app.debridge.finance/order?orderId=${bridgeResult.orderId || ""})`;
+        if (storedQuote.needsPOL) {
+            successMessage += `✅ Your wallet will have sufficient POL for gas fees once processing completes`;
+        }
 
         const statusButtons = [[Markup.button.callback("🏠 Main Menu", "back_to_main_menu")]];
 
@@ -277,7 +379,10 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
         );
     } catch (error) {
         bridgeQuotes.delete(quoteKey);
-        await ctx.reply(`Bridge Execution Failed!`);
+        console.error("Bridge execution error:", error);
+        await ctx.reply(
+            `❌ Bridge Execution Failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
     }
 }
 
