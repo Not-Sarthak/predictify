@@ -261,7 +261,7 @@ export async function generate0DTEMarketCategoryKeyboard() {
         keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
     }
 
-    const keyboard = Markup.inlineKeyboard(keyboardLayout);
+    const keyboard = Markup.inlineKeyboard([...keyboardLayout, [CLOSE_BUTTON]]);
 
     return keyboard;
 }

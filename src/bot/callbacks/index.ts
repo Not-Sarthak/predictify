@@ -268,7 +268,7 @@ export async function handleCallbackQuery(ctx: Context) {
         return handleConfigureWallet(ctx, walletAddress);
     }
 
-    if (data.startsWith("set_wallet_percent:")) {
+    if (data.startsWith("wallet_config:")) {
         const [, walletAddress, percentage] = data.split(":");
         return handleSetWalletPercentage(ctx, walletAddress, percentage);
     }
@@ -631,6 +631,7 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("toggle_wallet_ct:")) {
         const address = data.split(":")[1];
         await handleToggleWalletCopyTradeStatus(ctx, address);
+        await ctx.deleteMessage();
         return handleAutoTradeMenu(ctx);
     }
 
