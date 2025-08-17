@@ -21,9 +21,10 @@ export async function handleSubscriptionsMenu(ctx: Context) {
 export async function handleSubscriptionMenuCallbacks(ctx: Context, action: string) {
     switch (action) {
         case "subscribe":
+            const buttons = generateSubscriptionButtons(CATEGORY_LIST, "subscribe");
             return ctx.reply(
                 "Choose a Category to Subscribe to",
-                Markup.inlineKeyboard(generateSubscriptionButtons(CATEGORY_LIST, "subscribe"))
+                Markup.inlineKeyboard([...buttons, [CLOSE_BUTTON]])
             );
         case "unsubscribe":
             return handleUnsubscribe(ctx);
@@ -84,7 +85,10 @@ export async function handleUnsubscribe(ctx: Context) {
 
     const buttons = generateSubscriptionButtons(categories, "unsubscribe");
 
-    return ctx.reply("Choose a Category to Unsubscribe from", Markup.inlineKeyboard(buttons));
+    return ctx.reply(
+        "Choose a Category to Unsubscribe from",
+        Markup.inlineKeyboard([...buttons, [CLOSE_BUTTON]])
+    );
 }
 
 export async function handleCustomCategoryInput(ctx: Context, textMessage: string) {
@@ -129,7 +133,6 @@ export async function handleShowCurrentPriceAlerts(ctx: Context, pageIndex = 0, 
 
 <b>Market:</b> ${marketTitle}
 <b>Outcome:</b> ${config.outcome.toUpperCase()}
-<b>Type:</b> ${config.type.replace("_", " ").toUpperCase()}
 <b>Trigger Price:</b> ${config.price}
 
 You will be notified when this condition is met.`;
@@ -163,5 +166,13 @@ async function handleCustomCategory(ctx: Context) {
     const userId = getUserIdFromCtx(ctx).toString();
 
     await setUserInputState(userId, "custom_category");
-    return ctx.reply("✍️ Enter a Category name: ");
+    return ctx.reply(
+        `✍️ Enter a Custom Category
+
+Example: *bitcoin* or *video-games*
+`,
+        {
+            parse_mode: "Markdown",
+        }
+    );
 }

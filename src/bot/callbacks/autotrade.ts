@@ -485,13 +485,13 @@ export async function handleConfigureWallet(ctx: Context, walletAddress: string)
 
         const buttons = [
             [
-                Markup.button.callback("25%", `set_wallet_percent:${walletAddress}:25`),
-                Markup.button.callback("50%", `set_wallet_percent:${walletAddress}:50`),
-                Markup.button.callback("75%", `set_wallet_percent:${walletAddress}:75`),
+                Markup.button.callback("25%", `wallet_config:${walletAddress}:25`),
+                Markup.button.callback("50%", `wallet_config:${walletAddress}:50`),
+                Markup.button.callback("75%", `wallet_config:${walletAddress}:75`),
             ],
             [
-                Markup.button.callback("100%", `set_wallet_percent:${walletAddress}:100`),
-                Markup.button.callback("Custom %", `set_wallet_percent:${walletAddress}:custom`),
+                Markup.button.callback("100%", `wallet_config:${walletAddress}:100`),
+                Markup.button.callback("Custom %", `wallet_config:${walletAddress}:custom`),
             ],
             [Markup.button.callback("↩️ Back", "configure_wallets")],
         ];
@@ -552,10 +552,6 @@ export async function handleSetWalletPercentage(
         await clearUserInputState(userId.toString());
         await redisClient.del(`user:config_input:${userId}`);
 
-        if ("answerCbQuery" in ctx) {
-            await ctx.answerCbQuery(`✅ Position set to ${percentageNum}%`);
-        }
-
         const walletDisplay = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
         await ctx.reply(
             `✅ *Configuration Updated*\n\n` +
@@ -564,8 +560,6 @@ export async function handleSetWalletPercentage(
                 `Config: ${percentageNum}% of your Balance.`,
             { parse_mode: "Markdown" }
         );
-
-        return handleConfigureWalletsMenu(ctx);
     } catch (error) {
         console.error("Error setting wallet percentage:", error);
         if ("answerCbQuery" in ctx) {
