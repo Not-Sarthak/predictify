@@ -1,7 +1,6 @@
 import {
     handleDeleteUserWallet,
     handleEnableCopyTrade,
-    handleFetchMarketWithOffsetCallback,
     handleManageTradePositionsCallback,
     handleMarketDetails,
     handleShowMarkets,
@@ -115,8 +114,6 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (!data) return;
-
-    console.log(data);
 
     const userId = getUserIdFromCtx(ctx);
     const userIdStr = userId.toString();
@@ -396,16 +393,6 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "trade_top_markets_view") {
         return handleViewTopMarketsCallback(ctx);
-    }
-
-    if (data.startsWith("fetch_markets:")) {
-        const [queryText, action, offset] = data.split(":").splice(1);
-        return handleFetchMarketWithOffsetCallback(
-            ctx,
-            queryText,
-            action as "next" | "prev",
-            Number(offset)
-        );
     }
 
     if (data.startsWith("view_top_markets:")) {
@@ -932,7 +919,7 @@ Example: <code>0.7</code> <code>No</code>`;
         return ctx.reply("✅ TP/SL Stopped for the Current Market.");
     }
 
-    if (data.startsWith("toggle_show_username")) {
+    if (data.startsWith("toggle_show_username:")) {
         const toggleTo = data.split(":")[1] === "1";
 
         const { error } = await db("Users")
@@ -944,8 +931,8 @@ Example: <code>0.7</code> <code>No</code>`;
         }
 
         const toggleButtonTitle = toggleTo
-            ? "❌ Hide Username (PnL Cards)"
-            : "✅ Show Username (PnL Cards)";
+            ? "❌ Hide Username in PnL Cards"
+            : "✅ Show Username in PnL Cards";
 
         const toggleButtonCallbackData = toggleTo
             ? "toggle_show_username:0"
