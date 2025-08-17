@@ -1235,12 +1235,16 @@ Press *Confirm* to place the order or *Cancel*.
         `;
     }
 
-    return ctx.reply(message, {
+    const reply_message = await ctx.reply(message, {
         parse_mode: "Markdown",
         reply_markup: Markup.inlineKeyboard([
             [Markup.button.callback("✅ Confirm", `confirm_order:${textMsg}`)],
             [Markup.button.callback("❌ Cancel", "cancel_order")],
         ]).reply_markup,
+    });
+
+    await redisClient.hSet(`user:confirm_msg_id:${userId}`, {
+        id: reply_message.message_id,
     });
 }
 

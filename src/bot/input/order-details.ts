@@ -32,6 +32,9 @@ import { startUserTradeWatcher } from "../../notifier/ws/limit-order-watcher";
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
+    const { id } = await redisClient.hGetAll(`user:confirm_msg_id:${userId}`);
+
+    await ctx.deleteMessage(Number(id));
 
     if (!orderContext.marketId || !orderContext.orderType) {
         return ctx.reply("❌ Something went wrong. Please try placing your order again.");
