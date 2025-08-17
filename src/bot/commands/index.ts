@@ -7,7 +7,7 @@ export * from "./trade";
 export * from "./watchlist";
 export * from "./high-probability";
 export * from "./referral";
-export * from "./test-pol";
+export * from "./health";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -60,11 +60,7 @@ export const botCommands: BotCommand[] = [
         description: "View referral stats and share your referral link",
     },
     {
-        command: "test_pol",
-        description: "[Admin] Test POL auto-acquisition feature",
-    },
-    {
-        command: "check_prices",
-        description: "[Admin] Check current SOL/POL prices",
+        command: "health",
+        description: "Test database connectivity (for troubleshooting)",
     },
 ];

@@ -42,4 +42,8 @@ export const envSchema = z.object({
     NODE_ENV: z.enum(["development", "production"]).default("development"),
 
     SOLANA_RPC_URL: z.string().url("SOLANA_RPC_URL must be a valid URL").optional(),
+
+    // Database connection settings for regions with connectivity issues
+    DB_RETRY_COUNT: z.coerce.number().min(1).max(10).default(3),
+    DB_TIMEOUT_MS: z.coerce.number().min(5000).max(60000).default(30000),
 });

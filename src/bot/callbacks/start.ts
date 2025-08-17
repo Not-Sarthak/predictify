@@ -27,14 +27,18 @@ export async function handleStartMenuCallbacks(ctx: Context, target: string) {
 export async function handleViewProfileCallback(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
 
+    const { message_id } = await ctx.reply("⚡ Fetching your profile...");
+
     const { data: userData, error: userDataError } = await getUserByIdFromDb(userId);
 
-    if (userDataError) {
-        return ctx.reply("❌ Error fetching User Data");
-    }
+    await ctx.deleteMessage(message_id);
 
     if (!userData) {
         return ctx.reply("❌ User does not exist");
+    }
+
+    if (userDataError) {
+        return ctx.reply("❌ Error fetching User Data");
     }
 
     const { wallet_address, referral_code, number_of_referrals } = userData;
@@ -68,8 +72,8 @@ ${emoji} <b>Lifetime PnL:</b> ${total_pnl.toFixed(3)} USDC
 `;
 
     const toggleButtonTitle = userData.show_username_in_cards
-        ? "❌ Hide Username (PnL Cards)"
-        : "✅ Show Username (PnL Cards)";
+        ? "❌ Hide Username in PnL Cards"
+        : "✅ Show Username in PnL Cards";
 
     const toggleButtonCallbackData = userData.show_username_in_cards
         ? "toggle_show_username:0"

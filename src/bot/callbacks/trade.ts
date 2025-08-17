@@ -1,4 +1,4 @@
-import { CLOSE_BUTTON, TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { TRADE_MENU_BUTTONS } from "../ui/buttons";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -8,7 +8,6 @@ import {
     getUserByIdFromDb,
     getUserIdFromCtx,
     layoutButtons,
-    padButtonText,
     formatOrderBook,
     formatSinglePositionMessage,
     getUsernameFromCtx,
@@ -26,7 +25,6 @@ import {
 } from "../../utils/polymarket/get-markets";
 import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
 import { Markup, type Context } from "telegraf";
-import type { InlineKeyboardButton } from "telegraf/types";
 import axios from "axios";
 import { db } from "../../lib/supabase";
 import { generateClosePositionButton } from "../ui/buttons/trade";
@@ -200,52 +198,6 @@ export async function handleManageTradePositionsCallback(ctx: Context, action: s
             `You Can Enter Any Keyword to Get Relevant Results.`,
         { parse_mode: "Markdown" }
     );
-}
-
-export async function handleFetchMarketWithOffsetCallback(
-    ctx: Context,
-    queryText: string,
-    action: "next" | "prev",
-    offset: number
-) {
-    const newOffset = action === "next" ? offset + 5 : offset - 5;
-
-    const response = await fetch(
-        `https://gamma-api.polymarket.com/events?tag_slug=${queryText}&limit=5&offset=${newOffset}&closed=false`
-    );
-    const marketData = await response.json();
-
-    if (marketData.length == 0) {
-        return ctx.reply("⚠️ There Are No More Markets!");
-    }
-
-    const marketTitleButtons: InlineKeyboardButton[][] = [];
-
-    for (const market of marketData) {
-        marketTitleButtons.push([
-            Markup.button.callback(padButtonText(market.title), `selected_market:${market.id}`),
-        ]);
-    }
-
-    const offsetButtons: InlineKeyboardButton[] = [];
-
-    if (newOffset >= 5) {
-        offsetButtons.push(
-            Markup.button.callback("⏮️ Prev", `fetch_markets:${queryText}:prev:${offset - 5}`)
-        );
-    }
-
-    offsetButtons.push(
-        Markup.button.callback("Next ⏭️", `fetch_markets:${queryText}:next:${offset + 5}`)
-    );
-
-    marketTitleButtons.push(offsetButtons);
-
-    await ctx.editMessageText("Markets: ", {
-        reply_markup: Markup.inlineKeyboard([...marketTitleButtons, [CLOSE_BUTTON]]).reply_markup,
-    });
-
-    await ctx.answerCbQuery();
 }
 
 export async function handleViewTopMarketsByCategory(
@@ -548,6 +500,10 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 
     if (markets.length === 0) {
         return ctx.reply("❌ No Active Markets Available in This Event.");
+    }
+
+    if (markets.length === 1) {
+        return handleViewMarket(ctx, markets[0].id);
     }
 
     let message = `📊 **${escapeMarkdown(title)}**\n\n`;
