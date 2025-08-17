@@ -3,6 +3,7 @@ import { getUserDetails } from "../../helpers/get-user-details";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 import { getUserHistory } from "../../utils/polymarket/get-user-history";
 import { Markup, type Context } from "telegraf";
+import { CLOSE_BUTTON } from "../ui/buttons";
 
 const PAGE_SIZE = 10;
 
@@ -97,6 +98,8 @@ Entry: $${entryPrice.toFixed(4)} • Shares: ${size.toFixed(2)}
                 Markup.button.callback("➡️ Next", `history:${offset + PAGE_SIZE}:${walletAddress}`)
             );
         }
+
+        navButtons.push(CLOSE_BUTTON);
 
         const options = {
             parse_mode: "Markdown" as const,
