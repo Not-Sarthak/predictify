@@ -53,6 +53,8 @@ export interface Market {
     deploying: boolean;
     deployingTimestamp?: string;
     acceptingOrders: boolean;
+    outcomePrices: string; // JSON string array of prices
+    clobTokenIds: string; // JSON string array of token IDs
 }
 
 // Get All Markets

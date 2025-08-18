@@ -9,6 +9,39 @@ import {
 import { CATEGORY_LIST } from "../../shared/constants";
 
 /**
+ * Fetches general markets without category filter to ensure broader coverage
+ */
+async function fetchGeneralMarkets(limit: number = 50): Promise<Market[]> {
+    try {
+        const BASE_URL = "https://gamma-api.polymarket.com/markets";
+
+        // Calculate minimum end date (2 hours from now to exclude 0DTE)
+        const minEndDate = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+        const params = new URLSearchParams({
+            limit: limit.toString(),
+            offset: "0",
+            active: "true",
+            archived: "false",
+            closed: "false",
+            end_date_min: minEndDate, // Exclude 0DTE markets
+            order: "volume24hr",
+            ascending: "false",
+        });
+
+        // console.log(`🔍 [HIGH-PROB] Fetching general markets (no category filter, min end date: ${minEndDate})`);
+        const response = await axios.get(`${BASE_URL}?${params.toString()}`);
+        const markets = response.data.data || response.data || [];
+
+        // console.log(`📊 [HIGH-PROB] Found ${markets.length} general markets`);
+        return markets;
+    } catch (error) {
+        console.error(`❌ [HIGH-PROB] Error fetching general markets:`, error);
+        return [];
+    }
+}
+
+/**
  * Fetches markets from multiple categories using the correct markets API endpoint
  */
 async function fetchMarketsFromCategory(category: string, limit: number = 20): Promise<Market[]> {
@@ -19,6 +52,9 @@ async function fetchMarketsFromCategory(category: string, limit: number = 20): P
         let categorySlug = category.toLowerCase();
         if (categorySlug === "geo-politics") categorySlug = "geopolitics";
 
+        // Calculate minimum end date (2 hours from now to exclude 0DTE)
+        const minEndDate = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
         const params = new URLSearchParams({
             limit: limit.toString(),
             offset: "0",
@@ -26,16 +62,19 @@ async function fetchMarketsFromCategory(category: string, limit: number = 20): P
             archived: "false",
             closed: "false",
             tag: categorySlug, // Use 'tag' instead of 'tag_slug' for markets endpoint
+            end_date_min: minEndDate, // Exclude 0DTE markets
             order: "volume24hr",
             ascending: "false",
         });
 
+        // console.log(`🔍 [HIGH-PROB] Fetching markets from category: ${category} (slug: ${categorySlug}), min end date: ${minEndDate}`);
         const response = await axios.get(`${BASE_URL}?${params.toString()}`);
         const markets = response.data.data || response.data || [];
 
+        // console.log(`📊 [HIGH-PROB] Found ${markets.length} markets in category ${category}`);
         return markets.slice(0, limit);
     } catch (error) {
-        console.error(`❌ Error fetching markets from category ${category}:`, error);
+        console.error(`❌ [HIGH-PROB] Error fetching markets from category ${category}:`, error);
         return [];
     }
 }
@@ -49,34 +88,57 @@ export async function fetchHighProbabilityMarkets(
     limit: number = 50
 ): Promise<HighProbMarket[]> {
     try {
-        // Always exclude crypto - get markets from non-crypto categories only
-        const categoriesToFetch = CATEGORY_LIST.filter((cat) => cat !== "Crypto");
+        // console.log(`🚀 [HIGH-PROB] Starting market fetch with filters:`, {
+        //     timeFilter: filters.timeFilter,
+        //     tradingMode: filters.tradingMode,
+        //     excludeCrypto: filters.excludeCrypto
+        // });
+
+        // Fetch from NON-SPORTS and NON-CRYPTO categories only to avoid unnecessary API calls
+        const allCategories = [...CATEGORY_LIST].filter(
+            (category) => category !== "Sports" && category !== "Crypto"
+        );
+        // console.log(`📂 [HIGH-PROB] Fetching from filtered categories:`, allCategories);
 
         // Fetch markets from different categories in parallel
-        const categoryPromises = categoriesToFetch.map((category) =>
-            fetchMarketsFromCategory(category, 15)
+        const categoryPromises = allCategories.map((category) =>
+            fetchMarketsFromCategory(category, 20)
         );
 
-        const categoryResults = await Promise.all(categoryPromises);
+        // Also fetch general markets without category filter for broader coverage
+        const generalMarketsPromise = fetchGeneralMarkets(100);
+
+        const [generalMarkets, ...categoryResults] = await Promise.all([
+            generalMarketsPromise,
+            ...categoryPromises,
+        ]);
 
         // Combine all markets
-        const allMarkets: Market[] = [];
+        const allMarkets: Market[] = [...generalMarkets];
         for (const markets of categoryResults) {
             allMarkets.push(...markets);
         }
+
+        // console.log(`📊 [HIGH-PROB] Total markets fetched before deduplication: ${allMarkets.length}`);
 
         // Remove duplicates based on market ID
         const uniqueMarkets = allMarkets.filter(
             (market, index, self) => index === self.findIndex((m) => m.id === market.id)
         );
 
+        // console.log(`📊 [HIGH-PROB] Unique markets after deduplication: ${uniqueMarkets.length} (pre-filtered for 0DTE and sports)`);
+
         // Filter and sort high probability markets
         const highProbMarkets = filterHighProbabilityMarkets(uniqueMarkets, filters);
+
+        // console.log(`🎯 [HIGH-PROB] Qualifying markets after filtering: ${highProbMarkets.length}`);
+
+        // Log sample of qualifying markets for debugging
 
         // Return up to the requested limit
         return highProbMarkets.slice(0, limit);
     } catch (error) {
-        console.error("❌ Error fetching high probability markets:", error);
+        console.error("❌ [HIGH-PROB] Error fetching high probability markets:", error);
         return [];
     }
 }
