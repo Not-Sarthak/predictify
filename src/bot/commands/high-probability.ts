@@ -21,15 +21,10 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         return {
             timeFilter:
                 (userFilters.timeFilter as "24h" | "48h") || DEFAULT_HIGH_PROB_FILTERS.timeFilter,
-            minVolume: parseInt(userFilters.minVolume) || DEFAULT_HIGH_PROB_FILTERS.minVolume,
-            minLiquidityWithin2Percent:
-                parseInt(userFilters.minLiquidityWithin2Percent) ||
-                DEFAULT_HIGH_PROB_FILTERS.minLiquidityWithin2Percent,
-            minProbability:
-                parseFloat(userFilters.minProbability) || DEFAULT_HIGH_PROB_FILTERS.minProbability,
-            maxProbability:
-                parseFloat(userFilters.maxProbability) || DEFAULT_HIGH_PROB_FILTERS.maxProbability,
-            excludeCrypto: userFilters.excludeCrypto === "true",
+            tradingMode:
+                (userFilters.tradingMode as "normal" | "degen") ||
+                DEFAULT_HIGH_PROB_FILTERS.tradingMode,
+            excludeCrypto: true, // Always true
         };
     } catch (error) {
         console.error("Error getting user filters:", error);
@@ -38,6 +33,13 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
 }
 
 export async function handleHighProbabilityCommand(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const userFilters = await getUserFilters(userId);
+
+    const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
+    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const modeText = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
+
     const keyboard = Markup.inlineKeyboard([
         [
             Markup.button.callback("📈 View Markets (24h)", "highprob:view:24h"),
@@ -56,14 +58,15 @@ export async function handleHighProbabilityCommand(ctx: Context) {
     const message = `
 🎯 **High-Probability Markets Trading**
 
-Target markets with 85-95% probability expiring within 24-48 hours for lower-risk opportunities.
+Target markets with ${minProb}-${maxProb}% probability expiring within 24-48 hours for lower-risk opportunities.
 
 **Current Filters:**
-• **Time:** 24 hours (default)
-• **Min Volume:** $70,000
-• **Min Liquidity:** $200 within 2% spread
-• **Probability:** 85% - 95%
+• **Time:** ${userFilters.timeFilter}
+• **Probability:** ${minProb}% - ${maxProb}% (${modeText})
 • **Crypto Markets:** Excluded
+• **Sports Markets:** Excluded
+• **0DTE Markets:** Excluded (< 1 hour)
+• **Resolved Markets:** Excluded (100% probability)
 
 Choose an option below to get started:
     `;
@@ -95,13 +98,17 @@ export async function handleViewHighProbMarkets(
         await ctx.deleteMessage(msg.message_id);
 
         if (markets.length === 0) {
+            const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
+            const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+
             return ctx.reply(
                 `📊 **No High-Probability Markets Found**\n\n` +
                     `No markets currently meet the criteria:\n` +
                     `• Time: ${timeFilter}\n` +
-                    `• Volume: ≥$70,000\n` +
-                    `• Probability: 85-95%\n` +
-                    `• Sufficient liquidity\n\n` +
+                    `• Probability: ${minProb}-${maxProb}%\n` +
+                    `• No crypto or sports markets\n` +
+                    `• No 0DTE markets (< 1 hour)\n` +
+                    `• No resolved markets (100%)\n\n` +
                     `Try adjusting the filters or check back later.`,
                 {
                     parse_mode: "Markdown",
@@ -221,19 +228,24 @@ export async function handleHighProbHelp(ctx: Context) {
 ❓ **High-Probability Markets Explained**
 
 **What are High-Probability Markets?**
-Markets with 85-95% probability of a specific outcome, expiring within 24-48 hours.
+Markets with moderate to high probability outcomes, expiring within 24-48 hours.
 
-**Why This Range?**
-• **Above 95%:** Minimal profit potential after slippage
-• **Below 85%:** Higher risk territory
+**Trading Modes & Probability Ranges:**
+• **Conservative Mode:** 60-85% probability (safer, steadier returns)
+• **Aggressive Mode:** 80-95% probability (higher confidence, lower returns)
+
+**Why These Ranges?**
+• **Conservative (60-85%):** Better risk/reward balance, more opportunities
+• **Aggressive (80-95%):** Higher confidence but limited profit after slippage
 • **24-48h expiry:** Quick resolution, lower time risk
 
 **Quality Filters:**
-• **Min Volume:** $70,000+ (ensures market activity)
-• **Liquidity:** $200+ within 2% spread (better execution)
-• **No Crypto:** Excludes volatile crypto markets
+• **No Sports:** Excludes sports markets which can be unpredictable
+• **No Crypto:** Excludes volatile crypto price prediction markets
+• **No 0DTE:** Excludes markets with less than 1 hour remaining
+• **No Resolved:** Excludes markets already at 100% probability
 
-**Trading Modes:**
+**Trading Options:**
 • **Auto-Split:** Equal distribution across top markets
 • **Manual:** Select specific markets yourself
 

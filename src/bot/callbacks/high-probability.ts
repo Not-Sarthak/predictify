@@ -360,8 +360,10 @@ export async function handleFiltersMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const userFilters = await getUserFilters(userId);
 
-    const probabilityThreshold = userFilters.tradingMode === "normal" ? "≥95%" : "≥85%";
-    const riskLevel = userFilters.tradingMode === "normal" ? "Lower Risk" : "Higher Risk";
+    const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
+    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const probabilityRange = `${minProb}-${maxProb}%`;
+    const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
     // Create ticks for selected options
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
@@ -378,10 +380,13 @@ export async function handleFiltersMenu(ctx: Context) {
 
 **Current Settings:**
 • **Time Filter:** ${userFilters.timeFilter}
-• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Normal" : "Degen"}
-• **Probability:** ${probabilityThreshold}
+• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive"}
+• **Probability:** ${probabilityRange}
 • **Risk Level:** ${riskLevel}
 • **Crypto Markets:** Excluded (permanently)
+• **Sports Markets:** Excluded (permanently)
+• **0DTE Markets:** Excluded (< 1 hour)
+• **Resolved Markets:** Excluded (100% probability)
 ${alertStatus}
 
 **Filter Options:**
@@ -394,17 +399,17 @@ ${alertStatus}
         ],
         [
             Markup.button.callback(
-                `${modeTickNormal} Normal Mode (≥95%)`,
+                `${modeTickNormal} Conservative Mode`,
                 "highprob:filter:mode:normal"
             ),
             Markup.button.callback(
-                `${modeTickDegen} Degen Mode (≥85%)`,
+                `${modeTickDegen} Aggressive Mode`,
                 "highprob:filter:mode:degen"
             ),
         ],
-        [Markup.button.callback("� Toggle Alerts", "highprob:filter:alerts:toggle")],
+        [Markup.button.callback("🔔 Toggle Alerts", "highprob:filter:alerts:toggle")],
         [
-            Markup.button.callback("�🔄 Test Filters", "highprob:view:24h"),
+            Markup.button.callback("🔄 Test Filters", `highprob:view:${userFilters.timeFilter}`),
             Markup.button.callback("🔙 Back to Menu", "highprob:menu"),
         ],
     ]);
@@ -467,8 +472,10 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
 }
 
 async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
-    const probabilityThreshold = userFilters.tradingMode === "normal" ? "≥95%" : "≥85%";
-    const riskLevel = userFilters.tradingMode === "normal" ? "Lower Risk" : "Higher Risk";
+    const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
+    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const probabilityRange = `${minProb}-${maxProb}%`;
+    const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
     // Create ticks for selected options
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
@@ -486,10 +493,13 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
 
 **Current Settings:**
 • **Time Filter:** ${userFilters.timeFilter}
-• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Normal" : "Degen"}
-• **Probability:** ${probabilityThreshold}
+• **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive"}
+• **Probability:** ${probabilityRange}
 • **Risk Level:** ${riskLevel}
 • **Crypto Markets:** Excluded (permanently)
+• **Sports Markets:** Excluded (permanently)
+• **0DTE Markets:** Excluded (< 1 hour)
+• **Resolved Markets:** Excluded (100% probability)
 ${alertStatus}
 
 **Filter Options:**
@@ -502,17 +512,17 @@ ${alertStatus}
         ],
         [
             Markup.button.callback(
-                `${modeTickNormal} Normal Mode (≥95%)`,
+                `${modeTickNormal} Conservative Mode`,
                 "highprob:filter:mode:normal"
             ),
             Markup.button.callback(
-                `${modeTickDegen} Degen Mode (≥85%)`,
+                `${modeTickDegen} Aggressive Mode`,
                 "highprob:filter:mode:degen"
             ),
         ],
-        [Markup.button.callback("� Toggle Alerts", "highprob:filter:alerts:toggle")],
+        [Markup.button.callback("🔔 Toggle Alerts", "highprob:filter:alerts:toggle")],
         [
-            Markup.button.callback("�🔄 Test Filters", "highprob:view:24h"),
+            Markup.button.callback("🔄 Test Filters", `highprob:view:${userFilters.timeFilter}`),
             Markup.button.callback("🔙 Back to Menu", "highprob:menu"),
         ],
     ]);
