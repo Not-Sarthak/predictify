@@ -22,6 +22,7 @@ import {
     handleRefreshTopMarkets,
     handleShowZeroDTEMarketsByCategory,
     handleGeneratePortfolioCard,
+    handleShowCurrentHour0DTEMarkets,
 } from "./trade";
 import { getMarketById } from "../../utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "../utils";
@@ -360,6 +361,14 @@ export async function handleCallbackQuery(ctx: Context) {
             parse_mode: "HTML",
             ...keyboard,
         });
+    }
+
+    if (data === "view_hourly_0dte_markets") {
+        return handleShowCurrentHour0DTEMarkets(ctx);
+    }
+
+    if (data === "current_btc_hourly_markets") {
+        return handleShowCurrentHour0DTEMarkets(ctx);
     }
 
     if (data.startsWith("zero_dte_category:")) {

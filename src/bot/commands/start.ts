@@ -5,7 +5,6 @@ import { getUserByIdFromDb } from "../utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { generateWelcomeMessage } from "../ui/messages";
 import { MAIN_MENU_BUTTONS } from "../ui/buttons";
-import { setUserInputState } from "../input/state";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { encryptPrivateKey } from "../../utils/crypto";
@@ -16,26 +15,31 @@ import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { trackReferralRelationship } from "../../utils/referral/referral-tracker";
 
 export async function handleStartCommand(ctx: Context) {
-    console.log("[START] Command received from user:", ctx.from?.id, ctx.from?.username);
-    const userId = getUserIdFromCtx(ctx);
-    console.log("[START] Processing for user ID:", userId);
+    const iMsg1 = await ctx.reply("⚡ Looking for your profile...");
 
+    const userId = getUserIdFromCtx(ctx);
     const referrerUsername =
         ctx.message && "text" in ctx.message ? ctx.message.text.split(" ")[1] : undefined;
 
     const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
+    await ctx.deleteMessage(iMsg1.message_id);
+
     if (dbError) {
         console.error(`[START] Database error for user ${userId}:`, dbError);
         return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
     }
 
     if (existingUser) {
+        const iMsg2 = await ctx.reply("⚡ Fetching your profile data...");
+
         const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(existingUser.wallet_address),
             getUserDetails(userId),
             getSOLBalance(existingUser.solana_address!),
             getLockedBalance(userId),
         ]);
+
+        await ctx.deleteMessage(iMsg2.message_id);
 
         if (!user) {
             return ctx.reply("❌ Internal Server Error");
@@ -55,6 +59,8 @@ export async function handleStartCommand(ctx: Context) {
             reply_markup: keyboard.reply_markup,
         });
     }
+
+    const iMsg3 = await ctx.reply("⚡ Creating your account...");
 
     // Create new user
     try {
@@ -96,10 +102,14 @@ export async function handleStartCommand(ctx: Context) {
             },
         ]);
 
+        await ctx.deleteMessage(iMsg3.message_id);
+
         if (insertError) {
             console.error(`[START] Error creating user ${userId}:`, insertError);
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }
+
+        const iMsg4 = await ctx.reply("⚡ Fetching your profile data...");
 
         const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(address),
@@ -107,6 +117,8 @@ export async function handleStartCommand(ctx: Context) {
             getSOLBalance(solanaAddress),
             getLockedBalance(userId),
         ]);
+
+        await ctx.deleteMessage(iMsg4.message_id);
 
         if (!user) {
             return ctx.reply("❌ Internal Server Error");

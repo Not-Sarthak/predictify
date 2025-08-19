@@ -12,28 +12,28 @@ import { startHighProbAlerts } from "./notifier/high-prob-alerts";
 
 async function main() {
     // CRON JOB: Fetch New Markets every 12 Hours
-    notifier.start();
-    console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
+    // notifier.start();
+    // console.log(`[${new Date().toISOString()}] ✅ Started Cron Job...`);
 
     // Restores Watchers
-    await restorePriceWatchersFromRedis();
-    console.log(`[${new Date().toISOString()}] ✅ Restored Price Alert Watchers...`);
+    // await restorePriceWatchersFromRedis();
+    // console.log(`[${new Date().toISOString()}] ✅ Restored Price Alert Watchers...`);
 
-    await restoreTpSlWatchersFromRedis();
-    console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
+    // await restoreTpSlWatchersFromRedis();
+    // console.log(`[${new Date().toISOString()}] ✅ Restored TP/SL Watchers...`);
 
-    await restoreUserTradeWatchers();
-    console.log(`[${new Date().toISOString()}] ✅ Restored Limit Order Watchers...`);
+    // await restoreUserTradeWatchers();
+    // console.log(`[${new Date().toISOString()}] ✅ Restored Limit Order Watchers...`);
 
     // Start High-Probability Market Alerts
-    startHighProbAlerts();
-    console.log(`[${new Date().toISOString()}] ✅ Started High-Probability Market Alerts...`);
+    // startHighProbAlerts();
+    // console.log(`[${new Date().toISOString()}] ✅ Started High-Probability Market Alerts...`);
 
     /**
      * COPY TRADING SYSTEM
      * Initialize the wallet monitoring and copy trading functionality
      */
-    await initializeCopyTrading();
+    // await initializeCopyTrading();
 
     // Initialize Telegram Bot w/ Webhook
     bot.launch(

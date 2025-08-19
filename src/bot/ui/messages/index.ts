@@ -256,12 +256,21 @@ export async function generate0DTEMarketCategoryKeyboard() {
         Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
     );
 
+    const HOURLY_0DTE_MARKET_BUTTON = Markup.button.callback(
+        "⚡ Hourly Markets",
+        "view_hourly_0dte_markets"
+    );
+
     const keyboardLayout = [];
     for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
         keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
     }
 
-    const keyboard = Markup.inlineKeyboard([...keyboardLayout, [CLOSE_BUTTON]]);
+    const keyboard = Markup.inlineKeyboard([
+        [HOURLY_0DTE_MARKET_BUTTON],
+        ...keyboardLayout,
+        [CLOSE_BUTTON],
+    ]);
 
     return keyboard;
 }
