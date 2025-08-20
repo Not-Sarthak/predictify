@@ -1442,8 +1442,6 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
 }
 
 export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
-    const msg = await ctx.reply("⚡ Fetching Hourly Markets...");
-
     const LIMIT = 8;
 
     // Current ET hour window
@@ -1455,8 +1453,6 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const currentHourETString = `${currentHourLabel} ET`;
 
     let message = `⏰ *Hourly (Current ${currentHourETString})*\n\n`;
-
-    await ctx.deleteMessage(msg.message_id);
 
     let hourlyMarkets: any[] = [];
     try {
@@ -1502,7 +1498,7 @@ ${priceInfo}💧 Volume: ${fVol}
     }
 
     const marketButtons = hourlyMarkets.map((market, idx) =>
-        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+        Markup.button.callback(`#${idx + 1}`, `view_market:${market.id}`)
     );
 
     const marketButtonsLayout = layoutButtons(marketButtons);
