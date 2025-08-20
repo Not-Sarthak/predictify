@@ -10,11 +10,13 @@ This is a Telegram bot for trading on Polymarket, integrating with their CLOB AP
 
 - **Runtime**: Bun (development), Node.js (production)
 - **Language**: TypeScript with strict mode
+- **Package Manager**: pnpm (as specified in package.json)
 - **Bot Framework**: Telegraf
-- **API Server**: Fastify
 - **Database**: Supabase (PostgreSQL)
 - **Cache**: Redis
 - **Blockchain**: Ethers.js for Ethereum/Polygon
+- **Build Tool**: tsup
+- **UI Rendering**: React with Satori for image generation
 
 ## Development Commands
 
@@ -39,13 +41,14 @@ bun run format:check    # Check formatting
 ### Database
 
 ```bash
-bun run db:typegen      # Generate TypeScript types from Supabase schema
+bun run scripts/supabase-typegen.ts    # Generate TypeScript types from Supabase schema
 ```
 
 ### Deployment
 
 ```bash
-bun run set:wh          # Set Telegram webhook
+bun run set:wh          # Set Telegram webhook (prod)
+bun run set:wh -s       # Set Telegram webhook (staging)
 ```
 
 ## Architecture Overview
@@ -57,23 +60,28 @@ bun run set:wh          # Set Telegram webhook
     - `callbacks/` - Button callback handlers
     - `ui/` - UI components and message formatting
     - `middlewares/` - Bot middleware (auth, error handling)
-- `src/api/` - Fastify REST API server
 - `src/utils/` - Utility functions
     - `polymarket/` - Polymarket-specific operations
     - `polymarket-order/` - Order management logic
     - `debridge/` - Cross-chain bridging
+    - `components/` - React components for UI rendering
 - `src/watcher/` - Real-time monitoring for copy trading
+- `src/notifier/` - Notification system and cron jobs
+- `src/helpers/` - Helper utilities for contract operations
 - `src/config/` - Environment configuration with Zod validation
-- `src/types/` - TypeScript type definitions
+- `src/types/` - TypeScript type definitions including Supabase generated types
 - `src/shared/` - Shared constants, ABIs, errors
+- `src/lib/` - External service configurations (Redis, Supabase)
 
 ### Key Patterns
 
 1. **State Management**: Uses Sets for tracking user input states, Redis for sessions
-2. **Error Handling**: Custom error classes (APIError, DBError) with global handlers
+2. **Error Handling**: Custom error classes (APIError, DBError) with global handlers  
 3. **Type Safety**: Comprehensive TypeScript usage with generated Supabase types
 4. **Security**: Private key encryption, environment-based config
 5. **Real-time**: Supabase subscriptions for copy trading updates
+6. **Service Architecture**: Single main process managing bot, notifier, watchers, and alerts
+7. **Webhook-based**: Uses Telegram webhooks instead of polling for better performance
 
 ### Database Schema
 
@@ -91,6 +99,9 @@ bun run set:wh          # Set Telegram webhook
 - `/subscriptions` - Market notifications
 - `/settings` - User preferences
 - `/ref` - Referral program
+- `/highprob` - High-probability market filtering and trading
+- `/watchlist` - Market watchlist management
+- `/history` - Trading history
 
 ### Environment Variables
 
@@ -134,14 +145,16 @@ Currently no automated tests. Manual testing through:
 
 ### Deployment
 
-- Docker-based deployment
-- GitHub Actions CI/CD pipeline
-- Webhook-based bot updates (not polling)
-- Separate API server on port 4000
+- Single-process architecture (no separate API server)
+- Webhook-based bot updates (not polling) on configurable port
+- Environment-specific webhook configuration (prod/staging)
+- Service management includes notification system, watchers, and alerts restoration
 
 ### Important Notes
 
 - Always encrypt private keys before storage
 - Use environment variables for sensitive data
 - Follow existing code patterns for consistency
-- Check README.md for current development priorities
+- When working with Supabase types, regenerate them if schema changes
+- The application requires PROJECT_ID and SUPABASE_ACCESS_TOKEN for type generation
+- Check README.md for current development priorities and TODOs
