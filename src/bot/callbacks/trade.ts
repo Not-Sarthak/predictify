@@ -11,6 +11,7 @@ import {
     formatOrderBook,
     formatSinglePositionMessage,
     getUsernameFromCtx,
+    detectSymbolFromSlug,
 } from "../utils";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserDetails } from "../../helpers/get-user-details";
@@ -46,6 +47,7 @@ import {
     type PriceWatchConfig,
 } from "../../notifier/ws/price-watcher";
 import { DateTime } from "luxon";
+import { getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1440,6 +1442,8 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
 }
 
 export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
+    const msg = await ctx.reply("⚡ Fetching Hourly Markets...");
+
     const LIMIT = 8;
 
     // Current ET hour window
@@ -1447,36 +1451,23 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const currentHourET = nowET.startOf("hour");
     const nextHourET = currentHourET.plus({ hours: 1 });
 
-    const currentHourLabel = currentHourET.toFormat("ha").toUpperCase(); // e.g. "6AM"
+    const currentHourLabel = currentHourET.toFormat("ha").toUpperCase();
     const currentHourETString = `${currentHourLabel} ET`;
 
-    let message = `⏰ *BTC Hourly (Current ${currentHourETString})*\n\n`;
+    let message = `⏰ *Hourly (Current ${currentHourETString})*\n\n`;
 
-    // Fetch BTC hourly markets (tag_id=102175)
-    const url = new URL("https://gamma-api.polymarket.com/markets");
-    url.searchParams.set("tag_id", "102175");
-    url.searchParams.set("active", "true");
-    url.searchParams.set("closed", "false");
-    url.searchParams.set("archived", "false");
-    url.searchParams.set("limit", "200");
+    await ctx.deleteMessage(msg.message_id);
 
-    const res = await fetch(url);
-    if (!res.ok) {
-        console.error("❌ Failed to fetch BTC hourly markets", await res.text());
-        return ctx.reply("⚠️ Failed to load BTC hourly markets.");
+    let hourlyMarkets: any[] = [];
+    try {
+        hourlyMarkets = await fetchHourlyMarkets(currentHourET, nextHourET);
+    } catch (err) {
+        console.error(err);
+        return ctx.reply("⚠️ Failed to load hourly markets.");
     }
 
-    const markets: any[] = await res.json();
-
-    // Filter by eventStartTime in current hour
-    const hourlyMarkets = markets.filter((m) => {
-        if (!m.eventStartTime) return false;
-        const evTime = DateTime.fromISO(m.eventStartTime);
-        return evTime >= currentHourET.toUTC() && evTime < nextHourET.toUTC();
-    });
-
     if (hourlyMarkets.length === 0) {
-        return ctx.reply(`⚠️ No BTC Hourly Markets for ${currentHourETString}`);
+        return ctx.reply(`⚠️ No Hourly Markets for ${currentHourETString}`);
     }
 
     for (let i = 0; i < hourlyMarkets.length && i < LIMIT; i++) {
@@ -1489,9 +1480,22 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
             .toFormat("ha")
             .toUpperCase();
 
+        const symbol = detectSymbolFromSlug(market.slug);
+
+        let priceInfo = "";
+        if (symbol) {
+            try {
+                const tokenPrice = await getTokenPriceAtMarketStart(symbol, market.eventStartTime);
+                priceInfo = `💰 ${symbol.replace("USDT", "")}: $${tokenPrice.toLocaleString()}\n`;
+            } catch (err) {
+                console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
+                priceInfo = `💰 ${symbol.replace("USDT", "")}: N/A\n`;
+            }
+        }
+
         message += `${i + 1}. *${escapeMarkdown(market.question)}*
 🕒 Start: ${startLabel} ET
-💧 Volume: ${fVol}
+${priceInfo}💧 Volume: ${fVol}
 ⌛ Ends: ${fDate}
 
 `;
@@ -1525,4 +1529,44 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
         parse_mode: "Markdown",
         reply_markup: keyboard.reply_markup,
     });
+}
+
+async function fetchHourlyMarkets(currentHourET: DateTime, nextHourET: DateTime) {
+    const cacheKey = `hourly:markets:${currentHourET.toISO()}`;
+
+    // Try Redis cache
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+        return JSON.parse(cached);
+    }
+
+    // Otherwise fetch from Polymarket API
+    const url = new URL("https://gamma-api.polymarket.com/markets");
+    url.searchParams.set("tag_id", "102175");
+    url.searchParams.set("active", "true");
+    url.searchParams.set("closed", "false");
+    url.searchParams.set("archived", "false");
+    url.searchParams.set("limit", "200");
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error(`Failed to fetch hourly markets: ${await res.text()}`);
+    }
+
+    const markets: any[] = await res.json();
+
+    // Filter markets in current hour
+    const hourlyMarkets = markets.filter((m) => {
+        if (!m.eventStartTime) return false;
+        const evTime = DateTime.fromISO(m.eventStartTime);
+        return evTime >= currentHourET.toUTC() && evTime < nextHourET.toUTC();
+    });
+
+    // Cache until the end of this hour
+    const ttlSeconds = Math.floor(nextHourET.diffNow("seconds").seconds);
+    if (hourlyMarkets.length > 0) {
+        await redisClient.setEx(cacheKey, ttlSeconds, JSON.stringify(hourlyMarkets));
+    }
+
+    return hourlyMarkets;
 }

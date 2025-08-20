@@ -1,8 +1,17 @@
+import type { Symbols } from "../../utils/binance/binance";
+
 import { getMarketOrderBook } from "../../utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { createPaginationKeyboard } from "../ui/messages";
+
+const SYMBOL_MAP: Record<string, Symbols> = {
+    bitcoin: "BTCUSDT",
+    ethereum: "ETHUSDT",
+    solana: "SOLUSDT",
+    xrp: "XRPUSDT",
+};
 
 export function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -213,4 +222,9 @@ ${statusLine}
     const markup = await createPaginationKeyboard(conditionId, index, total, userId, outcomeIndex);
 
     return { text, markup };
+}
+
+export function detectSymbolFromSlug(slug: string): Symbols | null {
+    const coin = slug.split("-")[0];
+    return SYMBOL_MAP[coin];
 }
