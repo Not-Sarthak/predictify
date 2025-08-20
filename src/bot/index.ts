@@ -11,7 +11,6 @@ import {
     handleWatchlistCommand,
     handleHighProbabilityCommand,
     handleRefCommand,
-    handleHealthCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "./callbacks";
@@ -31,11 +30,7 @@ bot.use(requireId);
 bot.use(rejectBotSenders);
 
 // Command Handlers
-console.log("[BOT] Registering command handlers...");
-bot.command("start", (ctx) => {
-    console.log("[BOT] Start command triggered");
-    return handleStartCommand(ctx);
-});
+bot.command("start", handleStartCommand);
 bot.command("subscriptions", handleSubscriptionsCommand);
 bot.command("trade", handleTradeCommand);
 bot.command("autotrade", handleAutoTradeMenu);
@@ -47,11 +42,7 @@ bot.command("stats", handleViewProfileCallback);
 bot.command("watchlist", (ctx) => handleWatchlistCommand(ctx));
 bot.command("highprob", handleHighProbabilityCommand);
 bot.command("ref", handleRefCommand);
-bot.command("health", handleHealthCommand);
-bot.command("monitoring", async (ctx) => {
-    return handleMonitoringStats(ctx);
-});
-console.log("[BOT] Command handlers registered");
+bot.command("monitoring", handleMonitoringStats);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);

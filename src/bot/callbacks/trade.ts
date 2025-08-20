@@ -45,6 +45,7 @@ import {
     stopAllTpSlWatchers,
     type PriceWatchConfig,
 } from "../../notifier/ws/price-watcher";
+import { DateTime } from "luxon";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1436,4 +1437,92 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
             caption: `📊 Portfolio Summary for @${user.telegram_username}`,
         }
     );
+}
+
+export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
+    const LIMIT = 8;
+
+    // Current ET hour window
+    const nowET = DateTime.now().setZone("America/New_York");
+    const currentHourET = nowET.startOf("hour");
+    const nextHourET = currentHourET.plus({ hours: 1 });
+
+    const currentHourLabel = currentHourET.toFormat("ha").toUpperCase(); // e.g. "6AM"
+    const currentHourETString = `${currentHourLabel} ET`;
+
+    let message = `⏰ *BTC Hourly (Current ${currentHourETString})*\n\n`;
+
+    // Fetch BTC hourly markets (tag_id=102175)
+    const url = new URL("https://gamma-api.polymarket.com/markets");
+    url.searchParams.set("tag_id", "102175");
+    url.searchParams.set("active", "true");
+    url.searchParams.set("closed", "false");
+    url.searchParams.set("archived", "false");
+    url.searchParams.set("limit", "200");
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.error("❌ Failed to fetch BTC hourly markets", await res.text());
+        return ctx.reply("⚠️ Failed to load BTC hourly markets.");
+    }
+
+    const markets: any[] = await res.json();
+
+    // Filter by eventStartTime in current hour
+    const hourlyMarkets = markets.filter((m) => {
+        if (!m.eventStartTime) return false;
+        const evTime = DateTime.fromISO(m.eventStartTime);
+        return evTime >= currentHourET.toUTC() && evTime < nextHourET.toUTC();
+    });
+
+    if (hourlyMarkets.length === 0) {
+        return ctx.reply(`⚠️ No BTC Hourly Markets for ${currentHourETString}`);
+    }
+
+    for (let i = 0; i < hourlyMarkets.length && i < LIMIT; i++) {
+        const market = hourlyMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVol = formatDollarVolume(market.volumeNum || 0);
+
+        const startLabel = DateTime.fromISO(market.eventStartTime)
+            .setZone("America/New_York")
+            .toFormat("ha")
+            .toUpperCase();
+
+        message += `${i + 1}. *${escapeMarkdown(market.question)}*
+🕒 Start: ${startLabel} ET
+💧 Volume: ${fVol}
+⌛ Ends: ${fDate}
+
+`;
+    }
+
+    const marketButtons = hourlyMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        ...marketButtonsLayout,
+        [Markup.button.callback("🔄 Refresh", `current_btc_hourly_markets`)],
+        [Markup.button.callback("❌ Close", "close_message")],
+    ]);
+
+    if (
+        "callbackQuery" in ctx &&
+        (ctx.callbackQuery as any).data === "current_btc_hourly_markets"
+    ) {
+        return ctx
+            .editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            })
+            .catch(() => {});
+    }
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }
