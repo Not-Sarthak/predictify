@@ -10,17 +10,24 @@ import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { executeSwap, getQuote } from "../../utils/uniswap";
 import { ethers } from "ethers";
 import { Markup, type Context } from "telegraf";
+import { generateTranslatedWalletSettingsMenu } from "../ui/buttons/translated";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 export async function handleSettingsMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(WALLET_SETTINGS_MENU).reply_markup);
 }
 
 export async function handleWalletSettingsMenu(ctx: Context) {
-    return getFundMessage(ctx);
+    const userId = getUserIdFromCtx(ctx);
+    const translatedButtons = await generateTranslatedWalletSettingsMenu(userId);
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(translatedButtons).reply_markup);
 }
 
 export async function handleResetWallet(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+
     const { address, privateKey, solanaAddress, solanaPrivateKey, apiCreds } =
         await generateAPIKeyAndWallet({ host: HOST, chainId: CHAIN_ID });
 
@@ -40,10 +47,10 @@ export async function handleResetWallet(ctx: Context) {
         }
     } catch (error) {
         console.error("Failed to update user wallet details in db: ", error);
-        return ctx.reply("❌ Internal Server Error");
+        return ctx.reply(t("internalServerError", language));
     }
 
-    return ctx.reply("✅ Wallet Reset Successfully");
+    return ctx.reply(t("walletReset", language));
 }
 
 export async function handleSwapFundsQuoteCallback(ctx: Context) {

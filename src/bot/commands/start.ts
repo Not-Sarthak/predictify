@@ -4,7 +4,7 @@ import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
 import { getUserByIdFromDb } from "../utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { generateWelcomeMessage } from "../ui/messages";
-import { MAIN_MENU_BUTTONS } from "../ui/buttons";
+import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { encryptPrivateKey } from "../../utils/crypto";
@@ -52,7 +52,8 @@ export async function handleStartCommand(ctx: Context) {
             solBalance,
             lockedBalance
         );
-        const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
+        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+        const keyboard = Markup.inlineKeyboard(translatedButtons);
 
         return ctx.reply(message, {
             parse_mode: "HTML",
@@ -138,7 +139,8 @@ export async function handleStartCommand(ctx: Context) {
             message += `Both you and your referrer will earn from your trading activity! 💰`;
         }
 
-        const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
+        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+        const keyboard = Markup.inlineKeyboard(translatedButtons);
 
         return ctx.reply(message, {
             parse_mode: "HTML",
