@@ -14,6 +14,7 @@ export const MAIN_MENU_BUTTONS = [
         Markup.button.callback("💼 Wallet/Funds", "settings:wallet"),
         Markup.button.callback("👤 View Profile", "view_profile"),
     ],
+    [Markup.button.callback("🌐 Language", "language_settings")],
 ];
 
 export const SUBSCRIPTIONS_MENU_BUTTONS = [

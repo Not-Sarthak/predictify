@@ -51,6 +51,7 @@ import {
     handleSwapFundsQuoteCallback,
     handleWalletSettingsMenu,
 } from "./settings";
+import { handleLanguageSettings, handleLanguageSelection } from "./language";
 import { handleExportPrivateKey } from "../utils/database/export-user-private-key";
 import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
 import {
@@ -60,7 +61,8 @@ import {
 } from "../../utils/debridge/functions/bridge-handler";
 import { handleHighProbCallbackQuery } from "./high-probability";
 import { redisClient } from "../../lib/redis";
-import { CLOSE_BUTTON, MAIN_MENU_BUTTONS } from "../ui/buttons";
+import { CLOSE_BUTTON } from "../ui/buttons";
+import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { Markup, type Context } from "telegraf";
 import {
     handleToggleCopyTradeStatus,
@@ -159,9 +161,11 @@ export async function handleCallbackQuery(ctx: Context) {
             lockedBalance
         );
 
+        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+
         await ctx.editMessageText(message, {
             parse_mode: "HTML",
-            reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
+            reply_markup: Markup.inlineKeyboard(translatedButtons).reply_markup,
         });
         return;
     }
@@ -339,6 +343,16 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "reset_wallet") {
         return handleResetWallet(ctx);
+    }
+
+    // Handle language settings callbacks
+    if (data === "language_settings") {
+        return handleLanguageSettings(ctx);
+    }
+
+    if (data.startsWith("set_language:")) {
+        const language = data.split(":")[1];
+        return handleLanguageSelection(ctx, language);
     }
 
     if (data.startsWith("selected_market:")) {
@@ -689,9 +703,11 @@ export async function handleCallbackQuery(ctx: Context) {
             lockedBalance
         );
 
+        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+
         return ctx.editMessageText(message, {
             parse_mode: "HTML",
-            reply_markup: Markup.inlineKeyboard(MAIN_MENU_BUTTONS).reply_markup,
+            reply_markup: Markup.inlineKeyboard(translatedButtons).reply_markup,
         });
     }
 
