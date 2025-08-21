@@ -7,7 +7,7 @@ import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { encryptPrivateKey } from "../../utils/crypto";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
-import { MAIN_MENU_BUTTONS } from "../ui/buttons";
+import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { generateRandomString } from "../../utils/encoding";
 import { clearUserInputState } from "../input/state";
 
@@ -84,7 +84,8 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
     const balance = await getUserWrappedUSDCBalance(address);
     const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
 
-    const keyboard = Markup.inlineKeyboard(MAIN_MENU_BUTTONS);
+    const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+    const keyboard = Markup.inlineKeyboard(translatedButtons);
 
     // Send custom welcome message
     const customWelcomeMessage = `Welcome to Predictify
