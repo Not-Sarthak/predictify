@@ -47,7 +47,7 @@ import {
     type PriceWatchConfig,
 } from "../../notifier/ws/price-watcher";
 import { DateTime } from "luxon";
-import { getTokenPriceAtMarketStart } from "../../utils/binance/binance";
+import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 
 export async function handleTradeMenu(ctx: Context) {
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
@@ -1468,37 +1468,19 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
 
     for (let i = 0; i < hourlyMarkets.length && i < LIMIT; i++) {
         const market = hourlyMarkets[i];
-        const fDate = formatDate(market.endDate);
+        const endTime = DateTime.fromISO(market.endDate);
+        const minutesLeft = Math.max(0, Math.floor(endTime.diffNow("minutes").minutes));
         const fVol = formatDollarVolume(market.volumeNum || 0);
 
-        const startLabel = DateTime.fromISO(market.eventStartTime)
-            .setZone("America/New_York")
-            .toFormat("ha")
-            .toUpperCase();
-
-        const symbol = detectSymbolFromSlug(market.slug);
-
-        let priceInfo = "";
-        if (symbol) {
-            try {
-                const tokenPrice = await getTokenPriceAtMarketStart(symbol, market.eventStartTime);
-                priceInfo = `💰 ${symbol.replace("USDT", "")}: $${tokenPrice.toLocaleString()}\n`;
-            } catch (err) {
-                console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
-                priceInfo = `💰 ${symbol.replace("USDT", "")}: N/A\n`;
-            }
-        }
-
         message += `${i + 1}. *${escapeMarkdown(market.question)}*
-🕒 Start: ${startLabel} ET
-${priceInfo}💧 Volume: ${fVol}
-⌛ Ends: ${fDate}
+💧 Volume: ${fVol}
+⌛ Time left: ${minutesLeft} minutes
 
 `;
     }
 
     const marketButtons = hourlyMarkets.map((market, idx) =>
-        Markup.button.callback(`#${idx + 1}`, `view_market:${market.id}`)
+        Markup.button.callback(`#${idx + 1}`, `view_hourly_market:${market.id}`)
     );
 
     const marketButtonsLayout = layoutButtons(marketButtons);
@@ -1565,4 +1547,191 @@ async function fetchHourlyMarkets(currentHourET: DateTime, nextHourET: DateTime)
     }
 
     return hourlyMarkets;
+}
+
+export async function handleShowCurrentHour0DTEMarkets1(ctx: Context) {
+    const LIMIT = 8;
+
+    // Current ET hour window
+    const nowET = DateTime.now().setZone("America/New_York");
+    const currentHourET = nowET.startOf("hour");
+    const nextHourET = currentHourET.plus({ hours: 1 });
+
+    const currentHourLabel = currentHourET.toFormat("ha").toUpperCase();
+    const currentHourETString = `${currentHourLabel} ET`;
+
+    let message = `⏰ *Hourly (Current ${currentHourETString})*\n\n`;
+
+    let hourlyMarkets: any[] = [];
+    try {
+        hourlyMarkets = await fetchHourlyMarkets(currentHourET, nextHourET);
+    } catch (err) {
+        console.error(err);
+        return ctx.reply("⚠️ Failed to load hourly markets.");
+    }
+
+    if (hourlyMarkets.length === 0) {
+        return ctx.reply(`⚠️ No Hourly Markets for ${currentHourETString}`);
+    }
+
+    for (let i = 0; i < hourlyMarkets.length && i < LIMIT; i++) {
+        const market = hourlyMarkets[i];
+        const fDate = formatDate(market.endDate);
+        const fVol = formatDollarVolume(market.volumeNum || 0);
+
+        const startLabel = DateTime.fromISO(market.eventStartTime)
+            .setZone("America/New_York")
+            .toFormat("ha")
+            .toUpperCase();
+
+        const symbol = detectSymbolFromSlug(market.slug);
+
+        let priceInfo = "";
+        if (symbol) {
+            try {
+                const tokenPrice = await getTokenPriceAtMarketStart(symbol, market.eventStartTime);
+                priceInfo = `💰 ${symbol.replace("USDT", "")}: $${tokenPrice.toLocaleString()}\n`;
+            } catch (err) {
+                console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
+                priceInfo = `💰 ${symbol.replace("USDT", "")}: N/A\n`;
+            }
+        }
+
+        message += `${i + 1}. *${escapeMarkdown(market.question)}*
+🕒 Start: ${startLabel} ET
+${priceInfo}💧 Volume: ${fVol}
+⌛ Ends: ${fDate}
+
+`;
+    }
+
+    const marketButtons = hourlyMarkets.map((market, idx) =>
+        Markup.button.callback(`#${idx + 1}`, `view_market:${market.id}`)
+    );
+
+    const marketButtonsLayout = layoutButtons(marketButtons);
+
+    const keyboard = Markup.inlineKeyboard([
+        ...marketButtonsLayout,
+        [Markup.button.callback("🔄 Refresh", `current_btc_hourly_markets`)],
+        [Markup.button.callback("❌ Close", "close_message")],
+    ]);
+
+    if (
+        "callbackQuery" in ctx &&
+        (ctx.callbackQuery as any).data === "current_btc_hourly_markets"
+    ) {
+        return ctx
+            .editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            })
+            .catch(() => {});
+    }
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const market = await getMarketById(marketId);
+
+    if (!market) {
+        return ctx.reply("❌ There Was an Error Fetching Market Details!");
+    }
+
+    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+
+    const tokenIds = JSON.parse(market.clobTokenIds);
+    const orderBookData = await formatOrderBook(tokenIds, userId.toString());
+    message += orderBookData;
+    message += `----------------------------------\n\n`;
+
+    const outcomes: number[] = JSON.parse(market.outcomePrices);
+    const yesPrice = outcomes[0];
+    const noPrice = outcomes[1];
+
+    const symbol = detectSymbolFromSlug(market.slug);
+
+    let priceInfo = "";
+    if (symbol) {
+        try {
+            // 🔹 Price to Beat (hourly open)
+            const tokenPriceAtStart = await getTokenPriceAtMarketStart(
+                symbol,
+                market.eventStartTime
+            );
+
+            // 🔹 Current Live Price (cached 1 min)
+            const currentPrice = await getCurrentTokenPrice(symbol);
+
+            priceInfo =
+                `💰 Price to Beat: $${tokenPriceAtStart.toLocaleString()}\n` +
+                `📈 Current Price: $${currentPrice.toLocaleString()}\n`;
+        } catch (err) {
+            console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
+            priceInfo = `💰 Price to Beat: N/A\n📈 Current Price: N/A\n`;
+        }
+    }
+
+    message += `💹 **Prices**
+• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
+• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
+
+    message += `\n\n----------------------------------\n\n`;
+
+    message += priceInfo;
+
+    let watchlistButton;
+    if (userId) {
+        const { data: user } = await db("Users")
+            .select("market_watchlist")
+            .eq("id", userId)
+            .single();
+
+        const isInWatchlist =
+            //@ts-expect-error Some should be allowed
+            user?.market_watchlist?.some(
+                (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
+            ) || false;
+        watchlistButton = isInWatchlist
+            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+    } else {
+        watchlistButton = Markup.button.callback(
+            "❤️ Add to My Watchlist",
+            `add_watchlist:${market.id}`
+        );
+    }
+
+    const keyboard = Markup.inlineKeyboard([
+        [
+            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+        ],
+        [
+            Markup.button.callback(
+                "🔔 Set Price Alert",
+                `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
+            ),
+        ],
+        [watchlistButton],
+        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [
+            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
+            Markup.button.callback("❌ Close", "close_message"),
+        ],
+    ]);
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
 }

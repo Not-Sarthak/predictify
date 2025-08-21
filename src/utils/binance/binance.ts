@@ -44,3 +44,28 @@ export async function getTokenPriceAtMarketStart(
 
     return open;
 }
+
+export async function getCurrentTokenPrice(symbol: Symbols): Promise<number> {
+    const cacheKey = `current_price:${symbol}`;
+
+    // 1️⃣ Try Redis cache first
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+        return parseFloat(cached);
+    }
+
+    // 2️⃣ Fetch from Binance Ticker Price API
+    const url = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`;
+    const res = await axios.get(url);
+
+    if (!res.data || !res.data.price) {
+        throw new Error(`No ticker price found for ${symbol}`);
+    }
+
+    const price = parseFloat(res.data.price);
+
+    // 3️⃣ Cache in Redis for 60 seconds (1 min)
+    await redisClient.setEx(cacheKey, 60, price.toString());
+
+    return price;
+}
