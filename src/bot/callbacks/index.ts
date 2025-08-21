@@ -24,6 +24,7 @@ import {
     handleGeneratePortfolioCard,
     handleShowCurrentHour0DTEMarkets,
     handleViewHourlyMarket,
+    handleRefreshHourlyMarket,
 } from "./trade";
 import { getMarketById } from "../../utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "../utils";
@@ -353,6 +354,11 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("view_hourly_market:")) {
         const marketId = data.split(":")[1];
         return handleViewHourlyMarket(ctx, marketId);
+    }
+
+    if (data.startsWith("refresh_hourly_market:")) {
+        const marketId = data.split(":")[1];
+        return handleRefreshHourlyMarket(ctx, marketId);
     }
 
     if (data.startsWith("portfolio_page")) {

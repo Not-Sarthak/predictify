@@ -1284,6 +1284,11 @@ export async function handleRefreshMarket(ctx: Context, marketId: string) {
     return handleViewMarket(ctx, marketId);
 }
 
+export async function handleRefreshHourlyMarket(ctx: Context, marketId: string) {
+    await ctx.deleteMessage();
+    return handleViewHourlyMarket(ctx, marketId);
+}
+
 export async function handleRefreshMarketDetails(ctx: Context, marketId: string) {
     await ctx.deleteMessage();
     return handleMarketDetails(ctx, marketId);
@@ -1639,7 +1644,7 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
         [watchlistButton],
         [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
         [
-            Markup.button.callback("🔄 Refresh", `refresh_market:${market.id}`),
+            Markup.button.callback("🔄 Refresh", `refresh_hourly_market:${market.id}`),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
