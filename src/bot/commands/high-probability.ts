@@ -8,6 +8,9 @@ import {
 } from "../../utils/high-prob-trading";
 import { formatDollarVolume, escapeMarkdown } from "../utils";
 import { redisClient } from "../../lib/redis";
+import { getUserLanguage } from "../../helpers/user-language";
+import { formatHighProbMarketsList } from "../../utils/message-formatters";
+import { t } from "../../i18n";
 
 // Helper function to get user's custom filters or defaults
 async function getUserFilters(userId: number): Promise<HighProbFilters> {
@@ -35,40 +38,44 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
 export async function handleHighProbabilityCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const userFilters = await getUserFilters(userId);
+    const language = await getUserLanguage(userId);
 
     const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
     const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
-    const modeText = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
+    const modeText =
+        userFilters.tradingMode === "normal"
+            ? t("conservative", language)
+            : t("aggressive", language);
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("📈 View Markets (24h)", "highprob:view:24h"),
-            Markup.button.callback("📈 View Markets (48h)", "highprob:view:48h"),
+            Markup.button.callback(`📈 ${t("viewMarkets", language)} (24h)`, "highprob:view:24h"),
+            Markup.button.callback(`📈 ${t("viewMarkets", language)} (48h)`, "highprob:view:48h"),
         ],
         [
-            Markup.button.callback("🎯 Auto-Split Trade", "highprob:autosplit"),
-            Markup.button.callback("✋ Manual Selection", "highprob:manual"),
+            Markup.button.callback(`🎯 ${t("autoSplitTrade", language)}`, "highprob:autosplit"),
+            Markup.button.callback(`✋ ${t("manualSelection", language)}`, "highprob:manual"),
         ],
         [
-            Markup.button.callback("⚙️ Adjust Filters", "highprob:filters"),
-            Markup.button.callback("❓ What's This?", "highprob:help"),
+            Markup.button.callback(`⚙️ ${t("adjustFilters", language)}`, "highprob:filters"),
+            Markup.button.callback(`❓ ${t("whatIsThis", language)}`, "highprob:help"),
         ],
     ]);
 
     const message = `
-🎯 **High-Probability Markets Trading**
+🎯 **${t("highProbabilityMarkets", language)}**
 
-Target markets with ${minProb}-${maxProb}% probability expiring within 24-48 hours for lower-risk opportunities.
+${t("highProbDescription", language)} ${minProb}-${maxProb}% ${t("probabilityRange", language)}.
 
-**Current Filters:**
-• **Time:** ${userFilters.timeFilter}
-• **Probability:** ${minProb}% - ${maxProb}% (${modeText})
-• **Crypto Markets:** Excluded
-• **Sports Markets:** Excluded
-• **0DTE Markets:** Excluded (< 1 hour)
-• **Resolved Markets:** Excluded (100% probability)
+**${t("currentFilters", language)}:**
+• **${t("time", language)}:** ${userFilters.timeFilter}
+• **${t("probability", language)}:** ${minProb}% - ${maxProb}% (${modeText})
+• **${t("cryptoMarkets", language)}:** ${t("excluded", language)}
+• **${t("sportsMarkets", language)}:** ${t("excluded", language)}
+• **${t("zeroDteMarkets", language)}:** ${t("excluded", language)} (< 1 ${t("hour", language)})
+• **${t("resolvedMarkets", language)}:** ${t("excluded", language)} (100% ${t("probability", language)})
 
-Choose an option below to get started:
+${t("chooseOption", language)}:
     `;
 
     return ctx.reply(message, {
@@ -142,57 +149,68 @@ export async function sendPaginatedMarkets(
     const start = offset;
     const end = offset + LIMIT;
     const currentMarkets = markets.slice(start, end);
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
-    let message = `🎯 **High-Probability Markets (${timeFilter})**\n`;
-    message += `📊 Found ${markets.length} qualifying markets\n\n`;
-
-    currentMarkets.forEach((market, index) => {
-        const marketNum = start + index + 1;
-        const probability = Math.round(market.probability * 100);
-        const expectedReturn = market.expectedReturn.toFixed(1);
-        const volume = formatDollarVolume(market.volume || 0);
-        const hoursLeft = Math.round(market.hoursUntilExpiry);
-
-        message += `**${marketNum}.** ${escapeMarkdown(market.question.substring(0, 80))}${market.question.length > 80 ? "..." : ""}\n`;
-        message += `🎯 **${market.bestOutcome.toUpperCase()}** @ ${probability}% • ⏰ ${hoursLeft}h left\n`;
-        message += `💰 Vol: ${volume} • 📈 Return: +${expectedReturn}%\n\n`;
-    });
+    // Use the message formatter for the market list
+    const message = await formatHighProbMarketsList(
+        currentMarkets,
+        timeFilter,
+        start,
+        markets.length,
+        language
+    );
 
     // Navigation buttons
     const navButtons = [];
 
     if (offset > 0) {
         navButtons.push(
-            Markup.button.callback("⬅️ Previous", `highprob:view:${timeFilter}:${offset - LIMIT}`)
+            Markup.button.callback(
+                `⬅️ ${t("previous", language)}`,
+                `highprob:view:${timeFilter}:${offset - LIMIT}`
+            )
         );
     }
 
     if (end < markets.length) {
         navButtons.push(
-            Markup.button.callback("Next ➡️", `highprob:view:${timeFilter}:${offset + LIMIT}`)
+            Markup.button.callback(
+                `${t("next", language)} ➡️`,
+                `highprob:view:${timeFilter}:${offset + LIMIT}`
+            )
         );
     }
 
     // Action buttons
     const actionButtons = [
-        Markup.button.callback("🎯 Auto-Split All", `highprob:autosplit:${timeFilter}`),
-        Markup.button.callback("✋ Select Markets", `highprob:manual:${timeFilter}`),
+        Markup.button.callback(
+            `🎯 ${t("autoSplitTrade", language)}`,
+            `highprob:autosplit:${timeFilter}`
+        ),
+        Markup.button.callback(
+            `✋ ${t("manualSelection", language)}`,
+            `highprob:manual:${timeFilter}`
+        ),
     ];
 
     // Time filter toggle
     const toggleTimeButton =
         timeFilter === "24h"
-            ? Markup.button.callback("📈 Switch to 48h", "highprob:view:48h")
-            : Markup.button.callback("📈 Switch to 24h", "highprob:view:24h");
+            ? Markup.button.callback(`📈 ${t("switchTo", language)} 48h`, "highprob:view:48h")
+            : Markup.button.callback(`📈 ${t("switchTo", language)} 24h`, "highprob:view:24h");
 
     const keyboard = Markup.inlineKeyboard([
         actionButtons,
         navButtons,
         [
             toggleTimeButton,
-            Markup.button.callback("🔄 Refresh", `highprob:view:${timeFilter}:${offset}`),
+            Markup.button.callback(
+                `🔄 ${t("refresh", language)}`,
+                `highprob:view:${timeFilter}:${offset}`
+            ),
         ],
-        [Markup.button.callback("🔙 Back to Menu", "highprob:menu")],
+        [Markup.button.callback(`🔙 ${t("backToMenu", language)}`, "highprob:menu")],
     ]);
 
     const isPagination =
