@@ -153,12 +153,13 @@ export async function handleCallbackQuery(ctx: Context) {
             getLockedBalance(userId),
         ]);
 
-        const message = generateWelcomeMessage(
+        const message = await generateWelcomeMessage(
             user.wallet_address,
             user.solana_address || "N/A",
             balance.toString(),
             solBalance,
-            lockedBalance
+            lockedBalance,
+            userId
         );
 
         const translatedButtons = await generateTranslatedMainMenuButtons(userId);
@@ -695,12 +696,13 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Internal Server Error");
         }
 
-        const message = generateWelcomeMessage(
+        const message = await generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
             solBalance,
-            lockedBalance
+            lockedBalance,
+            userId
         );
 
         const translatedButtons = await generateTranslatedMainMenuButtons(userId);

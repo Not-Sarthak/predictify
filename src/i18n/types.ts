@@ -120,6 +120,26 @@ export interface LocaleMessages {
     noAvailableMarkets: string;
     ends: string;
 
+    // Welcome message specific
+    yourBalances: string;
+    lowBalance: string;
+    autoAcquisitionEnabled: string;
+    yourWallets: string;
+    polygonAddress: string;
+    whatYouCanDo: string;
+    blastYesNoBets: string;
+    copyTopWallets: string;
+    getAlertsByCategory: string;
+    trackPnlPositions: string;
+    fundWalletWithSol: string;
+    useFundCommand: string;
+    noLoginsBrowserTabs: string;
+
+    // Filter translations
+    volumeFilter: string;
+    newestFilter: string;
+    endingSoonFilter: string;
+
     // Market Categories
     politics: string;
     crypto: string;
@@ -129,6 +149,14 @@ export interface LocaleMessages {
     science: string;
     weather: string;
     elections: string;
+    breakingNews: string;
+    geoPolitics: string;
+    trump: string;
+    elonMusk: string;
+    tech: string;
+    business: string;
+    economy: string;
+    popCulture: string;
 
     // Position/Portfolio
     openPositions: string;

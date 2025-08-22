@@ -193,6 +193,14 @@ function getCategoryTranslation(category: string, language: SupportedLanguage): 
         Science: "science" as const,
         Weather: "weather" as const,
         Elections: "elections" as const,
+        "Breaking-News": "breakingNews" as const,
+        "Geo-Politics": "geoPolitics" as const,
+        Trump: "trump" as const,
+        "Elon-Musk": "elonMusk" as const,
+        Tech: "tech" as const,
+        Business: "business" as const,
+        Economy: "economy" as const,
+        "Pop-Culture": "popCulture" as const,
     };
 
     const key = categoryMap[category as keyof typeof categoryMap];
@@ -215,3 +223,17 @@ function formatNumber(num: number): string {
 // Export the helper functions for external use
 export { getOrderStatusTranslation as getOrderStatusText };
 export { getCategoryTranslation as getMarketCategoryText };
+
+/**
+ * Helper function to get filter translation
+ */
+export function getMarketFilterText(filter: string, language: SupportedLanguage): string {
+    const filterMap = {
+        "💧 Volume": "volumeFilter" as const,
+        "🆕 Newest": "newestFilter" as const,
+        "⏳ Ending Soon": "endingSoonFilter" as const,
+    };
+
+    const key = filterMap[filter as keyof typeof filterMap];
+    return key ? t(key, language) : filter;
+}

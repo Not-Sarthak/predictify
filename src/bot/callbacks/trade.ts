@@ -34,7 +34,11 @@ import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketConditionId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { getUserLanguage } from "../../helpers/user-language";
-import { formatMarketMessage } from "../../utils/message-formatters";
+import {
+    formatMarketMessage,
+    getMarketCategoryText,
+    getMarketFilterText,
+} from "../../utils/message-formatters";
 import { t } from "../../i18n";
 import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "../../types/polymarket";
@@ -216,9 +220,9 @@ export async function handleViewTopMarketsByCategory(
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
 
-    let message = `🔥 ${t("topMarkets", language)} *${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}* — _${capitalize(filter)}_\n\n`;
+    const translatedCategory = getMarketCategoryText(marketCategory, language);
+    let message = `🔥 ${t("topMarkets", language)} *${translatedCategory}* — _${capitalize(filter)}_\n\n`;
     const markets = await fetchMarkets(marketCategory, filter, offset);
-
     const filteredMarkets =
         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
 
@@ -238,14 +242,15 @@ export async function handleViewTopMarketsByCategory(
 `;
     }
 
-    const filterButtons = MARKET_FILTERS.map((marketFilter) =>
-        Markup.button.callback(
+    const filterButtons = MARKET_FILTERS.map((marketFilter) => {
+        const translatedFilter = getMarketFilterText(marketFilter, language);
+        return Markup.button.callback(
             marketFilter.split(" ")[1].toLowerCase() === filter
-                ? `✅ ${marketFilter}`
-                : `   ${marketFilter}`,
+                ? `✅ ${translatedFilter}`
+                : `   ${translatedFilter}`,
             `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
-        )
-    );
+        );
+    });
 
     const paginationButtons = [];
 
@@ -1310,7 +1315,11 @@ export async function handleRefreshTopMarkets(
 ) {
     // We need to handle this as a new message, not an edit
     const LIMIT = 8;
-    let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+
+    const translatedCategory = getMarketCategoryText(marketCategory, language);
+    let message = `🔥 ${t("topMarkets", language)} **${translatedCategory}** — _${capitalize(filter)}_\n\n`;
 
     const markets = await fetchMarkets(marketCategory, filter, Number(offset) || 0);
 
@@ -1318,7 +1327,7 @@ export async function handleRefreshTopMarkets(
         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
 
     if (filteredMarkets.length === 0) {
-        return ctx.reply("⚠️ No Available Markets!");
+        return ctx.reply(`⚠️ ${t("noAvailableMarkets", language)}!`);
     }
 
     for (let i = 0; i < filteredMarkets.length; i++) {
@@ -1327,20 +1336,21 @@ export async function handleRefreshTopMarkets(
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
         message += `${i + 1}. **${market.title}**
-💧 Volume : ${fVolumne}
-⏰ Ends: ${fDate}
+💧 ${t("volume", language)} : ${fVolumne}
+⏰ ${t("ends", language)}: ${fDate}
 
 `;
     }
 
-    const filterButtons = MARKET_FILTERS.map((marketFilter) =>
-        Markup.button.callback(
+    const filterButtons = MARKET_FILTERS.map((marketFilter) => {
+        const translatedFilter = getMarketFilterText(marketFilter, language);
+        return Markup.button.callback(
             marketFilter.split(" ")[1].toLowerCase() === filter
-                ? `✅ ${marketFilter}`
-                : `   ${marketFilter}`,
+                ? `✅ ${translatedFilter}`
+                : `   ${translatedFilter}`,
             `filter_top_market:${marketCategory}:${marketFilter.split(" ")[1].toLowerCase()}`
-        )
-    );
+        );
+    });
 
     const paginationButtons = [];
     const offsetNum = Number(offset) || 0;

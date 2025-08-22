@@ -40,6 +40,26 @@ export const zh: LocaleMessages = {
     noAvailableMarkets: "没有可用的市场",
     ends: "结束时间",
 
+    // Welcome message specific
+    yourBalances: "您的余额",
+    lowBalance: "余额不足",
+    autoAcquisitionEnabled: "已启用自动获取",
+    yourWallets: "您的钱包",
+    polygonAddress: "Polygon地址",
+    whatYouCanDo: "您可以执行的操作",
+    blastYesNoBets: "通过市价或限价单进行YES/NO投注",
+    copyTopWallets: "即时复制顶级钱包",
+    getAlertsByCategory: '按类别获取提醒 — "选举"、"加密货币"、"AI"',
+    trackPnlPositions: "跟踪盈亏和持仓",
+    fundWalletWithSol: "使用SOL或Polygon USDC为钱包充值 — 您的选择",
+    useFundCommand: "使用 /fund 充值并开始交易",
+    noLoginsBrowserTabs: "无需登录。无需浏览器标签。纯粹的预测市场流程。",
+
+    // Filter translations
+    volumeFilter: "💧 交易量",
+    newestFilter: "🆕 最新",
+    endingSoonFilter: "⏳ 即将结束",
+
     // Common buttons
     close: "❌ 关闭",
     back: "⬅️ 返回",
@@ -128,11 +148,19 @@ export const zh: LocaleMessages = {
     politics: "政治",
     crypto: "加密货币",
     sports: "体育",
-    economics: "经济",
+    economics: "经济学",
     entertainment: "娱乐",
     science: "科学",
     weather: "天气",
     elections: "选举",
+    breakingNews: "突发新闻",
+    geoPolitics: "地缘政治",
+    trump: "特朗普",
+    elonMusk: "埃隆·马斯克",
+    tech: "科技",
+    business: "商业",
+    economy: "经济",
+    popCulture: "流行文化",
 
     // Position/Portfolio
     openPositions: "持仓中",

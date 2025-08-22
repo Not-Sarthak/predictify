@@ -10,51 +10,54 @@ import { encodeMarketConditionId } from "../../../utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
 import { redisClient } from "../../../lib/redis";
 import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
+import { getUserLanguage } from "../../../helpers/user-language";
+import { t } from "../../../i18n";
 
-export const generateWelcomeMessage = (
+export const generateWelcomeMessage = async (
     evm_address: string,
     solana_address: string,
     usdcBalance: string,
     solBalance: number,
     lockedBalance: number,
+    userId: number,
     polBalance?: number
-): string => {
-    let balanceSection = `💰 Your Balances
-• Total Balance: $${usdcBalance}
-• Available Balance: $${Number(usdcBalance) - lockedBalance}
+): Promise<string> => {
+    const language = await getUserLanguage(userId);
+
+    let balanceSection = `💰 ${t("yourBalances", language)}
+• ${t("totalBalance", language)}: $${usdcBalance}
+• ${t("availableBalance", language)}: $${Number(usdcBalance) - lockedBalance}
 • SOL: ${solBalance} SOL
-• Locked Balance: $${lockedBalance}`;
+• ${t("lockedBalance", language)}: $${lockedBalance}`;
 
     if (polBalance !== undefined) {
         balanceSection += `
 • POL: ${polBalance.toFixed(4)} POL`;
         if (polBalance < 5) {
-            balanceSection += ` ⚠️ (Low - Auto Acquisition Enabled)`;
+            balanceSection += ` ⚠️ (${t("lowBalance", language)} - ${t("autoAcquisitionEnabled", language)})`;
         } else {
             balanceSection += ` ✅`;
         }
     }
 
     return `
-Welcome to Predictify
-We trade headlines for breakfast. 📰⚔
-Your wallet's live. Let's degen.
+${t("welcome", language)}
 
-🔐 Your Wallets
-• Solana Address: <code>${solana_address}</code>
-• Polygon Address: <code>${evm_address}</code>
+🔐 ${t("yourWallets", language)}
+• ${t("solanaAddress", language)}: <code>${solana_address}</code>
+• ${t("polygonAddress", language)}: <code>${evm_address}</code>
 
 ${balanceSection}
 
-🔥 What you can do:
-• Blast YES/NO bets with market or limit orders
-• Copy top wallets instantly
-• Get alerts by category — "Elections", "Crypto", "AI"
-• Track PnL and open positions
-• Fund your wallet with SOL or Polygon USDC — your choice
+🔥 ${t("whatYouCanDo", language)}:
+• ${t("blastYesNoBets", language)}
+• ${t("copyTopWallets", language)}
+• ${t("getAlertsByCategory", language)}
+• ${t("trackPnlPositions", language)}
+• ${t("fundWalletWithSol", language)}
 
-👉 Use /fund to load up and start trading
-No logins. No browser tabs. Just pure prediction market flow. 🫡
+👉 ${t("useFundCommand", language)}
+${t("noLoginsBrowserTabs", language)} 🫡
 `.trim();
 };
 

@@ -124,6 +124,26 @@ Your wallet's live. Let's degen.`,
     noAvailableMarkets: "No Available Markets",
     ends: "Ends",
 
+    // Welcome message specific
+    yourBalances: "Your Balances",
+    lowBalance: "Low",
+    autoAcquisitionEnabled: "Auto Acquisition Enabled",
+    yourWallets: "Your Wallets",
+    polygonAddress: "Polygon Address",
+    whatYouCanDo: "What you can do",
+    blastYesNoBets: "Blast YES/NO bets with market or limit orders",
+    copyTopWallets: "Copy top wallets instantly",
+    getAlertsByCategory: 'Get alerts by category — "Elections", "Crypto", "AI"',
+    trackPnlPositions: "Track PnL and open positions",
+    fundWalletWithSol: "Fund your wallet with SOL or Polygon USDC — your choice",
+    useFundCommand: "Use /fund to load up and start trading",
+    noLoginsBrowserTabs: "No logins. No browser tabs. Just pure prediction market flow.",
+
+    // Filter translations
+    volumeFilter: "💧 Volume",
+    newestFilter: "🆕 Newest",
+    endingSoonFilter: "⏳ Ending Soon",
+
     // Market Categories
     politics: "Politics",
     crypto: "Crypto",
@@ -133,6 +153,14 @@ Your wallet's live. Let's degen.`,
     science: "Science",
     weather: "Weather",
     elections: "Elections",
+    breakingNews: "Breaking News",
+    geoPolitics: "Geo-Politics",
+    trump: "Trump",
+    elonMusk: "Elon Musk",
+    tech: "Tech",
+    business: "Business",
+    economy: "Economy",
+    popCulture: "Pop Culture",
 
     // Position/Portfolio
     openPositions: "Open Positions",
