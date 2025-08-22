@@ -5,7 +5,7 @@ import { redisClient } from "../../lib/redis";
 import {
     fetchHighProbabilityMarkets,
     validateBatchTrade,
-    DEFAULT_HIGH_PROB_FILTERS,
+    defaultFilters,
     type HighProbFilters,
 } from "../../utils/high-prob-trading";
 import { Markup } from "telegraf";
@@ -16,25 +16,18 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         const userFilters = await redisClient.hGetAll(`user:highprob_filters:${userId}`);
 
         if (Object.keys(userFilters).length === 0) {
-            return DEFAULT_HIGH_PROB_FILTERS;
+            return defaultFilters;
         }
 
         return {
-            timeFilter:
-                (userFilters.timeFilter as "24h" | "48h") || DEFAULT_HIGH_PROB_FILTERS.timeFilter,
-            minVolume: parseInt(userFilters.minVolume) || DEFAULT_HIGH_PROB_FILTERS.minVolume,
-            minLiquidityWithin2Percent:
-                parseInt(userFilters.minLiquidityWithin2Percent) ||
-                DEFAULT_HIGH_PROB_FILTERS.minLiquidityWithin2Percent,
-            minProbability:
-                parseFloat(userFilters.minProbability) || DEFAULT_HIGH_PROB_FILTERS.minProbability,
-            maxProbability:
-                parseFloat(userFilters.maxProbability) || DEFAULT_HIGH_PROB_FILTERS.maxProbability,
+            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
+            tradingMode:
+                (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
             excludeCrypto: userFilters.excludeCrypto === "true",
         };
     } catch (error) {
         console.error("Error getting user filters:", error);
-        return DEFAULT_HIGH_PROB_FILTERS;
+        return defaultFilters;
     }
 }
 

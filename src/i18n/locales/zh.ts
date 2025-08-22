@@ -30,6 +30,7 @@ export const zh: LocaleMessages = {
     zeroDteMarkets: "当日到期市场",
     resolvedMarkets: "已结算市场",
     excluded: "已排除",
+    included: "已包含",
     chooseOption: "选择以下选项开始",
     found: "找到",
     qualifyingMarkets: "符合条件的市场",
@@ -72,6 +73,7 @@ export const zh: LocaleMessages = {
     // Main menu
     subscriptions: "🔔 订阅",
     trade: "🔥 交易",
+    tradeStrategies: "🎯 交易策略",
     autoTrade: "🤖 自动交易",
     portfolio: "📈 投资组合",
     walletFunds: "💼 钱包/资金",
