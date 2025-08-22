@@ -7,16 +7,12 @@ export const MAIN_MENU_BUTTONS = [
         Markup.button.callback("🔥 Trade", `start:trade`),
     ],
     [
-        Markup.button.callback("🎯 Trade Strategies", `start:strategies`),
         Markup.button.callback("🤖 AutoTrade", `start:autotrade`),
-    ],
-    [
         Markup.button.callback("📈 Portfolio", "trade_position_view"),
-        Markup.button.callback("💼 Wallet/Funds", "settings:wallet"),
     ],
     [
+        Markup.button.callback("💼 Wallet/Funds", "settings:wallet"),
         Markup.button.callback("👤 View Profile", "view_profile"),
-        Markup.button.callback("🌐 Language", "language_settings"),
     ],
 ];
 
@@ -42,6 +38,7 @@ export const TRADE_MENU_BUTTONS = [
         Markup.button.callback("⚡ Open Position", "trade_position_open"),
         Markup.button.callback("🌂 Close Position", "trade_position_close"),
     ],
+    [Markup.button.callback("🎯 High Prob Markets", "strategies:highprob")],
     [BACK_TO_MAIN_MENU_BUTTON],
 ];
 

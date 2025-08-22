@@ -1,4 +1,5 @@
 import { TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { generateTranslatedTradeMenuButtons } from "../ui/buttons/translated";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -57,7 +58,9 @@ import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 
 export async function handleTradeMenu(ctx: Context) {
-    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
+    const userId = getUserIdFromCtx(ctx);
+    const translatedButtons = await generateTranslatedTradeMenuButtons(userId);
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(translatedButtons).reply_markup);
 }
 
 export async function handleTradeCallbacks(ctx: Context, action: string, marketId: string) {

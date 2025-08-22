@@ -1,5 +1,5 @@
 import { Markup, type Context } from "telegraf";
-import { getUserIdFromCtx } from "../utils";
+import { formatDollarVolume, formatOrderBook, getUserIdFromCtx } from "../utils";
 import { setUserInputState } from "../input/state";
 import { redisClient } from "../../lib/redis";
 import {
@@ -13,6 +13,7 @@ import {
     handleHighProbabilityCommand,
     handleViewHighProbMarkets,
     handleHighProbHelp,
+    handleStrategySelection,
 } from "../commands/high-probability";
 import {
     getAlertStatusMessage,
@@ -22,6 +23,9 @@ import {
 } from "../../notifier/high-prob-alerts";
 
 import { escapeMarkdown } from "../utils";
+import { getUserLanguage } from "../../helpers/user-language";
+import { db } from "../../lib/supabase";
+import { encodeMarketConditionId } from "../../utils/encoding";
 
 // Helper function to get user's custom filters or defaults
 export async function getUserFilters(userId: number): Promise<HighProbFilters> {
@@ -50,50 +54,40 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
             case "menu":
                 return handleHighProbabilityCommand(ctx);
 
-            case "view":
-                const timeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                const offset = parseInt(params?.[1] || "0");
-                return handleViewHighProbMarkets(ctx, timeFilter, offset);
+            case "strategy":
+                const strategy = params?.[0] as "degen" | "turtle";
+                const timeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                return handleStrategySelection(ctx, strategy, timeFilter);
+
+            case "market":
+                const marketId = params?.[0];
+                const marketStrategy = params?.[1] as "degen" | "turtle";
+                const marketTimeFilter = params?.[2] as "24h" | "48h";
+                return handleViewHighProbMarket(ctx, marketId!, marketStrategy, marketTimeFilter);
+
+            case "toggle_crypto":
+                const toggleStrategy = params?.[0] as "degen" | "turtle";
+                const toggleTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                return handleToggleCrypto(ctx, toggleStrategy, toggleTimeFilter);
+
+            case "strategy_alerts":
+                const alertStrategy = params?.[0] as "degen" | "turtle";
+                const alertTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                return handleStrategyAlertsToggle(ctx, alertStrategy, alertTimeFilter);
 
             case "autosplit":
-                const autoSplitTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                return handleAutoSplitSetup(ctx, autoSplitTimeFilter);
+                const autoStrategy = params?.[0] as "degen" | "turtle";
+                const autoTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                return handleAutoSplitSetup(ctx, autoTimeFilter, autoStrategy);
 
-            case "manual":
-                const manualTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                return handleManualSelectionSetup(ctx, manualTimeFilter);
+            case "view":
+                const oldTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
+                const offset = parseInt(params?.[1] || "0");
+                return handleViewHighProbMarkets(ctx, oldTimeFilter, offset);
 
             case "execute":
                 const executeMode = params?.[0] as "autosplit" | "manual";
                 return handleExecuteTrade(ctx, executeMode);
-
-            case "manual_select":
-            case "manual_deselect":
-                const marketId = params?.[0];
-                const selectTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
-                const selectOffset = parseInt(params?.[2] || "0");
-                const isSelect = action === "manual_select";
-                return handleManualMarketToggle(
-                    ctx,
-                    marketId!,
-                    isSelect,
-                    selectTimeFilter,
-                    selectOffset
-                );
-
-            case "manual_nav":
-                const navTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                const navOffset = parseInt(params?.[1] || "0");
-                return handleManualNavigation(ctx, navTimeFilter, navOffset);
-
-            case "manual_clear":
-                const clearTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                const clearOffset = parseInt(params?.[1] || "0");
-                return handleManualClearSelection(ctx, clearTimeFilter, clearOffset);
-
-            case "manual_trade":
-                const tradeTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
-                return handleManualTradeSetup(ctx, tradeTimeFilter);
 
             case "filters":
                 return handleFiltersMenu(ctx);
@@ -115,7 +109,180 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
     }
 }
 
-export async function handleAutoSplitSetup(ctx: Context, timeFilter: "24h" | "48h") {
+export async function handleViewHighProbMarket(
+    ctx: Context,
+    marketId: string,
+    strategy: "degen" | "turtle",
+    timeFilter: "24h" | "48h"
+) {
+    try {
+        // Always fetch from high-probability markets to ensure we have complete volume data
+        const userId = getUserIdFromCtx(ctx);
+        const userFilters = await getUserFilters(userId);
+        const filters: HighProbFilters = {
+            ...userFilters,
+            timeFilter,
+            tradingMode: strategy === "degen" ? "normal" : ("degen" as "normal" | "degen"),
+        };
+
+        const markets = await fetchHighProbabilityMarkets(filters, 50);
+
+        // Find the market in our high-prob results
+        const market = markets.find((m) => m.id === marketId);
+
+        if (!market) {
+            return ctx.reply("❌ Market not found. It may have been removed or changed.");
+        }
+
+        const language = await getUserLanguage(userId);
+
+        // Format the market message manually to avoid compatibility issues
+        const outcomes = market.outcomePrices ? JSON.parse(market.outcomePrices) : [0, 0];
+        const yesPrice = outcomes[0] || 0;
+        const noPrice = outcomes[1] || 0;
+
+        // Try multiple volume sources - prioritize 24hr, then others, then liquidity as fallback
+        const volume =
+            market.volume24hr || market.volume1wk || market.volume || market.liquidity || 0;
+
+        let message = `📊 **${market.question || market.title || "Market"}**\n\n`;
+        message += `💰 **Probability**: ${Math.round(yesPrice * 100)}%\n`;
+        message += `📈 **Volume**: ${formatDollarVolume(volume)}\n`;
+        message += `📊 **Status**: ${market.closed ? "Closed" : "Active"}\n\n`;
+
+        // Add order book if possible
+        if (userId && market.clobTokenIds) {
+            const tokenIds = JSON.parse(market.clobTokenIds);
+            const orderBookData = await formatOrderBook(tokenIds, userId.toString());
+            message += orderBookData;
+            message += `----------------------------------\n\n`;
+        }
+
+        let watchlistButton;
+        if (userId) {
+            const { data: user } = await db("Users")
+                .select("market_watchlist")
+                .eq("id", userId)
+                .single();
+
+            const isInWatchlist =
+                (Array.isArray(user?.market_watchlist) &&
+                    user.market_watchlist.some(
+                        (item: any) => item.marketId === marketId || item.marketId === market.id
+                    )) ||
+                false;
+
+            watchlistButton = isInWatchlist
+                ? Markup.button.callback(
+                      "💔 Remove from Watchlist",
+                      `remove_watchlist:${market.id}`
+                  )
+                : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+        } else {
+            watchlistButton = Markup.button.callback(
+                "❤️ Add to My Watchlist",
+                `add_watchlist:${market.id}`
+            );
+        }
+
+        const keyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
+                Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            ],
+            [
+                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
+                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            ],
+            [
+                Markup.button.callback(
+                    "🔔 Set Price Alert",
+                    `set_price_alert:${encodeMarketConditionId(market.id)}`
+                ),
+            ],
+            [watchlistButton],
+            [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+            [
+                Markup.button.callback(
+                    "🔄 Refresh",
+                    `highprob:market:${market.id}:${strategy}:${timeFilter}`
+                ),
+                Markup.button.callback("🔙 Back", `highprob:strategy:${strategy}:${timeFilter}`),
+            ],
+        ]);
+
+        return ctx.reply(message, {
+            parse_mode: "Markdown",
+            reply_markup: keyboard.reply_markup,
+        });
+    } catch (error) {
+        console.error("Error viewing high-prob market:", error);
+        return ctx.reply("❌ Error loading market details. Please try again.", {
+            reply_markup: Markup.inlineKeyboard([
+                [Markup.button.callback("🔙 Back", `highprob:strategy:${strategy}:${timeFilter}`)],
+            ]).reply_markup,
+        });
+    }
+}
+
+export async function handleToggleCrypto(
+    ctx: Context,
+    strategy: "degen" | "turtle",
+    timeFilter: "24h" | "48h"
+) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Get current filters
+        const userFilters = await getUserFilters(userId);
+
+        // Toggle crypto setting
+        const newExcludeCrypto = !userFilters.excludeCrypto;
+
+        // Save the updated filter
+        await redisClient.hSet(`user:highprob_filters:${userId}`, {
+            excludeCrypto: newExcludeCrypto.toString(),
+        });
+
+        // Refresh the markets view with new filter
+        return handleStrategySelection(ctx, strategy, timeFilter);
+    } catch (error) {
+        console.error("Error toggling crypto filter:", error);
+        return ctx.reply("❌ Error updating filter. Please try again.");
+    }
+}
+
+export async function handleStrategyAlertsToggle(
+    ctx: Context,
+    strategy: "degen" | "turtle",
+    timeFilter: "24h" | "48h"
+) {
+    const userId = getUserIdFromCtx(ctx);
+
+    try {
+        // Toggle alerts
+        const alertSettings = await getUserAlertSettings(userId.toString());
+        if (alertSettings.enabled) {
+            await disableAlertsForUser(userId.toString());
+            await ctx.answerCbQuery("🔕 Alerts disabled");
+        } else {
+            await enableAlertsForUser(userId.toString());
+            await ctx.answerCbQuery("🔔 Alerts enabled!");
+        }
+
+        // Refresh the strategy view
+        return handleStrategySelection(ctx, strategy, timeFilter);
+    } catch (error) {
+        console.error("Error toggling alerts:", error);
+        return ctx.answerCbQuery("❌ Error updating alerts");
+    }
+}
+
+export async function handleAutoSplitSetup(
+    ctx: Context,
+    timeFilter: "24h" | "48h",
+    strategy?: "degen" | "turtle"
+) {
     const msg = await ctx.reply("🔍 Loading qualifying markets...");
 
     try {
@@ -471,6 +638,25 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
                         await enableAlertsForUser(userId.toString());
                         await ctx.answerCbQuery("🔔 Alerts enabled!");
                     }
+
+                    // Check if we need to redirect back to strategy view
+                    const callbackData = (ctx.callbackQuery as any)?.data;
+                    if (callbackData && callbackData.includes("strategy")) {
+                        // Extract strategy and timeFilter from previous context if available
+                        try {
+                            const context = await redisClient.hGetAll(
+                                `user:highprob_context:${userId}`
+                            );
+                            if (context.mode && context.timeFilter) {
+                                const strategy = context.mode === "normal" ? "turtle" : "degen";
+                                const timeFilter = context.timeFilter as "24h" | "48h";
+                                return handleStrategySelection(ctx, strategy, timeFilter);
+                            }
+                        } catch (e) {
+                            // Fall back to filters menu
+                        }
+                    }
+
                     return handleFiltersMenu(ctx); // Refresh the menu
                 }
                 break;

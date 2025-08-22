@@ -82,6 +82,11 @@ ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPr
 }
 
 export function formatDollarVolume(n: number): string {
+    // Handle undefined, null, or non-numeric values
+    if (typeof n !== "number" || isNaN(n) || n == null) {
+        return "$0.00";
+    }
+
     if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
     if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
     if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;

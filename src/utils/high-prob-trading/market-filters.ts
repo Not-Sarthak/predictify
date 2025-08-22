@@ -292,8 +292,8 @@ export function filterHighProbabilityMarkets(
     const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
 
     // Dynamic probability range based on trading mode
-    const minProbability = filters.tradingMode === "normal" ? 0.6 : 0.8; // Conservative: 60%, Aggressive: 80%
-    const maxProbability = filters.tradingMode === "normal" ? 0.9 : 0.95; // Conservative: 90%, Aggressive: 95%
+    const minProbability = filters.tradingMode === "normal" ? 0.7 : 0.855; // Degen: 70%, Turtle: 85.5%
+    const maxProbability = filters.tradingMode === "normal" ? 0.85 : 0.95; // Degen: 85%, Turtle: 95%
 
     // console.log(`📊 [HIGH-PROB] Filter criteria:`, {
     //     timeFilterHours,
@@ -321,22 +321,22 @@ export function filterHighProbabilityMarkets(
             // Add more detailed debugging for problematic markets
             const shouldLog = market.probability >= 0.98 || market.hoursUntilExpiry <= 1;
 
-            if (shouldLog) {
-                console.log(
-                    `🔍 [HIGH-PROB] Examining problematic market: ${market.question?.substring(0, 50)}...`,
-                    {
-                        hoursUntilExpiry: market.hoursUntilExpiry,
-                        timeFilterHours,
-                        probability: market.probability,
-                        probabilityPercent: `${(market.probability * 100).toFixed(1)}%`,
-                        active: market.active,
-                        acceptingOrders: market.acceptingOrders,
-                        closed: market.closed,
-                        bestOutcome: market.bestOutcome,
-                        bestPrice: market.bestPrice,
-                    }
-                );
-            }
+            // if (shouldLog) {
+            //     // console.log(
+            //     //     `🔍 [HIGH-PROB] Examining problematic market: ${market.question?.substring(0, 50)}...`,
+            //     //     {
+            //     //         hoursUntilExpiry: market.hoursUntilExpiry,
+            //     //         timeFilterHours,
+            //     //         probability: market.probability,
+            //     //         probabilityPercent: `${(market.probability * 100).toFixed(1)}%`,
+            //     //         active: market.active,
+            //     //         acceptingOrders: market.acceptingOrders,
+            //     //         closed: market.closed,
+            //     //         bestOutcome: market.bestOutcome,
+            //     //         bestPrice: market.bestPrice,
+            //     //     }
+            //     // );
+            // }
 
             // Exclude very short-term markets (less than 30 minutes remaining)
             // but allow some 0DTE markets that have reasonable time left
@@ -374,7 +374,7 @@ export function filterHighProbabilityMarkets(
                 return false;
             }
 
-            // Probability filter: now 60-90% for normal mode, 80-95% for aggressive
+            // Probability filter: now 70-85% for degen mode, 85.5-95% for turtle mode
             if (market.probability < minProbability || market.probability > maxProbability) {
                 filteredCount.probability++;
                 // console.log(`❌ [HIGH-PROB] Filtered: Probability (${(market.probability * 100).toFixed(1)}% not in ${(minProbability * 100)}%-${(maxProbability * 100)}%)`);
