@@ -7,14 +7,17 @@ export const MAIN_MENU_BUTTONS = [
         Markup.button.callback("🔥 Trade", `start:trade`),
     ],
     [
+        Markup.button.callback("🎯 Trade Strategies", `start:strategies`),
         Markup.button.callback("🤖 AutoTrade", `start:autotrade`),
-        Markup.button.callback("📈 Portfolio", "trade_position_view"),
     ],
     [
+        Markup.button.callback("📈 Portfolio", "trade_position_view"),
         Markup.button.callback("💼 Wallet/Funds", "settings:wallet"),
-        Markup.button.callback("👤 View Profile", "view_profile"),
     ],
-    [Markup.button.callback("🌐 Language", "language_settings")],
+    [
+        Markup.button.callback("👤 View Profile", "view_profile"),
+        Markup.button.callback("🌐 Language", "language_settings"),
+    ],
 ];
 
 export const SUBSCRIPTIONS_MENU_BUTTONS = [
@@ -52,6 +55,12 @@ export const AUTO_TRADE_MENU_BUTTONS = [
         Markup.button.callback("💰 Configure", "copy_trade_configure_menu"),
     ],
     [CLOSE_BUTTON],
+];
+
+export const TRADE_STRATEGIES_MENU_BUTTONS = [
+    [Markup.button.callback("🎯 High-Probability Markets", "strategies:highprob")],
+    [Markup.button.callback("🔬 More Strategies (Coming Soon)", "strategies:coming_soon")],
+    [BACK_TO_MAIN_MENU_BUTTON],
 ];
 
 export const WALLET_SETTINGS_MENU = [

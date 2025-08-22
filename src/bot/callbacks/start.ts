@@ -4,6 +4,7 @@ import { handleAutoTradeMenu } from "../ui/messages";
 import { handleSettingsMenu } from "../callbacks/settings";
 import { handleSubscriptionsMenu } from "../callbacks/subscriptions";
 import { handleTradeMenu } from "../callbacks/trade";
+import { handleStrategiesMenu } from "../callbacks/strategies";
 import { getUserByIdFromDb, getUserIdFromCtx } from "../utils";
 import { getUserPositionsFromPolymarket } from "../utils/get-user-positions";
 import { CLOSE_BUTTON } from "../ui/buttons";
@@ -15,6 +16,8 @@ export async function handleStartMenuCallbacks(ctx: Context, target: string) {
             return handleSubscriptionsMenu(ctx);
         case "trade":
             return handleTradeMenu(ctx);
+        case "strategies":
+            return handleStrategiesMenu(ctx);
         case "autotrade":
             return handleAutoTradeMenu(ctx);
         case "settings":

@@ -2,7 +2,7 @@ import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import {
     fetchHighProbabilityMarkets,
-    DEFAULT_HIGH_PROB_FILTERS,
+    defaultFilters,
     type HighProbFilters,
     type HighProbMarket,
 } from "../../utils/high-prob-trading";
@@ -18,20 +18,18 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         const userFilters = await redisClient.hGetAll(`user:highprob_filters:${userId}`);
 
         if (Object.keys(userFilters).length === 0) {
-            return DEFAULT_HIGH_PROB_FILTERS;
+            return defaultFilters;
         }
 
         return {
-            timeFilter:
-                (userFilters.timeFilter as "24h" | "48h") || DEFAULT_HIGH_PROB_FILTERS.timeFilter,
+            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
             tradingMode:
-                (userFilters.tradingMode as "normal" | "degen") ||
-                DEFAULT_HIGH_PROB_FILTERS.tradingMode,
-            excludeCrypto: true, // Always true
+                (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
+            excludeCrypto: userFilters.excludeCrypto === "true", // Now properly read from Redis
         };
     } catch (error) {
         console.error("Error getting user filters:", error);
-        return DEFAULT_HIGH_PROB_FILTERS;
+        return defaultFilters;
     }
 }
 
@@ -41,11 +39,15 @@ export async function handleHighProbabilityCommand(ctx: Context) {
     const language = await getUserLanguage(userId);
 
     const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
-    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const maxProb = userFilters.tradingMode === "normal" ? 90 : 95;
     const modeText =
         userFilters.tradingMode === "normal"
             ? t("conservative", language)
             : t("aggressive", language);
+
+    const cryptoStatus = userFilters.excludeCrypto
+        ? t("excluded", language)
+        : t("included", language);
 
     const keyboard = Markup.inlineKeyboard([
         [
@@ -66,14 +68,6 @@ export async function handleHighProbabilityCommand(ctx: Context) {
 🎯 **${t("highProbabilityMarkets", language)}**
 
 ${t("highProbDescription", language)} ${minProb}-${maxProb}% ${t("probabilityRange", language)}.
-
-**${t("currentFilters", language)}:**
-• **${t("time", language)}:** ${userFilters.timeFilter}
-• **${t("probability", language)}:** ${minProb}% - ${maxProb}% (${modeText})
-• **${t("cryptoMarkets", language)}:** ${t("excluded", language)}
-• **${t("sportsMarkets", language)}:** ${t("excluded", language)}
-• **${t("zeroDteMarkets", language)}:** ${t("excluded", language)} (< 1 ${t("hour", language)})
-• **${t("resolvedMarkets", language)}:** ${t("excluded", language)} (100% ${t("probability", language)})
 
 ${t("chooseOption", language)}:
     `;
@@ -114,8 +108,8 @@ export async function handleViewHighProbMarkets(
                     `• Time: ${timeFilter}\n` +
                     `• Probability: ${minProb}-${maxProb}%\n` +
                     `• No crypto or sports markets\n` +
-                    `• No 0DTE markets (< 1 hour)\n` +
-                    `• No resolved markets (100%)\n\n` +
+                    `• No very short-term markets (< 30 min)\n` +
+                    `• No resolved markets (98%+)\n\n` +
                     `Try adjusting the filters or check back later.`,
                 {
                     parse_mode: "Markdown",
@@ -249,19 +243,19 @@ export async function handleHighProbHelp(ctx: Context) {
 Markets with moderate to high probability outcomes, expiring within 24-48 hours.
 
 **Trading Modes & Probability Ranges:**
-• **Conservative Mode:** 60-85% probability (safer, steadier returns)
+• **Conservative Mode:** 60-90% probability (balanced risk/reward)
 • **Aggressive Mode:** 80-95% probability (higher confidence, lower returns)
 
 **Why These Ranges?**
-• **Conservative (60-85%):** Better risk/reward balance, more opportunities
+• **Conservative (60-90%):** Better risk/reward balance, more opportunities
 • **Aggressive (80-95%):** Higher confidence but limited profit after slippage
 • **24-48h expiry:** Quick resolution, lower time risk
 
 **Quality Filters:**
-• **No Sports:** Excludes sports markets which can be unpredictable
-• **No Crypto:** Excludes volatile crypto price prediction markets
-• **No 0DTE:** Excludes markets with less than 1 hour remaining
-• **No Resolved:** Excludes markets already at 100% probability
+• **Sports:** Can be excluded or included (user choice)
+• **Crypto:** Can be excluded or included (user choice)
+• **0DTE:** Excludes markets with less than 30 minutes remaining
+• **Resolved:** Excludes markets already at 98%+ probability
 
 **Trading Options:**
 • **Auto-Split:** Equal distribution across top markets

@@ -14,17 +14,18 @@ export interface HighProbMarket extends Market {
 export interface HighProbFilters {
     timeFilter: "24h" | "48h";
     tradingMode: "normal" | "degen";
-    excludeCrypto: boolean; // Will be permanently true
+    excludeCrypto: boolean; // Now toggleable
 }
 
-export const DEFAULT_HIGH_PROB_FILTERS: HighProbFilters = {
+export const defaultFilters: HighProbFilters = {
     timeFilter: "24h",
-    tradingMode: "normal", // 95% probability threshold
-    excludeCrypto: true, // Permanently exclude crypto
+    tradingMode: "normal",
+    excludeCrypto: false, // Default to including crypto
 };
 
 /**
  * Checks if a market is crypto-related based on title and description
+ * Uses word boundary matching to avoid false positives like "sol" in "resolve"
  */
 export function isCryptoMarket(market: Market): boolean {
     const cryptoKeywords = [
@@ -37,11 +38,9 @@ export function isCryptoMarket(market: Market): boolean {
         "dogecoin",
         "doge",
         "solana",
-        "sol",
         "cardano",
         "ada",
         "polygon",
-        "matic",
         "chainlink",
         "link",
         "polkadot",
@@ -58,17 +57,26 @@ export function isCryptoMarket(market: Market): boolean {
         "atom",
         "algorand",
         "algo",
-        "price above",
-        "price below",
-        "hit $",
-        "reach $",
-        "trading above",
-        "trading below",
-        "up or down",
+    ];
+
+    // Short crypto symbols that need word boundary matching to avoid false positives
+    const shortCryptoSymbols = [
+        "sol", // Solana - avoid matching in "resolve", "solution", etc.
+        "matic", // Polygon - avoid matching in "automatic", "systematic", etc.
     ];
 
     const text = `${market.question} ${market.description}`.toLowerCase();
-    return cryptoKeywords.some((keyword) => text.includes(keyword));
+
+    // Check regular crypto keywords (case insensitive substring match)
+    const hasRegularCryptoKeyword = cryptoKeywords.some((keyword) => text.includes(keyword));
+
+    // Check short symbols with word boundaries (whole word match only)
+    const hasShortCryptoSymbol = shortCryptoSymbols.some((symbol) => {
+        const regex = new RegExp(`\\b${symbol}\\b`, "i");
+        return regex.test(text);
+    });
+
+    return hasRegularCryptoKeyword || hasShortCryptoSymbol;
 }
 
 /**
@@ -104,12 +112,11 @@ export function isSportsMarket(market: Market): boolean {
         "team",
         "player",
         "score",
-        "win",
-        "lose",
-        "defeat",
+
         "beat",
         "vs",
         "against",
+        // Specific team names
         "manchester",
         "arsenal",
         "chelsea",
@@ -137,6 +144,7 @@ export function isSportsMarket(market: Market): boolean {
         "steelers",
         "packers",
         "wnba",
+        "west ham", // Add specific team that appeared in our test
     ];
 
     const text = `${market.question} ${market.description}`.toLowerCase();
@@ -277,7 +285,7 @@ export function convertToHighProbMarket(market: Market): HighProbMarket {
  */
 export function filterHighProbabilityMarkets(
     markets: Market[],
-    filters: HighProbFilters = DEFAULT_HIGH_PROB_FILTERS
+    filters: HighProbFilters = defaultFilters
 ): HighProbMarket[] {
     // console.log(`🔍 [HIGH-PROB] Starting filtering process with ${markets.length} markets (pre-filtered for sports, crypto, and 0DTE)`);
 
@@ -285,7 +293,7 @@ export function filterHighProbabilityMarkets(
 
     // Dynamic probability range based on trading mode
     const minProbability = filters.tradingMode === "normal" ? 0.6 : 0.8; // Conservative: 60%, Aggressive: 80%
-    const maxProbability = filters.tradingMode === "normal" ? 0.85 : 0.95; // Conservative: 85%, Aggressive: 95%
+    const maxProbability = filters.tradingMode === "normal" ? 0.9 : 0.95; // Conservative: 90%, Aggressive: 95%
 
     // console.log(`📊 [HIGH-PROB] Filter criteria:`, {
     //     timeFilterHours,
@@ -330,10 +338,11 @@ export function filterHighProbabilityMarkets(
                 );
             }
 
-            // Exclude 0DTE markets (less than or equal to 1 hour remaining)
-            if (market.hoursUntilExpiry <= 1) {
+            // Exclude very short-term markets (less than 30 minutes remaining)
+            // but allow some 0DTE markets that have reasonable time left
+            if (market.hoursUntilExpiry <= 0.5) {
                 filteredCount.zerodte++;
-                // console.log(`❌ [HIGH-PROB] Filtered: 0DTE (${market.hoursUntilExpiry.toFixed(1)}h <= 1h)`);
+                // console.log(`❌ [HIGH-PROB] Filtered: Very short-term (${market.hoursUntilExpiry.toFixed(1)}h <= 0.5h)`);
                 return false;
             }
 
@@ -352,7 +361,7 @@ export function filterHighProbabilityMarkets(
             }
 
             // Exclude resolved markets (>=98% probability) - more strict filtering
-            if (market.probability >= 0.99) {
+            if (market.probability >= 0.98) {
                 filteredCount.resolved++;
                 // console.log(`❌ [HIGH-PROB] Filtered: Resolved (${(market.probability * 100).toFixed(1)}% >= 98%)`);
                 return false;
@@ -365,7 +374,7 @@ export function filterHighProbabilityMarkets(
                 return false;
             }
 
-            // Probability filter: 80-95% range
+            // Probability filter: now 60-90% for normal mode, 80-95% for aggressive
             if (market.probability < minProbability || market.probability > maxProbability) {
                 filteredCount.probability++;
                 // console.log(`❌ [HIGH-PROB] Filtered: Probability (${(market.probability * 100).toFixed(1)}% not in ${(minProbability * 100)}%-${(maxProbability * 100)}%)`);

@@ -35,6 +35,7 @@ import {
     handleSubscriptionManagement,
     handleShowCurrentPriceAlerts,
 } from "./subscriptions";
+import { handleStrategiesCallbacks } from "./strategies";
 import {
     handleAddNewWalletCallback,
     handleDeleteWalletCallback,
@@ -174,6 +175,11 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("start:")) {
         const target = data.split(":")[1];
         return handleStartMenuCallbacks(ctx, target);
+    }
+
+    if (data.startsWith("strategies:")) {
+        const action = data.split(":")[1];
+        return handleStrategiesCallbacks(ctx, action);
     }
 
     if (data.startsWith("subscriptions:")) {
