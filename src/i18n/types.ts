@@ -11,6 +11,7 @@ export interface LocaleMessages {
     // Main menu
     subscriptions: string;
     trade: string;
+    tradeStrategies: string;
     autoTrade: string;
     portfolio: string;
     walletFunds: string;
@@ -110,6 +111,7 @@ export interface LocaleMessages {
     zeroDteMarkets: string;
     resolvedMarkets: string;
     excluded: string;
+    included: string;
     chooseOption: string;
     found: string;
     qualifyingMarkets: string;

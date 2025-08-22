@@ -5,7 +5,7 @@ import { redisClient } from "../../lib/redis";
 import {
     fetchHighProbabilityMarkets,
     executeBatchTrades,
-    DEFAULT_HIGH_PROB_FILTERS,
+    defaultFilters,
     type HighProbFilters,
     type HighProbMarket,
 } from "../../utils/high-prob-trading";
@@ -29,20 +29,18 @@ export async function getUserFilters(userId: number): Promise<HighProbFilters> {
         const userFilters = await redisClient.hGetAll(`user:highprob_filters:${userId}`);
 
         if (Object.keys(userFilters).length === 0) {
-            return DEFAULT_HIGH_PROB_FILTERS;
+            return defaultFilters;
         }
 
         return {
-            timeFilter:
-                (userFilters.timeFilter as "24h" | "48h") || DEFAULT_HIGH_PROB_FILTERS.timeFilter,
+            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
             tradingMode:
-                (userFilters.tradingMode as "normal" | "degen") ||
-                DEFAULT_HIGH_PROB_FILTERS.tradingMode,
-            excludeCrypto: true, // Always true
+                (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
+            excludeCrypto: userFilters.excludeCrypto === "true", // Now properly read from Redis
         };
     } catch (error) {
         console.error("Error getting user filters:", error);
-        return DEFAULT_HIGH_PROB_FILTERS;
+        return defaultFilters;
     }
 }
 
@@ -361,7 +359,7 @@ export async function handleFiltersMenu(ctx: Context) {
     const userFilters = await getUserFilters(userId);
 
     const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
-    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const maxProb = userFilters.tradingMode === "normal" ? 90 : 95;
     const probabilityRange = `${minProb}-${maxProb}%`;
     const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
@@ -371,6 +369,10 @@ export async function handleFiltersMenu(ctx: Context) {
 
     const modeTickNormal = userFilters.tradingMode === "normal" ? "✅" : "🎯";
     const modeTickDegen = userFilters.tradingMode === "degen" ? "✅" : "⚡";
+
+    // Crypto filter status
+    const cryptoStatus = userFilters.excludeCrypto ? "Excluded" : "Included";
+    const cryptoIcon = userFilters.excludeCrypto ? "🚫" : "✅";
 
     // Get alert status
     const alertStatus = await getAlertStatusMessage(userId.toString());
@@ -383,7 +385,7 @@ export async function handleFiltersMenu(ctx: Context) {
 • **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive"}
 • **Probability:** ${probabilityRange}
 • **Risk Level:** ${riskLevel}
-• **Crypto Markets:** Excluded (permanently)
+• **Crypto Markets:** ${cryptoStatus}
 • **Sports Markets:** Excluded (permanently)
 • **0DTE Markets:** Excluded (< 1 hour)
 • **Resolved Markets:** Excluded (100% probability)
@@ -405,6 +407,12 @@ ${alertStatus}
             Markup.button.callback(
                 `${modeTickDegen} Aggressive Mode`,
                 "highprob:filter:mode:degen"
+            ),
+        ],
+        [
+            Markup.button.callback(
+                `${cryptoIcon} Crypto: ${cryptoStatus}`,
+                "highprob:filter:crypto:toggle"
             ),
         ],
         [Markup.button.callback("🔔 Toggle Alerts", "highprob:filter:alerts:toggle")],
@@ -430,9 +438,9 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
         // Initialize with defaults if empty
         if (Object.keys(userFilters).length === 0) {
             userFilters = {
-                timeFilter: DEFAULT_HIGH_PROB_FILTERS.timeFilter,
-                tradingMode: DEFAULT_HIGH_PROB_FILTERS.tradingMode,
-                excludeCrypto: DEFAULT_HIGH_PROB_FILTERS.excludeCrypto.toString(),
+                timeFilter: defaultFilters.timeFilter,
+                tradingMode: defaultFilters.tradingMode,
+                excludeCrypto: defaultFilters.excludeCrypto.toString(),
             };
         }
 
@@ -443,6 +451,14 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
                 break;
             case "mode":
                 userFilters.tradingMode = filterValue as "normal" | "degen";
+                break;
+            case "crypto":
+                if (filterValue === "toggle") {
+                    const currentExcludeCrypto = userFilters.excludeCrypto === "true";
+                    userFilters.excludeCrypto = (!currentExcludeCrypto).toString();
+                    const status = currentExcludeCrypto ? "included" : "excluded";
+                    await ctx.answerCbQuery(`🪙 Crypto markets now ${status}`);
+                }
                 break;
             case "alerts":
                 if (filterValue === "toggle") {
@@ -473,7 +489,7 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
 
 async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
     const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
-    const maxProb = userFilters.tradingMode === "normal" ? 85 : 95;
+    const maxProb = userFilters.tradingMode === "normal" ? 90 : 95;
     const probabilityRange = `${minProb}-${maxProb}%`;
     const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
@@ -483,6 +499,11 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
 
     const modeTickNormal = userFilters.tradingMode === "normal" ? "✅" : "🎯";
     const modeTickDegen = userFilters.tradingMode === "degen" ? "✅" : "⚡";
+
+    // Crypto filter status
+    const cryptoExcluded = userFilters.excludeCrypto === "true";
+    const cryptoStatus = cryptoExcluded ? "Excluded" : "Included";
+    const cryptoIcon = cryptoExcluded ? "🚫" : "✅";
 
     // Get alert status
     const userId = getUserIdFromCtx(ctx);
@@ -496,7 +517,7 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
 • **Trading Mode:** ${userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive"}
 • **Probability:** ${probabilityRange}
 • **Risk Level:** ${riskLevel}
-• **Crypto Markets:** Excluded (permanently)
+• **Crypto Markets:** ${cryptoStatus}
 • **Sports Markets:** Excluded (permanently)
 • **0DTE Markets:** Excluded (< 1 hour)
 • **Resolved Markets:** Excluded (100% probability)
@@ -518,6 +539,12 @@ ${alertStatus}
             Markup.button.callback(
                 `${modeTickDegen} Aggressive Mode`,
                 "highprob:filter:mode:degen"
+            ),
+        ],
+        [
+            Markup.button.callback(
+                `${cryptoIcon} Crypto: ${cryptoStatus}`,
+                "highprob:filter:crypto:toggle"
             ),
         ],
         [Markup.button.callback("🔔 Toggle Alerts", "highprob:filter:alerts:toggle")],

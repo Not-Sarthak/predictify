@@ -15,14 +15,17 @@ export async function generateTranslatedMainMenuButtons(userId: number) {
             Markup.button.callback(t("trade", language), `start:trade`),
         ],
         [
+            Markup.button.callback(t("tradeStrategies", language), `start:strategies`),
             Markup.button.callback(t("autoTrade", language), `start:autotrade`),
-            Markup.button.callback(t("portfolio", language), "trade_position_view"),
         ],
         [
+            Markup.button.callback(t("portfolio", language), "trade_position_view"),
             Markup.button.callback(t("walletFunds", language), "settings:wallet"),
-            Markup.button.callback(t("viewProfile", language), "view_profile"),
         ],
-        [Markup.button.callback(t("language", language), "language_settings")],
+        [
+            Markup.button.callback(t("viewProfile", language), "view_profile"),
+            Markup.button.callback(t("language", language), "language_settings"),
+        ],
     ];
 }
 
