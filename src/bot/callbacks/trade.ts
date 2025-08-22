@@ -33,6 +33,9 @@ import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketConditionId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
+import { getUserLanguage } from "../../helpers/user-language";
+import { formatMarketMessage } from "../../utils/message-formatters";
+import { t } from "../../i18n";
 import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import type { ApiKeyCreds } from "../../types/polymarket";
 import { setUserInputState } from "../input/state";
@@ -210,14 +213,17 @@ export async function handleViewTopMarketsByCategory(
     offset: number = 0
 ) {
     const LIMIT = 8;
-    let message = `🔥 Top Markets for *${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}* — _${capitalize(filter)}_\n\n`;
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+
+    let message = `🔥 ${t("topMarkets", language)} *${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}* — _${capitalize(filter)}_\n\n`;
     const markets = await fetchMarkets(marketCategory, filter, offset);
 
     const filteredMarkets =
         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
 
     if (filteredMarkets.length === 0) {
-        return ctx.reply("⚠️ No Available Markets!");
+        return ctx.reply(`⚠️ ${t("noAvailableMarkets", language)}!`);
     }
 
     for (let i = 0; i < filteredMarkets.length; i++) {
@@ -226,8 +232,8 @@ export async function handleViewTopMarketsByCategory(
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
         message += `${i + 1}. *${escapeMarkdown(market.title)}*
-💧 Volume : ${fVolumne}
-⌛ Ends: ${fDate}
+💧 ${t("volume", language)} : ${fVolumne}
+⌛ ${t("ends", language)}: ${fDate}
 
 `;
     }
@@ -544,26 +550,23 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
     const market = await getMarketById(marketId);
 
     if (!market) {
-        return ctx.reply("❌ There Was an Error Fetching Market Details!");
+        const userId = getUserIdFromCtx(ctx);
+        const language = await getUserLanguage(userId);
+        return ctx.reply(`❌ ${t("errorFetchingMarket", language)}!`);
     }
 
-    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
-    const userId = ctx.from?.id;
+    // Use the message formatter for market details
+    let message = await formatMarketMessage(market, language);
+
     if (userId) {
         const tokenIds = JSON.parse(market.clobTokenIds);
         const orderBookData = await formatOrderBook(tokenIds, userId.toString());
         message += orderBookData;
         message += `----------------------------------\n\n`;
     }
-
-    const outcomes: number[] = JSON.parse(market.outcomePrices);
-    const yesPrice = outcomes[0];
-    const noPrice = outcomes[1];
-
-    message += `💹 **Prices**
-• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
-• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
 
     // Check if market is in watchlist
     let watchlistButton;

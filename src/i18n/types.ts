@@ -64,4 +64,190 @@ export interface LocaleMessages {
     solanaAddress: string;
     addresses: string;
     balances: string;
+
+    // Market/Trading Content
+    topMarkets: string;
+    viewMarket: string;
+    marketDetails: string;
+    marketPrice: string;
+    volume: string;
+    liquidity: string;
+    probability: string;
+    yes: string;
+    no: string;
+    buy: string;
+    sell: string;
+    amount: string;
+    price: string;
+    total: string;
+
+    // High Probability Features
+    highProbabilityMarkets: string;
+    highProbability: string;
+    filters: string;
+    minVolume: string;
+    minLiquidity: string;
+    minProbability: string;
+    maxProbability: string;
+    applyFilters: string;
+    clearFilters: string;
+    noMarketsFound: string;
+
+    // High Probability Command specific
+    conservative: string;
+    aggressive: string;
+    viewMarkets: string;
+    autoSplitTrade: string;
+    manualSelection: string;
+    adjustFilters: string;
+    whatIsThis: string;
+    highProbDescription: string;
+    probabilityRange: string;
+    currentFilters: string;
+    time: string;
+    cryptoMarkets: string;
+    sportsMarkets: string;
+    zeroDteMarkets: string;
+    resolvedMarkets: string;
+    excluded: string;
+    chooseOption: string;
+    found: string;
+    qualifyingMarkets: string;
+    left: string;
+    return: string;
+    switchTo: string;
+    backToMenu: string;
+    noAvailableMarkets: string;
+    ends: string;
+
+    // Market Categories
+    politics: string;
+    crypto: string;
+    sports: string;
+    economics: string;
+    entertainment: string;
+    science: string;
+    weather: string;
+    elections: string;
+
+    // Position/Portfolio
+    openPositions: string;
+    closedPositions: string;
+    position: string;
+    pnl: string;
+    entry: string;
+    exit: string;
+    shares: string;
+    marketValue: string;
+    unrealizedPnl: string;
+    realizedPnl: string;
+
+    // Orders
+    openOrders: string;
+    orderHistory: string;
+    orderType: string;
+    orderStatus: string;
+    pending: string;
+    filled: string;
+    cancelled: string;
+    expired: string;
+
+    // Notifications/Alerts
+    priceAlert: string;
+    priceAlerts: string;
+    alertTriggered: string;
+    alertSet: string;
+    alertRemoved: string;
+    notification: string;
+
+    // Time/Date
+    today: string;
+    yesterday: string;
+    thisWeek: string;
+    thisMonth: string;
+    hour: string;
+    hours: string;
+    day: string;
+    days: string;
+    week: string;
+    weeks: string;
+    month: string;
+    months: string;
+
+    // Actions
+    add: string;
+    remove: string;
+    edit: string;
+    delete: string;
+    save: string;
+    update: string;
+    create: string;
+    view: string;
+    manage: string;
+    configure: string;
+
+    // Market Resolution
+    resolved: string;
+    unresolved: string;
+    winner: string;
+    loser: string;
+
+    // Error Messages
+    insufficientFunds: string;
+    invalidAmount: string;
+    invalidPrice: string;
+    marketClosed: string;
+    orderFailed: string;
+    connectionError: string;
+    errorFetchingMarket: string;
+
+    // Copy Trading
+    copyTrading: string;
+    enableCopyTrading: string;
+    disableCopyTrading: string;
+    watchedWallets: string;
+    addWallet: string;
+    removeWallet: string;
+
+    // Referral System
+    referral: string;
+    referralCode: string;
+    referralLink: string;
+    referrals: string;
+    earnings: string;
+
+    // Subscription Categories
+    subscriptionCategories: string;
+    subscribe: string;
+    unsubscribe: string;
+    subscribed: string;
+    unsubscribed: string;
+
+    // Common Phrases
+    clickToView: string;
+    tapToSelect: string;
+    enterAmount: string;
+    enterPrice: string;
+    selectMarket: string;
+    confirmOrder: string;
+    orderPlaced: string;
+    orderExecuted: string;
+
+    // Market Status
+    active: string;
+    closed: string;
+    paused: string;
+
+    // Pagination
+    page: string;
+    of: string;
+    showMore: string;
+    showLess: string;
+
+    // Units
+    usd: string;
+    usdc: string;
+    sol: string;
+    pol: string;
+    percent: string;
 }
