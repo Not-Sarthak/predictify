@@ -45,12 +45,13 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Internal Server Error");
         }
 
-        const message = generateWelcomeMessage(
+        const message = await generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
             solBalance,
-            lockedBalance
+            lockedBalance,
+            userId
         );
         const translatedButtons = await generateTranslatedMainMenuButtons(userId);
         const keyboard = Markup.inlineKeyboard(translatedButtons);
@@ -125,12 +126,13 @@ export async function handleStartCommand(ctx: Context) {
             return ctx.reply("❌ Internal Server Error");
         }
 
-        let message = generateWelcomeMessage(
+        let message = await generateWelcomeMessage(
             address,
             solanaAddress || "N/A",
             balance.toString(),
             solBalance,
-            lockedBalance
+            lockedBalance,
+            userId
         );
 
         // Add referral success message if applicable
