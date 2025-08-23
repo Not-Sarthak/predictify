@@ -552,6 +552,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 }
 
 export async function handleViewMarket(ctx: Context, marketId: string) {
+    const userId = getUserIdFromCtx(ctx);
     const market = await getMarketById(marketId);
 
     if (!market) {
@@ -560,41 +561,26 @@ export async function handleViewMarket(ctx: Context, marketId: string) {
         return ctx.reply(`❌ ${t("errorFetchingMarket", language)}!`);
     }
 
-    const userId = getUserIdFromCtx(ctx);
-    const language = await getUserLanguage(userId);
-
     // Use the message formatter for market details
-    let message = await formatMarketMessage(market, language);
+    let message = await formatMarketMessage(userId, market);
 
-    if (userId) {
-        const tokenIds = JSON.parse(market.clobTokenIds);
-        const orderBookData = await formatOrderBook(tokenIds, userId.toString());
-        message += orderBookData;
-        message += `----------------------------------\n\n`;
-    }
+    const tokenIds = JSON.parse(market.clobTokenIds);
+    const orderBookData = await formatOrderBook(tokenIds, userId.toString());
+    message += orderBookData;
+    message += `----------------------------------\n\n`;
 
     // Check if market is in watchlist
-    let watchlistButton;
-    if (userId) {
-        const { data: user } = await db("Users")
-            .select("market_watchlist")
-            .eq("id", userId)
-            .single();
+    const { data: user } = await db("Users").select("market_watchlist").eq("id", userId).single();
 
-        const isInWatchlist =
-            //@ts-expect-error Some should be allowed
-            user?.market_watchlist?.some(
-                (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
-            ) || false;
-        watchlistButton = isInWatchlist
-            ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
-            : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
-    } else {
-        watchlistButton = Markup.button.callback(
-            "❤️ Add to My Watchlist",
-            `add_watchlist:${market.id}`
-        );
-    }
+    const isInWatchlist =
+        //@ts-expect-error Some should be allowed
+        user?.market_watchlist?.some(
+            (item: any) => item.marketId === marketId || item.conditionId === market.conditionId
+        ) || false;
+
+    const watchlistButton = isInWatchlist
+        ? Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)
+        : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
 
     const keyboard = Markup.inlineKeyboard([
         [

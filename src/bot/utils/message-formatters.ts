@@ -105,7 +105,7 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             creds: apiCreds,
         });
 
-        let orderBookDisplay = `📈 **Order Book**\n\n`;
+        let orderBookDisplay = `📈 **Order Book**\n`;
         orderBookDisplay += `\`\`\`\n`;
         orderBookDisplay += `Price     Size     Total\n`;
         orderBookDisplay += `---------------------------\n`;
