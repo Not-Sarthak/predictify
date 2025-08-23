@@ -36,6 +36,7 @@ jobs:
                   context: .
                   push: true
                   tags: |
+                      radioac7iv/tg-bot:latest
                       radioac7iv/tg-bot:staging
                       radioac7iv/tg-bot:${{ steps.vars.outputs.SHA_SHORT }}
                   cache-from: type=registry,ref=radioac7iv/tg-bot:buildcache
