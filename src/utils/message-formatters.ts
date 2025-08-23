@@ -1,5 +1,5 @@
 import { getUserLanguage } from "../helpers/user-language";
-import { t, type SupportedLanguage, type LocaleMessages } from "../i18n";
+import { t, type SupportedLanguage } from "../i18n";
 
 /**
  * Format market dexport function getOrderStatusText(status: string, language: SupportedLanguage): string {
@@ -14,20 +14,14 @@ import { t, type SupportedLanguage, type LocaleMessages } from "../i18n";
     return key ? t(key, language) : status;
 }anslations
  */
-export async function formatMarketMessage(
-    userId: number,
-    market: any,
-    includeActions: boolean = true
-): Promise<string> {
+export async function formatMarketMessage(userId: number, market: any): Promise<string> {
     const language = await getUserLanguage(userId);
 
-    const probability = market.probability || market.outcomePrices?.[0] || 0;
     const volume = market.volume || market.volumeUSD || 0;
 
     let message = `📊 **${market.question || market.title}**\n\n`;
 
     // Market details
-    message += `💰 **${t("probability", language)}**: ${(probability * 100).toFixed(1)}%\n`;
     message += `📈 **${t("volume", language)}**: $${formatNumber(volume)}\n`;
 
     if (market.liquidity) {
@@ -38,12 +32,11 @@ export async function formatMarketMessage(
     const status = market.closed ? t("closed", language) : t("active", language);
     message += `📊 **Status**: ${status}\n\n`;
 
-    // Outcome prices if available
-    if (market.outcomePrices && market.outcomePrices.length >= 2) {
-        message += `**${t("price", language)}:**\n`;
-        message += `• ${t("yes", language)}: ${(market.outcomePrices[0] * 100).toFixed(1)}%\n`;
-        message += `• ${t("no", language)}: ${(market.outcomePrices[1] * 100).toFixed(1)}%\n\n`;
-    }
+    const parsedOutcomes = JSON.parse(market.outcomePrices);
+
+    message += `**${t("price", language)}:**\n`;
+    message += `• ${t("yes", language)}: ${(parsedOutcomes[0] * 100).toFixed(1)}%\n`;
+    message += `• ${t("no", language)}: ${(parsedOutcomes[1] * 100).toFixed(1)}%\n\n`;
 
     return message;
 }
