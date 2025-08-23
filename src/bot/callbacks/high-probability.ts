@@ -24,6 +24,7 @@ import {
 
 import { escapeMarkdown } from "../utils";
 import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 import { db } from "../../lib/supabase";
 import { encodeMarketConditionId } from "../../utils/encoding";
 
@@ -177,37 +178,43 @@ export async function handleViewHighProbMarket(
                       "💔 Remove from Watchlist",
                       `remove_watchlist:${market.id}`
                   )
-                : Markup.button.callback("❤️ Add to My Watchlist", `add_watchlist:${market.id}`);
+                : Markup.button.callback(
+                      t("addToWatchlist", language),
+                      `add_watchlist:${market.id}`
+                  );
         } else {
             watchlistButton = Markup.button.callback(
-                "❤️ Add to My Watchlist",
+                t("addToWatchlist", language),
                 `add_watchlist:${market.id}`
             );
         }
 
         const keyboard = Markup.inlineKeyboard([
             [
-                Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-                Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+                Markup.button.callback(t("marketYes", language), `market_order:${market.id}:yes`),
+                Markup.button.callback(t("marketNo", language), `market_order:${market.id}:no`),
             ],
             [
-                Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-                Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+                Markup.button.callback(t("limitYes", language), `limit_order:${market.id}:yes`),
+                Markup.button.callback(t("limitNo", language), `limit_order:${market.id}:no`),
             ],
             [
                 Markup.button.callback(
-                    "🔔 Set Price Alert",
+                    t("setPriceAlert", language),
                     `set_price_alert:${encodeMarketConditionId(market.id)}`
                 ),
             ],
             [watchlistButton],
-            [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+            [Markup.button.callback(t("aboutThisMarket", language), `market_details:${market.id}`)],
             [
                 Markup.button.callback(
-                    "🔄 Refresh",
+                    t("refresh", language),
                     `highprob:market:${market.id}:${strategy}:${timeFilter}`
                 ),
-                Markup.button.callback("🔙 Back", `highprob:strategy:${strategy}:${timeFilter}`),
+                Markup.button.callback(
+                    t("back", language),
+                    `highprob:strategy:${strategy}:${timeFilter}`
+                ),
             ],
         ]);
 
@@ -299,15 +306,16 @@ export async function handleAutoSplitSetup(
         await ctx.deleteMessage(msg.message_id);
 
         if (markets.length === 0) {
+            const language = await getUserLanguage(userId);
             return ctx.reply(
-                `📊 **No Qualifying Markets**\n\n` +
+                `📊 **${t("noMarketsFound", language)}**\n\n` +
                     `No markets found for auto-split trading with current filters.\n\n` +
                     `Try adjusting filters or check back later.`,
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback("⚙️ Adjust Filters", "highprob:filters")],
-                        [Markup.button.callback("🔙 Back to Menu", "highprob:menu")],
+                        [Markup.button.callback(t("adjustFilters", language), "highprob:filters")],
+                        [Markup.button.callback(t("backToMenu", language), "highprob:menu")],
                     ]).reply_markup,
                 }
             );
@@ -379,15 +387,16 @@ export async function handleManualSelectionSetup(ctx: Context, timeFilter: "24h"
         await ctx.deleteMessage(msg.message_id);
 
         if (markets.length === 0) {
+            const language = await getUserLanguage(userId);
             return ctx.reply(
-                `📊 **No Qualifying Markets**\n\n` +
+                `📊 **${t("noMarketsFound", language)}**\n\n` +
                     `No markets found for manual selection with current filters.\n\n` +
                     `Try adjusting filters or check back later.`,
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback("⚙️ Adjust Filters", "highprob:filters")],
-                        [Markup.button.callback("🔙 Back to Menu", "highprob:menu")],
+                        [Markup.button.callback(t("adjustFilters", language), "highprob:filters")],
+                        [Markup.button.callback(t("backToMenu", language), "highprob:menu")],
                     ]).reply_markup,
                 }
             );
@@ -408,6 +417,7 @@ async function sendManualSelectionMarkets(
     offset: number,
     selectedMarkets: string[]
 ) {
+    const language = await getUserLanguage(getUserIdFromCtx(ctx));
     const LIMIT = 5;
     const start = offset;
     const end = offset + LIMIT;
@@ -456,14 +466,17 @@ async function sendManualSelectionMarkets(
     if (offset > 0) {
         navButtons.push(
             Markup.button.callback(
-                "⬅️ Previous",
+                t("previous", language),
                 `highprob:manual_nav:${timeFilter}:${offset - LIMIT}`
             )
         );
     }
     if (end < markets.length) {
         navButtons.push(
-            Markup.button.callback("Next ➡️", `highprob:manual_nav:${timeFilter}:${offset + LIMIT}`)
+            Markup.button.callback(
+                t("next", language),
+                `highprob:manual_nav:${timeFilter}:${offset + LIMIT}`
+            )
         );
     }
 
@@ -471,18 +484,24 @@ async function sendManualSelectionMarkets(
     const actionButtons = [];
     if (selectedMarkets.length > 0) {
         actionButtons.push(
-            Markup.button.callback("🎯 Trade Selected", `highprob:manual_trade:${timeFilter}`)
+            Markup.button.callback(
+                t("tradeSelected", language),
+                `highprob:manual_trade:${timeFilter}`
+            )
         );
     }
     actionButtons.push(
-        Markup.button.callback("🔄 Clear All", `highprob:manual_clear:${timeFilter}:${offset}`)
+        Markup.button.callback(
+            t("clearAll", language),
+            `highprob:manual_clear:${timeFilter}:${offset}`
+        )
     );
 
     const keyboard = Markup.inlineKeyboard([
         ...selectionRows,
         navButtons,
         actionButtons,
-        [Markup.button.callback("🔙 Back to Menu", "highprob:menu")],
+        [Markup.button.callback(t("backToMenu", language), "highprob:menu")],
     ]);
 
     // Store selection state

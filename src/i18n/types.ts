@@ -280,4 +280,108 @@ export interface LocaleMessages {
     sol: string;
     pol: string;
     percent: string;
+
+    // Missing UI Button Translations
+    mainMenu: string;
+    backToMainMenu: string;
+    bridgeSolToUsdc: string;
+    closePosition: string;
+    subscribeAction: string;
+    unsubscribeAction: string;
+    mySubscriptions: string;
+    enterCustom: string;
+    managePriceAlerts: string;
+    zerodayToExpiry: string;
+    openPosition: string;
+    closePositionBtn: string;
+    highProbMarkets: string;
+    deleteWallet: string;
+    viewWatchedWallets: string;
+    configureCopyTrade: string;
+    moreStrategies: string;
+
+    // High Probability Strategy Buttons
+    degenStrategy: string;
+    turtleStrategy: string;
+    addToWatchlist: string;
+    marketYes: string;
+    marketNo: string;
+    limitYes: string;
+    limitNo: string;
+    aboutThisMarket: string;
+    tradeSelected: string;
+    clearAll: string;
+    conservativeMode: string;
+    aggressiveMode: string;
+    toggleAlerts: string;
+    testFilters: string;
+
+    // Filter Status Texts
+    cryptoIncluded: string;
+    cryptoExcluded: string;
+    sportsExcluded: string;
+
+    // Dynamic Market Content
+    question: string;
+    market: string;
+    details: string;
+    aboutMarket: string;
+
+    // Time and Date Expressions
+    hoursLeft: string;
+    endsIn: string;
+
+    // Trading Actions
+    buyYes: string;
+    buyNo: string;
+    sellYes: string;
+    sellNo: string;
+
+    // Referral System
+    tryAgain: string;
+    refreshStats: string;
+
+    // More button text
+    hour24: string;
+    hour48: string;
+
+    // Additional UI text
+    chooseTradingOption: string;
+
+    // High Probability Market Data
+    foundMarkets: string;
+    qualifyingMarketsText: string;
+
+    // Market data labels
+    volumeShort: string;
+    timeLeft: string;
+    notAvailable: string;
+
+    // Filter status
+    noCrypto: string;
+    includeCrypto: string;
+    alertsOn: string;
+    alertsOff: string;
+
+    // Strategy descriptions
+    aggressiveDescription: string;
+    conservativeDescription: string;
+    selectStrategyPrompt: string;
+
+    // Strategy button texts
+    degenStrategyButton: string;
+    turtleStrategyButton: string;
+
+    // Profile page texts
+    yourPolymarketProfile: string;
+    lifetimePnl: string;
+    totalHoldings: string;
+    winRate: string;
+    yourReferralCode: string;
+    viewOnPolymarket: string;
+    notAssigned: string;
+
+    // Position messages
+    noOpenPositions: string;
+    noOpenPositionsFound: string;
 }

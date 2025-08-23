@@ -1,5 +1,10 @@
 import { Markup } from "telegraf";
-import { BACK_TO_MAIN_MENU_BUTTON, BRIDGE_BUTTON, CLOSE_BUTTON } from "./common";
+import {
+    BACK_TO_MAIN_MENU_BUTTON,
+    BRIDGE_BUTTON,
+    CLOSE_BUTTON,
+    getBackToMainMenuButton,
+} from "./common";
 import { getUserLanguage } from "../../../helpers/user-language";
 import { t } from "../../../i18n";
 
@@ -34,14 +39,14 @@ export async function generateTranslatedTradeMenuButtons(userId: number) {
     return [
         [
             Markup.button.callback(t("topMarkets", language), "trade_top_markets_view"),
-            Markup.button.callback("⏰ 0DTE", "trade_markets_dte"),
+            Markup.button.callback(t("zerodayToExpiry", language), "trade_markets_dte"),
         ],
         [
-            Markup.button.callback("⚡ Open Position", "trade_position_open"),
-            Markup.button.callback("🌂 Close Position", "trade_position_close"),
+            Markup.button.callback(t("openPosition", language), "trade_position_open"),
+            Markup.button.callback(t("closePositionBtn", language), "trade_position_close"),
         ],
         [Markup.button.callback(t("highProbabilityMarkets", language), "strategies:highprob")],
-        [BACK_TO_MAIN_MENU_BUTTON],
+        [await getBackToMainMenuButton(userId)],
     ];
 }
 

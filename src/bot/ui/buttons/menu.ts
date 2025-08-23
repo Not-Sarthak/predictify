@@ -1,5 +1,14 @@
-import { BACK_TO_MAIN_MENU_BUTTON, BRIDGE_BUTTON, CLOSE_BUTTON } from "../../ui/buttons/common";
+import {
+    BACK_TO_MAIN_MENU_BUTTON,
+    BRIDGE_BUTTON,
+    CLOSE_BUTTON,
+    getBackToMainMenuButton,
+    getBridgeButton,
+    getCloseButton,
+} from "../../ui/buttons/common";
 import { Markup } from "telegraf";
+import { getUserLanguage } from "../../../helpers/user-language";
+import { t } from "../../../i18n";
 
 export const MAIN_MENU_BUTTONS = [
     [
@@ -16,6 +25,73 @@ export const MAIN_MENU_BUTTONS = [
     ],
 ];
 
+// Translated menu generators
+export async function generateMainMenuButtons(userId: number) {
+    const language = await getUserLanguage(userId);
+    return [
+        [
+            Markup.button.callback(t("subscriptions", language), `start:subscriptions`),
+            Markup.button.callback(t("trade", language), `start:trade`),
+        ],
+        [
+            Markup.button.callback(t("autoTrade", language), `start:autotrade`),
+            Markup.button.callback(t("portfolio", language), "trade_position_view"),
+        ],
+        [
+            Markup.button.callback(t("walletFunds", language), "settings:wallet"),
+            Markup.button.callback(t("viewProfile", language), "view_profile"),
+        ],
+    ];
+}
+
+export async function generateSubscriptionsMenuButtons(userId: number) {
+    const language = await getUserLanguage(userId);
+    return [
+        [
+            Markup.button.callback(t("subscribeAction", language), "subscriptions:subscribe"),
+            Markup.button.callback(t("unsubscribeAction", language), "subscriptions:unsubscribe"),
+        ],
+        [
+            Markup.button.callback(t("mySubscriptions", language), "subscriptions:view"),
+            Markup.button.callback(t("enterCustom", language), "subscriptions:custom"),
+        ],
+        [Markup.button.callback(t("managePriceAlerts", language), "edit_price_alerts")],
+        [await getBackToMainMenuButton(userId)],
+    ];
+}
+
+export async function generateTradeMenuButtons(userId: number) {
+    const language = await getUserLanguage(userId);
+    return [
+        [
+            Markup.button.callback(t("topMarkets", language), "trade_top_markets_view"),
+            Markup.button.callback(t("zerodayToExpiry", language), "trade_markets_dte"),
+        ],
+        [
+            Markup.button.callback(t("openPosition", language), "trade_position_open"),
+            Markup.button.callback(t("closePositionBtn", language), "trade_position_close"),
+        ],
+        [Markup.button.callback(t("highProbabilityMarkets", language), "strategies:highprob")],
+        [await getBackToMainMenuButton(userId)],
+    ];
+}
+
+export async function generateAutoTradeMenuButtons(userId: number) {
+    const language = await getUserLanguage(userId);
+    return [
+        [
+            Markup.button.callback(t("addWallet", language), "add_new_wallet"),
+            Markup.button.callback(t("deleteWallet", language), "delete_wallet"),
+        ],
+        [
+            Markup.button.callback(t("viewWatchedWallets", language), "view_watched_wallets"),
+            Markup.button.callback(t("configureCopyTrade", language), "copy_trade_configure_menu"),
+        ],
+        [await getCloseButton(userId)],
+    ];
+}
+
+// Keep original exports for backward compatibility
 export const SUBSCRIPTIONS_MENU_BUTTONS = [
     [
         Markup.button.callback("🔔 Subscribe", "subscriptions:subscribe"),

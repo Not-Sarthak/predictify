@@ -39,20 +39,30 @@ export async function handleHighProbabilityCommand(ctx: Context) {
     const language = await getUserLanguage(userId);
 
     const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("🔥 Degen Strategy (70-85%)", "highprob:strategy:degen")],
-        [Markup.button.callback("🐢 Turtle Strategy (85.5-95%)", "highprob:strategy:turtle")],
+        [
+            Markup.button.callback(
+                await t("degenStrategyButton", language),
+                "highprob:strategy:degen"
+            ),
+        ],
+        [
+            Markup.button.callback(
+                await t("turtleStrategyButton", language),
+                "highprob:strategy:turtle"
+            ),
+        ],
     ]);
 
     const message = `
-🎯 **High Probability Markets**
+🎯 **${await t("highProbabilityMarkets", language)}**
 
-Choose your trading strategy:
+${await t("chooseTradingOption", language)}
 
-🔥 **Degen Strategy** - Target markets with 70-85% probability for higher volume opportunities
+🔥 **${await t("aggressive", language)}** - ${await t("aggressiveDescription", language)}
 
-🐢 **Turtle Strategy** - Target markets with 85.5-95% probability for safer, lower-risk plays
+🐢 **${await t("conservative", language)}** - ${await t("conservativeDescription", language)}
 
-Select a strategy to get started:
+${await t("selectStrategyPrompt", language)}
     `;
 
     return ctx.reply(message, {
@@ -125,6 +135,7 @@ export async function sendStrategyMarkets(
     const currentMarkets = markets.slice(0, LIMIT);
     const userId = getUserIdFromCtx(ctx);
     const userFilters = await getUserFilters(userId);
+    const language = await getUserLanguage(userId);
 
     const strategyEmoji = strategy === "degen" ? "🔥" : "🐢";
     const strategyName = strategy === "degen" ? "Degen" : "Turtle";
@@ -143,7 +154,7 @@ export async function sendStrategyMarkets(
         const volume = formatDollarVolume(volumeValue);
 
         // Better date handling
-        let endTime = "N/A";
+        let endTime = t("notAvailable", language);
         if (market.endDate) {
             try {
                 const date = new Date(market.endDate);
@@ -151,7 +162,7 @@ export async function sendStrategyMarkets(
                     endTime = date.toLocaleDateString();
                 }
             } catch (e) {
-                endTime = "N/A";
+                endTime = t("notAvailable", language);
             }
         }
 
@@ -186,17 +197,19 @@ export async function sendStrategyMarkets(
     }
 
     // Create filter and action buttons
-    const cryptoStatus = userFilters.excludeCrypto ? "❌ No Crypto" : "✅ Include Crypto";
+    const cryptoStatus = userFilters.excludeCrypto
+        ? t("noCrypto", language)
+        : t("includeCrypto", language);
 
     // Get alert status for the button
     const alertSettings = await getUserAlertSettings(userId.toString());
-    const alertStatus = alertSettings.enabled ? "🔔 Alerts ON" : "🔕 Alerts OFF";
+    const alertStatus = alertSettings.enabled ? t("alertsOn", language) : t("alertsOff", language);
 
     const keyboard = Markup.inlineKeyboard([
         timeButtons,
         [
             Markup.button.callback(
-                "🎯 Auto Split Trade",
+                `🎯 ${t("autoSplitTrade", language)}`,
                 `highprob:autosplit:${strategy}:${timeFilter}`
             ),
         ],
