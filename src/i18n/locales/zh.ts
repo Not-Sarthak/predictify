@@ -361,6 +361,29 @@ export const zh: LocaleMessages = {
     noOpenPositions: "⚠️ 您的账户没有持仓！",
     noOpenPositionsFound: "✅ 未找到持仓。",
 
+    // Search and Trending
+    trendingZeroDteMarkets: "⚡ 热门当日到期市场：",
+    enterTermToSearch: "✍️ 输入搜索词",
+    searchTerm: "<搜索词>",
+    searchExample: "示例：",
+    basketballExample: "篮球",
+    enterAnyKeyword: "您可以输入任何关键词来获取相关结果。",
+    topZeroDteMarketsFor: "⚡ 热门当日到期市场：",
+    chooseSubscriptionOption: "选择订阅选项",
+    hourlyMarkets: "⚡ 每小时市场",
+
+    // Cryptocurrency names
+    bitcoin: "比特币",
+    ethereum: "以太坊",
+    solana: "Solana",
+    xrp: "瑞波币",
+    dogecoin: "狗狗币",
+
+    // Additional UI text
+    removeFromWatchlist: "💔 从观察列表移除",
+    watchlist: "观察列表",
+    from: "从",
+
     // High Probability Market Data
     foundMarkets: "找到市场",
     qualifyingMarketsText: "符合条件的市场",

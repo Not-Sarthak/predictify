@@ -55,6 +55,8 @@ import {
 import { handleLanguageSettings, handleLanguageSelection } from "./language";
 import { handleExportPrivateKey } from "../utils/database/export-user-private-key";
 import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getMessages } from "../../i18n/translate";
 import {
     handleBridgeConfirm,
     handleBridgeFunds,
@@ -388,9 +390,12 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_markets_dte") {
-        const keyboard = await generate0DTEMarketCategoryKeyboard();
+        const userId = getUserIdFromCtx(ctx);
+        const keyboard = await generate0DTEMarketCategoryKeyboard(userId);
+        const language = await getUserLanguage(userId);
+        const t = getMessages(language);
 
-        return ctx.reply("⚡ <b>Trending 0DTE Markets:</b>", {
+        return ctx.reply(t.trendingZeroDteMarkets, {
             parse_mode: "HTML",
             ...keyboard,
         });
@@ -412,9 +417,12 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "back_to_zero_dte_categories") {
-        const keyboard = await generate0DTEMarketCategoryKeyboard();
+        const userId = getUserIdFromCtx(ctx);
+        const keyboard = await generate0DTEMarketCategoryKeyboard(userId);
+        const language = await getUserLanguage(userId);
+        const t = getMessages(language);
 
-        return ctx.editMessageText("⚡ <b>Trending 0DTE Markets:</b>", {
+        return ctx.editMessageText(t.trendingZeroDteMarkets, {
             parse_mode: "HTML",
             ...keyboard,
         });
@@ -1287,15 +1295,27 @@ async function handleClearWatchlist(ctx: Context) {
 }
 
 async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
+
     const market = await getMarketById(marketId);
 
     if (!market) {
-        return ctx.reply("❌ There Was an Error Fetching Market Details!");
+        return ctx.reply(`❌ ${t.errorFetchingMarket}!`);
     }
 
     let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
 
-    const userId = ctx.from?.id;
+    // Add prominent price display right before order book for better visibility
+    const outcomes = JSON.parse(market.outcomePrices);
+    const yesPrice = (outcomes[0] * 100).toFixed(1);
+    const noPrice = (outcomes[1] * 100).toFixed(1);
+
+    message += `📈 **${t.price}**\n`;
+    message += `• **${t.yes}: ${yesPrice}%**\n`;
+    message += `• **${t.no}: ${noPrice}%**\n\n`;
+
     if (userId) {
         const tokenIds = JSON.parse(market.clobTokenIds);
         const orderBookData = await formatOrderBook(tokenIds, userId.toString());
@@ -1303,34 +1323,26 @@ async function handleViewMarketFromWatchlist(ctx: Context, marketId: string) {
         message += `----------------------------------\n\n`;
     }
 
-    const outcomes: number[] = JSON.parse(market.outcomePrices);
-    const yesPrice = outcomes[0];
-    const noPrice = outcomes[1];
-
-    message += `💹 **Prices**
-• Yes $${yesPrice} (${Math.round(yesPrice * 100)}%)
-• No $${noPrice} (${Math.round(noPrice * 100)}%)`;
-
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback("⚡ Market Yes", `market_order:${market.id}:yes`),
-            Markup.button.callback("⚡ Market No", `market_order:${market.id}:no`),
+            Markup.button.callback(t.marketYes, `market_order:${market.id}:yes`),
+            Markup.button.callback(t.marketNo, `market_order:${market.id}:no`),
         ],
         [
-            Markup.button.callback("🎯 Limit Yes", `limit_order:${market.id}:yes`),
-            Markup.button.callback("🎯 Limit No", `limit_order:${market.id}:no`),
+            Markup.button.callback(t.limitYes, `limit_order:${market.id}:yes`),
+            Markup.button.callback(t.limitNo, `limit_order:${market.id}:no`),
         ],
         [
             Markup.button.callback(
-                "🔔 Set Price Alert",
+                t.setPriceAlert,
                 `set_price_alert:${encodeMarketConditionId(market.conditionId)}`
             ),
         ],
-        [Markup.button.callback("💔 Remove from Watchlist", `remove_watchlist:${market.id}`)],
-        [Markup.button.callback("ℹ️ About this Market", `market_details:${market.id}`)],
+        [Markup.button.callback(t.removeFromWatchlist, `remove_watchlist:${market.id}`)],
+        [Markup.button.callback(t.aboutThisMarket, `market_details:${market.id}`)],
         [
-            Markup.button.callback("⬅️ Back to Watchlist", "back_to_watchlist"),
-            Markup.button.callback("❌ Close", "close_message"),
+            Markup.button.callback(t.back, "back_to_watchlist"),
+            Markup.button.callback(t.close, "close_message"),
         ],
     ]);
 

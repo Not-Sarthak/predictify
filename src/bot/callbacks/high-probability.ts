@@ -145,11 +145,20 @@ export async function handleViewHighProbMarket(
         // Try multiple volume sources - prioritize 24hr, then others, then liquidity as fallback
         const volume =
             market.volume24hr || market.volume1wk || market.volume || market.liquidity || 0;
+        const liquidityNum = market.liquidity || 0;
 
-        let message = `📊 **${market.question || market.title || "Market"}**\n\n`;
-        message += `💰 **Probability**: ${Math.round(yesPrice * 100)}%\n`;
-        message += `📈 **Volume**: ${formatDollarVolume(volume)}\n`;
+        let message = `📊 **${escapeMarkdown(market.question || market.title || "Market")}**\n\n`;
+        message += `� **Volume**: ${formatDollarVolume(volume)}\n`;
+        message += `� **Liquidity**: ${formatDollarVolume(liquidityNum)}\n`;
         message += `📊 **Status**: ${market.closed ? "Closed" : "Active"}\n\n`;
+
+        // Add prominent price display right before order book for better visibility
+        const yesPercentage = (yesPrice * 100).toFixed(1);
+        const noPercentage = (noPrice * 100).toFixed(1);
+
+        message += `📈 **${t("price", language)}**\n`;
+        message += `• **${t("yes", language)}: ${yesPercentage}%**\n`;
+        message += `• **${t("no", language)}: ${noPercentage}%**\n\n`;
 
         // Add order book if possible
         if (userId && market.clobTokenIds) {
@@ -343,7 +352,6 @@ export async function handleAutoSplitSetup(
 
         message += `**Strategy Summary:**\n`;
         message += `• **Markets:** ${Math.min(10, markets.length)}\n`;
-        message += `• **Avg. Expected Return:** +${avgReturn}%\n`;
         message += `• **Time Frame:** ${timeFilter}\n\n`;
         message += `💡 Enter the total amount to invest (e.g., \`100\`)`;
 
@@ -575,6 +583,8 @@ export async function handleFiltersMenu(ctx: Context) {
 • **Sports Markets:** Excluded (permanently)
 • **0DTE Markets:** Excluded (< 1 hour)
 • **Resolved Markets:** Excluded (100% probability)
+• **Long-term Markets:** Excluded (> 7 days or no end date)
+• **Invalid Dates:** Excluded (missing/invalid end dates)
 ${alertStatus}
 
 **Filter Options:**
@@ -726,6 +736,8 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
 • **Sports Markets:** Excluded (permanently)
 • **0DTE Markets:** Excluded (< 1 hour)
 • **Resolved Markets:** Excluded (100% probability)
+• **Long-term Markets:** Excluded (> 7 days or no end date)
+• **Invalid Dates:** Excluded (missing/invalid end dates)
 ${alertStatus}
 
 **Filter Options:**
