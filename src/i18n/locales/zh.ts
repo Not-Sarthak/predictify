@@ -284,4 +284,108 @@ export const zh: LocaleMessages = {
     sol: "SOL",
     pol: "POL",
     percent: "%",
+
+    // Missing UI Button Translations
+    mainMenu: "主菜单",
+    backToMainMenu: "🔙 返回主菜单",
+    bridgeSolToUsdc: "🚀 跨链SOL → USDC + 自动POL获取",
+    closePosition: "💵 平仓",
+    subscribeAction: "🔔 订阅",
+    unsubscribeAction: "🔕 取消订阅",
+    mySubscriptions: "📋 我的订阅",
+    enterCustom: "✨ 输入自定义",
+    managePriceAlerts: "🛎️ 管理价格提醒",
+    zerodayToExpiry: "⏰ 当日到期",
+    openPosition: "⚡ 开仓",
+    closePositionBtn: "🌂 平仓",
+    highProbMarkets: "🎯 高概率市场",
+    deleteWallet: "🗑️ 删除钱包",
+    viewWatchedWallets: "👁️ 查看监控钱包",
+    configureCopyTrade: "💰 配置",
+    moreStrategies: "🔬 更多策略（即将推出）",
+
+    // High Probability Strategy Buttons
+    degenStrategy: "🔥 激进策略 (70-85%)",
+    turtleStrategy: "🐢 保守策略 (85.5-95%)",
+    addToWatchlist: "❤️ 添加到我的观察列表",
+    marketYes: "⚡ 市价 是",
+    marketNo: "⚡ 市价 否",
+    limitYes: "🎯 限价 是",
+    limitNo: "🎯 限价 否",
+    aboutThisMarket: "ℹ️ 关于此市场",
+    tradeSelected: "🎯 交易选中项",
+    clearAll: "🔄 清除所有",
+    conservativeMode: "保守模式",
+    aggressiveMode: "激进模式",
+    toggleAlerts: "🔔 切换提醒",
+    testFilters: "🔄 测试筛选器",
+
+    // Filter Status Texts
+    cryptoIncluded: "✅ 包含加密货币",
+    cryptoExcluded: "❌ 排除加密货币",
+    sportsExcluded: "体育市场：已排除（永久）",
+
+    // Dynamic Market Content
+    question: "问题",
+    market: "市场",
+    details: "详情",
+    aboutMarket: "市场信息",
+
+    // Time and Date Expressions
+    hoursLeft: "小时剩余",
+    endsIn: "剩余时间",
+
+    // Trading Actions
+    buyYes: "买入 是",
+    buyNo: "买入 否",
+    sellYes: "卖出 是",
+    sellNo: "卖出 否",
+
+    // Referral System
+    tryAgain: "🔄 重试",
+    refreshStats: "🔄 刷新统计",
+
+    // More button text
+    hour24: "24小时",
+    hour48: "48小时",
+
+    // Additional UI text
+    chooseTradingOption: "选择您的交易策略：",
+
+    // Strategy descriptions
+    aggressiveDescription: "针对70-85%概率的市场进行高交易量机会交易",
+    conservativeDescription: "针对85.5-95%概率的市场进行更安全、低风险的交易",
+    selectStrategyPrompt: "选择策略开始：",
+
+    // Position messages
+    noOpenPositions: "⚠️ 您的账户没有持仓！",
+    noOpenPositionsFound: "✅ 未找到持仓。",
+
+    // High Probability Market Data
+    foundMarkets: "找到市场",
+    qualifyingMarketsText: "符合条件的市场",
+
+    // Market data labels
+    volumeShort: "成交量",
+    timeLeft: "剩余",
+    notAvailable: "不可用",
+
+    // Filter status
+    noCrypto: "❌ 不包含加密货币",
+    includeCrypto: "✅ 包含加密货币",
+    alertsOn: "🔔 提醒开启",
+    alertsOff: "🔕 提醒关闭",
+
+    // Strategy button texts
+    degenStrategyButton: "🔥 激进策略 (70-85%)",
+    turtleStrategyButton: "🐢 保守策略 (85.5-95%)",
+
+    // Profile page texts
+    yourPolymarketProfile: "您的Polymarket档案",
+    lifetimePnl: "终身盈亏:",
+    totalHoldings: "总持仓:",
+    winRate: "胜率:",
+    yourReferralCode: "您的推荐码:",
+    viewOnPolymarket: "🔗 在Polymarket查看",
+    notAssigned: "未分配",
 };

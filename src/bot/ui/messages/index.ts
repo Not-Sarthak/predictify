@@ -61,15 +61,18 @@ ${t("noLoginsBrowserTabs", language)} 🫡
 `.trim();
 };
 
-export const generateWalletDetailsMessage = (
+export const generateWalletDetailsMessage = async (
     evmWalletAddress: string,
     solanaWalletAddress: string | null,
     usdcBalance: number,
     solBalance: number,
+    userId: number,
     polBalance?: number
 ) => {
+    const language = await getUserLanguage(userId);
+
     let balanceSection = `
-<b>💰 Balances</b>
+<b>💰 ${t("balances", language)}</b>
 <b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
 <b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL`;
 
@@ -78,7 +81,7 @@ export const generateWalletDetailsMessage = (
 
         // Add gas fee status
         if (polBalance < 5) {
-            balanceSection += ` <b>⚠️ (Low - Auto-acquire available)</b>`;
+            balanceSection += ` <b>⚠️ (${t("lowBalance", language)} - Auto-acquire available)</b>`;
         } else {
             balanceSection += ` <b>✅ (Sufficient for gas)</b>`;
         }
@@ -87,7 +90,7 @@ export const generateWalletDetailsMessage = (
     return `
 <b>💼 Wallet Overview</b>
 
-<b>🔗 Addresses</b>
+<b>🔗 ${t("addresses", language)}</b>
 <b>EVM:</b> <code>${evmWalletAddress}</code>
 <b>Solana:</b> <code>${solanaWalletAddress || "N/A"}</code>
 

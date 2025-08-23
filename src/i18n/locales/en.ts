@@ -284,4 +284,108 @@ Your wallet's live. Let's degen.`,
     sol: "SOL",
     pol: "POL",
     percent: "%",
+
+    // Missing UI Button Translations
+    mainMenu: "Main Menu",
+    backToMainMenu: "🔙 Back to Main Menu",
+    bridgeSolToUsdc: "🚀 Bridge SOL → USDC + Auto POL Acquisition",
+    closePosition: "💵 Close Position",
+    subscribeAction: "🔔 Subscribe",
+    unsubscribeAction: "🔕 Unsubscribe",
+    mySubscriptions: "📋 My Subscriptions",
+    enterCustom: "✨ Enter Custom",
+    managePriceAlerts: "🛎️ Manage Price Alerts",
+    zerodayToExpiry: "⏰ 0DTE",
+    openPosition: "⚡ Open Position",
+    closePositionBtn: "🌂 Close Position",
+    highProbMarkets: "🎯 High Prob Markets",
+    deleteWallet: "🗑️ Delete Wallet",
+    viewWatchedWallets: "👁️ View Watched Wallets",
+    configureCopyTrade: "💰 Configure",
+    moreStrategies: "🔬 More Strategies (Coming Soon)",
+
+    // High Probability Strategy Buttons
+    degenStrategy: "🔥 Degen Strategy (70-85%)",
+    turtleStrategy: "🐢 Turtle Strategy (85.5-95%)",
+    addToWatchlist: "❤️ Add to My Watchlist",
+    marketYes: "⚡ Market Yes",
+    marketNo: "⚡ Market No",
+    limitYes: "🎯 Limit Yes",
+    limitNo: "🎯 Limit No",
+    aboutThisMarket: "ℹ️ About this Market",
+    tradeSelected: "🎯 Trade Selected",
+    clearAll: "🔄 Clear All",
+    conservativeMode: "Conservative Mode",
+    aggressiveMode: "Aggressive Mode",
+    toggleAlerts: "🔔 Toggle Alerts",
+    testFilters: "🔄 Test Filters",
+
+    // Filter Status Texts
+    cryptoIncluded: "✅ Include Crypto",
+    cryptoExcluded: "❌ No Crypto",
+    sportsExcluded: "Sports Markets: Excluded (permanently)",
+
+    // Dynamic Market Content
+    question: "Question",
+    market: "Market",
+    details: "Details",
+    aboutMarket: "About Market",
+
+    // Time and Date Expressions
+    hoursLeft: "hours left",
+    endsIn: "ends in",
+
+    // Trading Actions
+    buyYes: "Buy Yes",
+    buyNo: "Buy No",
+    sellYes: "Sell Yes",
+    sellNo: "Sell No",
+
+    // Referral System
+    tryAgain: "🔄 Try Again",
+    refreshStats: "🔄 Refresh Stats",
+
+    // More button text
+    hour24: "24h",
+    hour48: "48h",
+
+    // Additional UI text
+    chooseTradingOption: "Choose your trading strategy:",
+
+    // Strategy descriptions
+    aggressiveDescription: "Target markets with 70-85% probability for higher volume opportunities",
+    conservativeDescription: "Target markets with 85.5-95% probability for safer, lower-risk plays",
+    selectStrategyPrompt: "Select a strategy to get started:",
+
+    // Position messages
+    noOpenPositions: "No Open Positions",
+    noOpenPositionsFound: "No open positions found",
+
+    // High Probability Market Data
+    foundMarkets: "Found Markets",
+    qualifyingMarketsText: "qualifying markets",
+
+    // Market data labels
+    volumeShort: "Vol",
+    timeLeft: "left",
+    notAvailable: "N/A",
+
+    // Filter status
+    noCrypto: "❌ No Crypto",
+    includeCrypto: "✅ Include Crypto",
+    alertsOn: "🔔 Alerts ON",
+    alertsOff: "🔕 Alerts OFF",
+
+    // Strategy button texts
+    degenStrategyButton: "🔥 Degen Strategy (70-85%)",
+    turtleStrategyButton: "🐢 Turtle Strategy (85.5-95%)",
+
+    // Profile page texts
+    yourPolymarketProfile: "Your Polymarket Profile",
+    lifetimePnl: "Lifetime PnL:",
+    totalHoldings: "Total Holdings:",
+    winRate: "Win Rate:",
+    yourReferralCode: "Your Referral Code:",
+    viewOnPolymarket: "🔗 View on Polymarket",
+    notAssigned: "Not assigned",
 };

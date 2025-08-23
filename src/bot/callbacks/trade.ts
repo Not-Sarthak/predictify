@@ -1,4 +1,4 @@
-import { TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { generateTranslatedTradeMenuButtons } from "../ui/buttons/translated";
 import {
     manageUserCopyTrade,
     escapeMarkdown,
@@ -57,7 +57,9 @@ import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 
 export async function handleTradeMenu(ctx: Context) {
-    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(TRADE_MENU_BUTTONS).reply_markup);
+    const userId = getUserIdFromCtx(ctx);
+    const translatedButtons = await generateTranslatedTradeMenuButtons(userId);
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(translatedButtons).reply_markup);
 }
 
 export async function handleTradeCallbacks(ctx: Context, action: string, marketId: string) {
@@ -73,9 +75,13 @@ export async function handleTradeCallbacks(ctx: Context, action: string, marketI
 }
 
 export async function handleViewTopMarketsCallback(ctx: Context) {
-    const tradeCategoriesButtons = CATEGORY_LIST.map((cat) =>
-        Markup.button.callback(cat, `view_top_markets:${cat}`)
-    );
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+
+    const tradeCategoriesButtons = CATEGORY_LIST.map((cat) => {
+        const translatedCategory = getMarketCategoryText(cat, language);
+        return Markup.button.callback(translatedCategory, `view_top_markets:${cat}`);
+    });
 
     const layout = [
         tradeCategoriesButtons.slice(0, 3),
@@ -84,7 +90,7 @@ export async function handleViewTopMarketsCallback(ctx: Context) {
         tradeCategoriesButtons.slice(9, 12),
     ];
 
-    return ctx.reply("🔥 Trending Markets: ", {
+    return ctx.reply(`🔥 ${t("topMarkets", language)}: `, {
         reply_markup: Markup.inlineKeyboard(layout).reply_markup,
     });
 }
@@ -103,7 +109,8 @@ export async function handleCloseTradePositions(ctx: Context) {
         if (ctx.callbackQuery) {
             await ctx.answerCbQuery();
         }
-        return ctx.reply("⚠️ No Open Positions From Your Account!");
+        const language = await getUserLanguage(userId);
+        return ctx.reply(t("noOpenPositions", language));
     }
 
     const conditionIds = userPositions.map((position) => position.conditionId);
@@ -148,7 +155,8 @@ export async function handleViewTradePositions(ctx: Context) {
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        return ctx.reply("⚠️ No Open Positions From Your Account!");
+        const language = await getUserLanguage(userId);
+        return ctx.reply(t("noOpenPositions", language));
     }
 
     const { text, markup } = await formatSinglePositionMessage(

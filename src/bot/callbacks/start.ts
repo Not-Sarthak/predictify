@@ -8,7 +8,10 @@ import { handleStrategiesMenu } from "../callbacks/strategies";
 import { getUserByIdFromDb, getUserIdFromCtx } from "../utils";
 import { getUserPositionsFromPolymarket } from "../utils/get-user-positions";
 import { CLOSE_BUTTON } from "../ui/buttons";
+import { generateTranslatedViewProfileButtons } from "../ui/buttons/translated";
 import { getUserTotalHoldings, getUserTotalPnL } from "../utils/get-user-polymarket-data";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 export async function handleStartMenuCallbacks(ctx: Context, target: string) {
     switch (target) {
@@ -29,6 +32,7 @@ export async function handleStartMenuCallbacks(ctx: Context, target: string) {
 
 export async function handleViewProfileCallback(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
     const { message_id } = await ctx.reply("⚡ Fetching your profile...");
 
@@ -62,31 +66,25 @@ export async function handleViewProfileCallback(ctx: Context) {
     const winRate = positions && positions.length > 0 ? (positionsWon / positions.length) * 100 : 0;
     const emoji = total_pnl > 0 ? "📈" : "📉";
     const message = `
-<b>👤 Your Polymarket Profile</b>
+<b>👤 ${await t("yourPolymarketProfile", language)}</b>
 
-${emoji} <b>Lifetime PnL:</b> ${total_pnl.toFixed(3)} USDC
-💵 <b>Total Holdings:</b> ${total_holdings.toFixed(3)} USDC
-🔥 <b>Win Rate:</b> ${winRate.toFixed(1)}%
+${emoji} <b>${await t("lifetimePnl", language)}</b> ${total_pnl.toFixed(3)} USDC
+💵 <b>${await t("totalHoldings", language)}</b> ${total_holdings.toFixed(3)} USDC
+🔥 <b>${await t("winRate", language)}</b> ${winRate.toFixed(1)}%
 
-🎟️ <b>Your Referral Code:</b> <code>${referral_code || "Not assigned"}</code>
-👥 <b>Referrals:</b> ${number_of_referrals || 0} users
+🎟️ <b>${await t("yourReferralCode", language)}</b> <code>${referral_code || (await t("notAssigned", language))}</code>
+👥 <b>${await t("referrals", language)}</b> ${number_of_referrals || 0} users
 
-<a href="https://polymarket.com/profile/${wallet_address.toString()}">🔗 View on Polymarket</a>
+<a href="https://polymarket.com/profile/${wallet_address.toString()}">${await t("viewOnPolymarket", language)}</a>
 `;
 
-    const toggleButtonTitle = userData.show_username_in_cards
-        ? "❌ Hide Username in PnL Cards"
-        : "✅ Show Username in PnL Cards";
-
-    const toggleButtonCallbackData = userData.show_username_in_cards
-        ? "toggle_show_username:0"
-        : "toggle_show_username:1";
+    const translatedButtons = await generateTranslatedViewProfileButtons(
+        userId,
+        userData.show_username_in_cards
+    );
 
     return ctx.reply(message, {
         parse_mode: "HTML",
-        reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback(toggleButtonTitle, toggleButtonCallbackData)],
-            [CLOSE_BUTTON],
-        ]).reply_markup,
+        reply_markup: Markup.inlineKeyboard(translatedButtons).reply_markup,
     });
 }

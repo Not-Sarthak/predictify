@@ -1,8 +1,13 @@
 import { Markup, type Context } from "telegraf";
-import { TRADE_MENU_BUTTONS } from "../ui/buttons";
+import { generateTradeMenuButtons } from "../ui/buttons/menu";
+import { getUserIdFromCtx } from "../utils";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 export async function handleTradeCommand(ctx: Context) {
-    const keyboard = Markup.inlineKeyboard(TRADE_MENU_BUTTONS);
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const keyboard = Markup.inlineKeyboard(await generateTradeMenuButtons(userId));
 
-    return ctx.reply("📋 Choose a trading option:", keyboard);
+    return ctx.reply(t("chooseTradingOption", language), keyboard);
 }

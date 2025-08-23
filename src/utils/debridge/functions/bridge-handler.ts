@@ -6,6 +6,9 @@ import type { deBridgeOrderInput } from "../types";
 import { getUserDetails } from "../../../helpers/get-user-details";
 import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { CLOSE_BUTTON } from "../../../bot/ui/buttons";
+import { getUserIdFromCtx } from "../../../bot/utils";
+import { getUserLanguage } from "../../../helpers/user-language";
+import { t } from "../../../i18n";
 import { executeSolanaTransaction } from "../../solana/transaction";
 import { decryptPrivateKey } from "../../../utils/crypto";
 import { needsPOLForGas } from "../../../helpers/get-pol-balance";
@@ -245,6 +248,7 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
 export async function handleBridgeConfirm(ctx: Context, userId: string): Promise<void> {
     const quoteKey = `bridge_quote_${userId}`;
+    const language = await getUserLanguage(Number(userId));
 
     try {
         await ctx.answerCbQuery();
@@ -365,7 +369,10 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             successMessage += `✅ Your wallet will have sufficient POL for gas fees once processing completes`;
         }
 
-        const statusButtons = [[Markup.button.callback("🏠 Main Menu", "back_to_main_menu")]];
+        const language = await getUserLanguage(Number(userId));
+        const statusButtons = [
+            [Markup.button.callback(`🏠 ${t("mainMenu", language)}`, "back_to_main_menu")],
+        ];
 
         await ctx.telegram.editMessageText(
             processingMsg.chat.id,
@@ -389,13 +396,14 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 export async function handleBridgeStatus(ctx: Context, userId: string): Promise<void> {
     await ctx.answerCbQuery();
 
+    const language = await getUserLanguage(Number(userId));
     await ctx.reply(
         "🔍 **Transaction Status**\n\n⏳ Your bridge transaction is being processed.\n\nPlease check your wallet in a few minutes.",
         {
             parse_mode: "Markdown",
             ...Markup.inlineKeyboard([
                 [Markup.button.callback("🔄 Refresh", `bridge_status:${userId}`)],
-                [Markup.button.callback("🏠 Main Menu", "back_to_main_menu")],
+                [Markup.button.callback(`🏠 ${t("mainMenu", language)}`, "back_to_main_menu")],
             ]),
         }
     );

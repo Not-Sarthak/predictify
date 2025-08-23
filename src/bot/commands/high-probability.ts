@@ -4,13 +4,14 @@ import {
     fetchHighProbabilityMarkets,
     defaultFilters,
     type HighProbFilters,
-    type HighProbMarket,
 } from "../../utils/high-prob-trading";
 import { formatDollarVolume, escapeMarkdown } from "../utils";
 import { redisClient } from "../../lib/redis";
 import { getUserLanguage } from "../../helpers/user-language";
 import { formatHighProbMarketsList } from "../../utils/message-formatters";
 import { t } from "../../i18n";
+import type { HighProbMarket } from "../../utils/high-prob-trading";
+import { getUserAlertSettings } from "../../notifier/high-prob-alerts";
 
 // Helper function to get user's custom filters or defaults
 async function getUserFilters(userId: number): Promise<HighProbFilters> {
@@ -35,42 +36,196 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
 
 export async function handleHighProbabilityCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    const userFilters = await getUserFilters(userId);
     const language = await getUserLanguage(userId);
-
-    const minProb = userFilters.tradingMode === "normal" ? 60 : 80;
-    const maxProb = userFilters.tradingMode === "normal" ? 90 : 95;
-    const modeText =
-        userFilters.tradingMode === "normal"
-            ? t("conservative", language)
-            : t("aggressive", language);
-
-    const cryptoStatus = userFilters.excludeCrypto
-        ? t("excluded", language)
-        : t("included", language);
 
     const keyboard = Markup.inlineKeyboard([
         [
-            Markup.button.callback(`📈 ${t("viewMarkets", language)} (24h)`, "highprob:view:24h"),
-            Markup.button.callback(`📈 ${t("viewMarkets", language)} (48h)`, "highprob:view:48h"),
+            Markup.button.callback(
+                await t("degenStrategyButton", language),
+                "highprob:strategy:degen"
+            ),
         ],
         [
-            Markup.button.callback(`🎯 ${t("autoSplitTrade", language)}`, "highprob:autosplit"),
-            Markup.button.callback(`✋ ${t("manualSelection", language)}`, "highprob:manual"),
-        ],
-        [
-            Markup.button.callback(`⚙️ ${t("adjustFilters", language)}`, "highprob:filters"),
-            Markup.button.callback(`❓ ${t("whatIsThis", language)}`, "highprob:help"),
+            Markup.button.callback(
+                await t("turtleStrategyButton", language),
+                "highprob:strategy:turtle"
+            ),
         ],
     ]);
 
     const message = `
-🎯 **${t("highProbabilityMarkets", language)}**
+🎯 **${await t("highProbabilityMarkets", language)}**
 
-${t("highProbDescription", language)} ${minProb}-${maxProb}% ${t("probabilityRange", language)}.
+${await t("chooseTradingOption", language)}
 
-${t("chooseOption", language)}:
+🔥 **${await t("aggressive", language)}** - ${await t("aggressiveDescription", language)}
+
+🐢 **${await t("conservative", language)}** - ${await t("conservativeDescription", language)}
+
+${await t("selectStrategyPrompt", language)}
     `;
+
+    return ctx.reply(message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard.reply_markup,
+    });
+}
+
+export async function handleStrategySelection(
+    ctx: Context,
+    strategy: "degen" | "turtle",
+    timeFilter: "24h" | "48h" = "24h"
+) {
+    const msg = await ctx.reply("🔍 Scanning for high-probability markets...");
+
+    try {
+        const userId = getUserIdFromCtx(ctx);
+        const userFilters = await getUserFilters(userId);
+
+        // Set strategy-specific probability ranges
+        const minProb = strategy === "degen" ? 70 : 85.5;
+        const maxProb = strategy === "degen" ? 85 : 95;
+
+        const filters: HighProbFilters = {
+            ...userFilters,
+            timeFilter,
+            tradingMode: strategy === "degen" ? "normal" : "degen", // Map: degen->normal (70-85%), turtle->degen (85.5-95%)
+        };
+
+        const markets = await fetchHighProbabilityMarkets(filters, 50);
+
+        await ctx.deleteMessage(msg.message_id);
+
+        if (markets.length === 0) {
+            const strategyEmoji = strategy === "degen" ? "🔥" : "🐢";
+            const strategyName = strategy === "degen" ? "Degen" : "Turtle";
+
+            return ctx.reply(
+                `📊 **No ${strategyName} Markets Found**\n\n` +
+                    `No markets found matching ${minProb}-${maxProb}% probability range (${timeFilter}).\n\n` +
+                    `Try adjusting filters or check back later.`,
+                {
+                    parse_mode: "Markdown",
+                    reply_markup: Markup.inlineKeyboard([
+                        [
+                            Markup.button.callback("24h", `highprob:strategy:${strategy}:24h`),
+                            Markup.button.callback("48h", `highprob:strategy:${strategy}:48h`),
+                        ],
+                        [Markup.button.callback("🔙 Back", "highprob:menu")],
+                    ]).reply_markup,
+                }
+            );
+        }
+
+        return sendStrategyMarkets(ctx, markets, strategy, timeFilter);
+    } catch (error) {
+        await ctx.deleteMessage(msg.message_id);
+        console.error("Error handling strategy selection:", error);
+        return ctx.reply("❌ Error loading markets. Please try again later.");
+    }
+}
+
+export async function sendStrategyMarkets(
+    ctx: Context,
+    markets: HighProbMarket[],
+    strategy: "degen" | "turtle",
+    timeFilter: "24h" | "48h"
+) {
+    const LIMIT = 8;
+    const currentMarkets = markets.slice(0, LIMIT);
+    const userId = getUserIdFromCtx(ctx);
+    const userFilters = await getUserFilters(userId);
+    const language = await getUserLanguage(userId);
+
+    const strategyEmoji = strategy === "degen" ? "🔥" : "🐢";
+    const strategyName = strategy === "degen" ? "Degen" : "Turtle";
+    const minProb = strategy === "degen" ? 70 : 85.5;
+    const maxProb = strategy === "degen" ? 85 : 95;
+
+    let message = `${strategyEmoji} **${strategyName} Strategy** (${minProb}-${maxProb}%)\n\n`;
+    message += `📊 **Found ${markets.length} qualifying markets** (${timeFilter})\n\n`;
+
+    // Display markets with numbers
+    for (let i = 0; i < currentMarkets.length; i++) {
+        const market = currentMarkets[i];
+        const prob = Math.round((market.probability || 0) * 100);
+        // Try multiple volume sources in order of preference
+        const volumeValue = market.volume24hr || market.volume || market.liquidity || 0;
+        const volume = formatDollarVolume(volumeValue);
+
+        // Better date handling
+        let endTime = t("notAvailable", language);
+        if (market.endDate) {
+            try {
+                const date = new Date(market.endDate);
+                if (!isNaN(date.getTime())) {
+                    endTime = date.toLocaleDateString();
+                }
+            } catch (e) {
+                endTime = t("notAvailable", language);
+            }
+        }
+
+        message += `**${i + 1}.** ${escapeMarkdown(market.question || market.title || "Unknown Market")}\n`;
+        message += `   💹 ${prob}% • 💧 ${volume} • ⏰ ${endTime}\n\n`;
+    }
+
+    // Create time filter toggle buttons
+    const timeButtons = [
+        Markup.button.callback(
+            timeFilter === "24h" ? "✅ 24h" : "24h",
+            `highprob:strategy:${strategy}:24h`
+        ),
+        Markup.button.callback(
+            timeFilter === "48h" ? "✅ 48h" : "48h",
+            `highprob:strategy:${strategy}:48h`
+        ),
+    ];
+
+    // Create numbered market buttons
+    const marketButtons = currentMarkets.map((market, idx) =>
+        Markup.button.callback(
+            `#${idx + 1}`,
+            `highprob:market:${market.id}:${strategy}:${timeFilter}`
+        )
+    );
+
+    // Layout market buttons in rows of 4
+    const marketButtonRows = [];
+    for (let i = 0; i < marketButtons.length; i += 4) {
+        marketButtonRows.push(marketButtons.slice(i, i + 4));
+    }
+
+    // Create filter and action buttons
+    const cryptoStatus = userFilters.excludeCrypto
+        ? t("noCrypto", language)
+        : t("includeCrypto", language);
+
+    // Get alert status for the button
+    const alertSettings = await getUserAlertSettings(userId.toString());
+    const alertStatus = alertSettings.enabled ? t("alertsOn", language) : t("alertsOff", language);
+
+    const keyboard = Markup.inlineKeyboard([
+        timeButtons,
+        [
+            Markup.button.callback(
+                `🎯 ${t("autoSplitTrade", language)}`,
+                `highprob:autosplit:${strategy}:${timeFilter}`
+            ),
+        ],
+        ...marketButtonRows,
+        [
+            Markup.button.callback(
+                cryptoStatus,
+                `highprob:toggle_crypto:${strategy}:${timeFilter}`
+            ),
+            Markup.button.callback(
+                alertStatus,
+                `highprob:strategy_alerts:${strategy}:${timeFilter}`
+            ),
+        ],
+        [Markup.button.callback("🔙 Back", "highprob:menu")],
+    ]);
 
     return ctx.reply(message, {
         parse_mode: "Markdown",
