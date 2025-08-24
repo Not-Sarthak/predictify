@@ -264,7 +264,9 @@ export async function handleViewHighProbMarkets(
                     `• Probability: ${minProb}-${maxProb}%\n` +
                     `• No crypto or sports markets\n` +
                     `• No very short-term markets (< 30 min)\n` +
-                    `• No resolved markets (98%+)\n\n` +
+                    `• No resolved markets (98%+)\n` +
+                    `• No long-term markets (> 7 days)\n` +
+                    `• No markets with invalid/missing dates\n\n` +
                     `Try adjusting the filters or check back later.`,
                 {
                     parse_mode: "Markdown",
@@ -411,6 +413,8 @@ Markets with moderate to high probability outcomes, expiring within 24-48 hours.
 • **Crypto:** Can be excluded or included (user choice)
 • **0DTE:** Excludes markets with less than 30 minutes remaining
 • **Resolved:** Excludes markets already at 98%+ probability
+• **Long-term:** Excludes markets with no end date or >7 days expiry
+• **Invalid dates:** Excludes markets with missing or invalid end dates
 
 **Trading Options:**
 • **Auto-Split:** Equal distribution across top markets

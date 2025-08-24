@@ -8,7 +8,7 @@ import {
 } from "../../ui/buttons/common";
 import { Markup } from "telegraf";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t } from "../../../i18n";
+import { getMessages, t } from "../../../i18n";
 
 export const MAIN_MENU_BUTTONS = [
     [
@@ -26,6 +26,40 @@ export const MAIN_MENU_BUTTONS = [
 ];
 
 // Translated menu generators
+export async function generateTranslatedSubscriptionMenuButtons(userId: number) {
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
+
+    return [
+        [
+            Markup.button.callback(
+                `🔔 ${t.subscribeAction.replace("🔔 ", "")}`,
+                "subscriptions:subscribe"
+            ),
+            Markup.button.callback(
+                `🔕 ${t.unsubscribeAction.replace("🔕 ", "")}`,
+                "subscriptions:unsubscribe"
+            ),
+        ],
+        [
+            Markup.button.callback(
+                `📋 ${t.mySubscriptions.replace("📋 ", "")}`,
+                "subscriptions:view"
+            ),
+            Markup.button.callback(
+                `✨ ${t.enterCustom.replace("✨ ", "")}`,
+                "subscriptions:custom"
+            ),
+        ],
+        [
+            Markup.button.callback(
+                `🛎️ ${t.managePriceAlerts.replace("🛎️ ", "")}`,
+                "edit_price_alerts"
+            ),
+        ],
+        [await getBackToMainMenuButton(userId)],
+    ];
+}
 export async function generateMainMenuButtons(userId: number) {
     const language = await getUserLanguage(userId);
     return [

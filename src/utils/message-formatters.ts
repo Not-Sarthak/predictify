@@ -12,9 +12,16 @@ import { t, type SupportedLanguage } from "../i18n";
     
     const key = statusMap[status.toLowerCase()];
     return key ? t(key, language) : status;
-}anslations
+}
+
+/**
+ * Format market message with translations
  */
-export async function formatMarketMessage(userId: number, market: any): Promise<string> {
+export async function formatMarketMessage(
+    userId: number,
+    market: any,
+    includePrices: boolean = true
+): Promise<string> {
     const language = await getUserLanguage(userId);
 
     const volume = market.volume || market.volumeUSD || 0;
@@ -32,11 +39,13 @@ export async function formatMarketMessage(userId: number, market: any): Promise<
     const status = market.closed ? t("closed", language) : t("active", language);
     message += `📊 **Status**: ${status}\n\n`;
 
-    const parsedOutcomes = JSON.parse(market.outcomePrices);
+    if (includePrices) {
+        const parsedOutcomes = JSON.parse(market.outcomePrices);
 
-    message += `**${t("price", language)}:**\n`;
-    message += `• ${t("yes", language)}: ${(parsedOutcomes[0] * 100).toFixed(1)}%\n`;
-    message += `• ${t("no", language)}: ${(parsedOutcomes[1] * 100).toFixed(1)}%\n\n`;
+        message += `**${t("price", language)}:**\n`;
+        message += `• ${t("yes", language)}: ${(parsedOutcomes[0] * 100).toFixed(1)}%\n`;
+        message += `• ${t("no", language)}: ${(parsedOutcomes[1] * 100).toFixed(1)}%\n\n`;
+    }
 
     return message;
 }
@@ -104,7 +113,28 @@ export async function formatHighProbMarketsList(
         const probability = Math.round(market.probability * 100);
         const expectedReturn = market.expectedReturn ? market.expectedReturn.toFixed(1) : "0.0";
         const volume = formatNumber(market.volume || 0);
-        const hoursLeft = Math.round(market.hoursUntilExpiry || 0);
+
+        // Format time display - show "N/A" for invalid dates or very long-term markets
+        let timeDisplay = "N/A";
+        if (
+            market.hoursUntilExpiry &&
+            market.hoursUntilExpiry > 0 &&
+            market.hoursUntilExpiry <= 168
+        ) {
+            const hoursLeft = Math.round(market.hoursUntilExpiry);
+            if (hoursLeft < 24) {
+                timeDisplay = `${hoursLeft}h`;
+            } else {
+                const daysLeft = Math.floor(hoursLeft / 24);
+                const remainingHours = hoursLeft % 24;
+                if (remainingHours === 0) {
+                    timeDisplay = `${daysLeft}d`;
+                } else {
+                    timeDisplay = `${daysLeft}d ${remainingHours}h`;
+                }
+            }
+        }
+
         const questionText = market.question
             ? market.question.length > 80
                 ? market.question.substring(0, 80) + "..."
@@ -113,7 +143,7 @@ export async function formatHighProbMarketsList(
         const bestOutcome = market.bestOutcome ? market.bestOutcome.toUpperCase() : "YES";
 
         message += `**${marketNum}.** ${questionText}\n`;
-        message += `🎯 **${bestOutcome}** @ ${probability}% • ⏰ ${hoursLeft}h ${t("left", language)}\n`;
+        message += `🎯 **${bestOutcome}** @ ${probability}% • ⏰ ${timeDisplay}\n`;
         message += `💰 ${t("volume", language)}: $${volume} • 📈 ${t("return", language)}: +${expectedReturn}%\n\n`;
     });
 
