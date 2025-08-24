@@ -117,6 +117,44 @@ export type Database = {
                     },
                 ];
             };
+            Monthly_Active_Users: {
+                Row: {
+                    created_at: string | null;
+                    id: string;
+                    month_number: number;
+                    month_start: string;
+                    transaction_count: number | null;
+                    user_id: number;
+                    year: number;
+                };
+                Insert: {
+                    created_at?: string | null;
+                    id?: string;
+                    month_number: number;
+                    month_start: string;
+                    transaction_count?: number | null;
+                    user_id: number;
+                    year: number;
+                };
+                Update: {
+                    created_at?: string | null;
+                    id?: string;
+                    month_number?: number;
+                    month_start?: string;
+                    transaction_count?: number | null;
+                    user_id?: number;
+                    year?: number;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "Monthly_Active_Users_user_id_fkey";
+                        columns: ["user_id"];
+                        isOneToOne: false;
+                        referencedRelation: "Users";
+                        referencedColumns: ["id"];
+                    },
+                ];
+            };
             Users: {
                 Row: {
                     amount_deposited: number;
@@ -200,6 +238,44 @@ export type Database = {
                     watched_wallets?: string[] | null;
                 };
                 Relationships: [];
+            };
+            Weekly_Active_Users: {
+                Row: {
+                    created_at: string | null;
+                    id: string;
+                    transaction_count: number | null;
+                    user_id: number;
+                    week_number: number;
+                    week_start: string;
+                    year: number;
+                };
+                Insert: {
+                    created_at?: string | null;
+                    id?: string;
+                    transaction_count?: number | null;
+                    user_id: number;
+                    week_number: number;
+                    week_start: string;
+                    year: number;
+                };
+                Update: {
+                    created_at?: string | null;
+                    id?: string;
+                    transaction_count?: number | null;
+                    user_id?: number;
+                    week_number?: number;
+                    week_start?: string;
+                    year?: number;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "Weekly_Active_Users_user_id_fkey";
+                        columns: ["user_id"];
+                        isOneToOne: false;
+                        referencedRelation: "Users";
+                        referencedColumns: ["id"];
+                    },
+                ];
             };
         };
         Views: {
