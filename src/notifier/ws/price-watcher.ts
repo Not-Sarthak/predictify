@@ -9,6 +9,10 @@ import { buyOrderGTC } from "../../utils/polymarket-order/buy-order-gtc";
 import { OrderType, Side } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { redisClient } from "../../lib/redis";
+import {
+    updateUserMarketsTraded,
+    updateUserTransactionsExecuted,
+} from "../../bot/utils/database/update-user-data";
 
 export type PriceWatchConfig =
     | { type: "take_profit"; price: number; outcome: string; size: number }
@@ -153,11 +157,15 @@ export class PolymarketMarketTradeWatcher {
                     console.error("ERROR EXECUTING TP/SL LIMIT ORDER: ", error);
                 }
 
-                await bot.telegram.sendMessage(
-                    this.userId,
-                    generateTPorSLMessage({ ...basePayload, size: this.config.size }),
-                    { parse_mode: "HTML" }
-                );
+                await Promise.all([
+                    updateUserMarketsTraded(Number(this.userId), user.markets_traded),
+                    updateUserTransactionsExecuted(Number(this.userId), user.txns_executed),
+                    bot.telegram.sendMessage(
+                        this.userId,
+                        generateTPorSLMessage({ ...basePayload, size: this.config.size }),
+                        { parse_mode: "HTML" }
+                    ),
+                ]);
 
                 stopTpSlWatcher(this.userId, this.marketId, this.assetId, type);
             }

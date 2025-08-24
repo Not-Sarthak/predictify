@@ -20,6 +20,7 @@ import { handleShowManageOrdersMainMenu } from "./commands/manage-limit-orders";
 import { handleAutoTradeMenu } from "./ui/messages";
 import { handleViewProfileCallback } from "./callbacks/start";
 import { handleMonitoringStats } from "./callbacks/autotrade";
+import { handleBotStatistics } from "./commands/bot-statistics";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
@@ -43,6 +44,7 @@ bot.command("watchlist", (ctx) => handleWatchlistCommand(ctx));
 bot.command("highprob", handleHighProbabilityCommand);
 bot.command("ref", handleRefCommand);
 bot.command("monitoring", handleMonitoringStats);
+bot.command("statistics", handleBotStatistics);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
