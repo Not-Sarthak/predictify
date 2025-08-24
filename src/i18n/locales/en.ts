@@ -87,7 +87,7 @@ Your wallet's live. Let's degen.`,
     total: "Total",
 
     // High Probability Features
-    highProbabilityMarkets: "High Probability Markets",
+    highProbabilityMarkets: "🎯 High Probability Markets",
     highProbability: "High Probability",
     filters: "Filters",
     minVolume: "Minimum Volume",
@@ -388,4 +388,27 @@ Your wallet's live. Let's degen.`,
     yourReferralCode: "Your Referral Code:",
     viewOnPolymarket: "🔗 View on Polymarket",
     notAssigned: "Not assigned",
+
+    // Search and Trending
+    trendingZeroDteMarkets: "⚡ Trending 0DTE Markets:",
+    enterTermToSearch: "✍️ Enter a Term to Search",
+    searchTerm: "<term>",
+    searchExample: "Example:",
+    basketballExample: "basketball",
+    enterAnyKeyword: "You Can Enter Any Keyword to Get Relevant Results.",
+    topZeroDteMarketsFor: "⚡ Top 0DTE Markets for",
+    chooseSubscriptionOption: "Choose a subscription option",
+    hourlyMarkets: "⚡ Hourly Markets",
+
+    // Cryptocurrency names
+    bitcoin: "Bitcoin",
+    ethereum: "Ethereum",
+    solana: "Solana",
+    xrp: "XRP",
+    dogecoin: "Dogecoin",
+
+    // Additional UI text
+    removeFromWatchlist: "💔 Remove from Watchlist",
+    watchlist: "Watchlist",
+    from: "from",
 };

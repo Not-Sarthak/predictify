@@ -98,7 +98,6 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
 
         message += `**${index + 1}.** ${market.question}\n`;
         message += `   • Probability: **${probability}%** (${market.bestOutcome.toUpperCase()})\n`;
-        message += `   • Expected Return: **+${expectedReturn}%**\n`;
         message += `   • Time Left: **${hoursLeft}h**\n`;
         message += `   • Volume: **$${(market.volume || 0).toLocaleString()}**\n\n`;
     });

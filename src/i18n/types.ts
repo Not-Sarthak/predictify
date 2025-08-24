@@ -384,4 +384,27 @@ export interface LocaleMessages {
     // Position messages
     noOpenPositions: string;
     noOpenPositionsFound: string;
+
+    // Search and Trending
+    trendingZeroDteMarkets: string;
+    enterTermToSearch: string;
+    searchTerm: string;
+    searchExample: string;
+    basketballExample: string;
+    enterAnyKeyword: string;
+    topZeroDteMarketsFor: string;
+    chooseSubscriptionOption: string;
+    hourlyMarkets: string;
+
+    // Cryptocurrency names
+    bitcoin: string;
+    ethereum: string;
+    solana: string;
+    xrp: string;
+    dogecoin: string;
+
+    // Additional UI text
+    removeFromWatchlist: string;
+    watchlist: string;
+    from: string;
 }

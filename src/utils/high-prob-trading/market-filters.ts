@@ -155,8 +155,19 @@ export function isSportsMarket(market: Market): boolean {
  * Calculates hours until market expiry
  */
 export function calculateHoursUntilExpiry(endDate: string): number {
+    // Handle missing or invalid end dates
+    if (!endDate || endDate === "null" || endDate === "undefined") {
+        return -1; // Return -1 to indicate no valid end date
+    }
+
     const now = new Date();
     const expiry = new Date(endDate);
+
+    // Check if the date is valid
+    if (isNaN(expiry.getTime())) {
+        return -1; // Return -1 for invalid dates
+    }
+
     const diffMs = expiry.getTime() - now.getTime();
     const hours = Math.max(0, diffMs / (1000 * 60 * 60));
 
@@ -312,6 +323,8 @@ export function filterHighProbabilityMarkets(
         sports: 0,
         resolved: 0,
         zerodte: 0,
+        invalidDate: 0,
+        longTerm: 0,
         passed: 0,
     };
 
@@ -418,6 +431,8 @@ export function filterHighProbabilityMarkets(
             sports: filteredCount.sports,
             resolved: filteredCount.resolved,
             zerodte: filteredCount.zerodte,
+            invalidDate: filteredCount.invalidDate,
+            longTerm: filteredCount.longTerm,
         },
         passed: filteredCount.passed,
         finalCount: highProbMarkets.length,

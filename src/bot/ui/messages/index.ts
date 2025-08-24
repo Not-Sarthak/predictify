@@ -11,6 +11,7 @@ import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
 import { redisClient } from "../../../lib/redis";
 import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
 import { getUserLanguage } from "../../../helpers/user-language";
+import { getMessages } from "../../../i18n";
 import { t } from "../../../i18n";
 
 export const generateWelcomeMessage = async (
@@ -257,7 +258,47 @@ export async function handleAutoTradeMenu(ctx: Context) {
     });
 }
 
-export async function generate0DTEMarketCategoryKeyboard() {
+export async function generate0DTEMarketCategoryKeyboard(userId?: number) {
+    // If userId is provided, generate translated keyboard
+    if (userId) {
+        const language = await getUserLanguage(userId);
+        const t = getMessages(language);
+
+        const cryptoTranslations: Record<string, string> = {
+            Bitcoin: t.bitcoin,
+            Ethereum: t.ethereum,
+            Solana: t.solana,
+            XRP: t.xrp,
+            Dogecoin: t.dogecoin,
+        };
+
+        const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
+            Markup.button.callback(
+                cryptoTranslations[category] || category,
+                `zero_dte_category:${category.toLowerCase()}`
+            )
+        );
+
+        const HOURLY_0DTE_MARKET_BUTTON = Markup.button.callback(
+            t.hourlyMarkets,
+            "view_hourly_0dte_markets"
+        );
+
+        const keyboardLayout = [];
+        for (let i = 0; i < CATEGORY_BUTTONS.length; i += 3) {
+            keyboardLayout.push(CATEGORY_BUTTONS.slice(i, i + 3));
+        }
+
+        const keyboard = Markup.inlineKeyboard([
+            [HOURLY_0DTE_MARKET_BUTTON],
+            ...keyboardLayout,
+            [CLOSE_BUTTON],
+        ]);
+
+        return keyboard;
+    }
+
+    // Default English keyboard for backward compatibility
     const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
         Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
     );

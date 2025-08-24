@@ -3,6 +3,7 @@ import {
     CLOSE_BUTTON,
     generateSubscriptionButtons,
     SUBSCRIPTIONS_MENU_BUTTONS,
+    generateTranslatedSubscriptionMenuButtons,
 } from "../ui/buttons";
 import { formatActiveSubscriptionsMessage, getUserIdFromCtx } from "../utils";
 import { redisClient } from "../../lib/redis";
@@ -13,9 +14,10 @@ import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
-    return ctx.editMessageReplyMarkup(
-        Markup.inlineKeyboard(SUBSCRIPTIONS_MENU_BUTTONS).reply_markup
-    );
+    const userId = getUserIdFromCtx(ctx);
+    const translatedButtons = await generateTranslatedSubscriptionMenuButtons(userId);
+
+    return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(translatedButtons).reply_markup);
 }
 
 export async function handleSubscriptionMenuCallbacks(ctx: Context, action: string) {

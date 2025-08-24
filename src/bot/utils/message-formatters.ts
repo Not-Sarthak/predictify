@@ -84,13 +84,13 @@ ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPr
 export function formatDollarVolume(n: number): string {
     // Handle undefined, null, or non-numeric values
     if (typeof n !== "number" || isNaN(n) || n == null) {
-        return "$0.00";
+        return "$0";
     }
 
-    if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-    return `$${n.toFixed(2)}`;
+    if (n >= 1_000_000_000) return `$${Math.round(n / 1_000_000_000)}B`;
+    if (n >= 1_000_000) return `$${Math.round(n / 1_000_000)}M`;
+    if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+    return `$${Math.round(n)}`;
 }
 
 export async function formatOrderBook(tokenIds: string[], userId: string) {
