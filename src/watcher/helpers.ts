@@ -15,6 +15,10 @@ import {
     releaseCopyTradeLock,
 } from "./position-validator";
 import { updateUserVolume } from "../helpers/update-user-volume";
+import {
+    updateUserMarketsTraded,
+    updateUserTransactionsExecuted,
+} from "../bot/utils/database/update-user-data";
 
 interface Trade {
     proxyWallet: string;
@@ -190,6 +194,10 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 side: Side.BUY,
                 orderType: OrderType.FOK,
             });
+            await Promise.all([
+                updateUserMarketsTraded(Number(userId), user.markets_traded),
+                updateUserTransactionsExecuted(Number(userId), user.txns_executed),
+            ]);
         } else {
             const validation = await validateSellPosition(
                 user.wallet_address,

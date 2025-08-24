@@ -11,6 +11,10 @@ import { ethers } from "ethers";
 import type { HighProbMarket } from "./market-filters";
 import type { ApiKeyCreds } from "../../types/polymarket/api-key";
 import { updateUserVolume } from "../../helpers/update-user-volume";
+import {
+    updateUserMarketsTraded,
+    updateUserTransactionsExecuted,
+} from "../../bot/utils/database/update-user-data";
 
 export interface BatchTradeRequest {
     userId: number;
@@ -198,12 +202,16 @@ async function executeSingleTrade({
             throw new Error("Order execution failed");
         }
 
-        // Track the trade
+        const user = await getUserDetails(userId);
         const shares = amount / market.bestPrice;
-        await trackManualTrade(userId, tokenId, "BUY", shares);
 
-        // Update user volume
-        await updateUserVolume(userId, amount);
+        // Track the trade & Update user data
+        await Promise.all([
+            trackManualTrade(userId, tokenId, "BUY", shares),
+            updateUserVolume(userId, amount),
+            updateUserMarketsTraded(userId, user?.markets_traded || 0),
+            updateUserTransactionsExecuted(userId, user?.txns_executed || 0),
+        ]);
 
         return {
             marketId: market.id,

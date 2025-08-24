@@ -28,6 +28,10 @@ import { encodeMarketConditionId } from "../../utils/encoding";
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { startUserTradeWatcher } from "../../notifier/ws/limit-order-watcher";
+import {
+    updateUserMarketsTraded,
+    updateUserTransactionsExecuted,
+} from "../utils/database/update-user-data";
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -93,7 +97,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const [_1, amountStr, _] = textMessage.trim().split(/\s+/);
         const amount = Number(amountStr);
 
-        if (amount > userBalance - lockedBalance) {
+        if (amount >= userBalance - lockedBalance) {
             return ctx.telegram.editMessageText(
                 ctx.chat!.id,
                 sentMessage.message_id,
@@ -340,6 +344,15 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     marketId
                 );
             }
+
+            if (
+                orderType === "fok" ||
+                (orderType === "gtc" && orderResponse.response.status === "matched")
+            ) {
+                await updateUserMarketsTraded(userId, data?.markets_traded || 0);
+            }
+
+            await updateUserTransactionsExecuted(userId, data?.txns_executed || 0);
 
             const amount =
                 orderType === "gtc"

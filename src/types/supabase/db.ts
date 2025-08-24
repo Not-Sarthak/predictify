@@ -1,7 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-    // Allows to automatically instanciate createClient with right options
+    // Allows to automatically instantiate createClient with right options
     // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
     __InternalSupabase: {
         PostgrestVersion: "12.2.3 (519615d)";
@@ -128,6 +128,7 @@ export type Database = {
                     id: number;
                     is_copytrading_enabled: boolean;
                     market_watchlist: Json | null;
+                    markets_traded: number;
                     number_of_referrals: number | null;
                     private_key: string;
                     referral_code: string | null;
@@ -140,6 +141,7 @@ export type Database = {
                     total_pnl: number;
                     total_volume: number;
                     treasury_wallet_address: string | null;
+                    txns_executed: number;
                     wallet_address: string;
                     watched_wallets: string[] | null;
                 };
@@ -153,6 +155,7 @@ export type Database = {
                     id: number;
                     is_copytrading_enabled?: boolean;
                     market_watchlist?: Json | null;
+                    markets_traded?: number;
                     number_of_referrals?: number | null;
                     private_key: string;
                     referral_code?: string | null;
@@ -165,6 +168,7 @@ export type Database = {
                     total_pnl?: number;
                     total_volume?: number;
                     treasury_wallet_address?: string | null;
+                    txns_executed?: number;
                     wallet_address: string;
                     watched_wallets?: string[] | null;
                 };
@@ -178,6 +182,7 @@ export type Database = {
                     id?: number;
                     is_copytrading_enabled?: boolean;
                     market_watchlist?: Json | null;
+                    markets_traded?: number;
                     number_of_referrals?: number | null;
                     private_key?: string;
                     referral_code?: string | null;
@@ -190,39 +195,11 @@ export type Database = {
                     total_pnl?: number;
                     total_volume?: number;
                     treasury_wallet_address?: string | null;
+                    txns_executed?: number;
                     wallet_address?: string;
                     watched_wallets?: string[] | null;
                 };
                 Relationships: [];
-            };
-            wallet_subscriptions: {
-                Row: {
-                    created_at: string;
-                    is_active: boolean;
-                    user_id: number;
-                    wallet_address: string;
-                };
-                Insert: {
-                    created_at?: string;
-                    is_active?: boolean;
-                    user_id: number;
-                    wallet_address: string;
-                };
-                Update: {
-                    created_at?: string;
-                    is_active?: boolean;
-                    user_id?: number;
-                    wallet_address?: string;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: "wallet_subscriptions_user_id_fkey";
-                        columns: ["user_id"];
-                        isOneToOne: true;
-                        referencedRelation: "Users";
-                        referencedColumns: ["id"];
-                    },
-                ];
             };
         };
         Views: {
