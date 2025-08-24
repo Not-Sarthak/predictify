@@ -11,6 +11,8 @@ import {
     handleWatchlistCommand,
     handleHighProbabilityCommand,
     handleRefCommand,
+    handleActiveUserAnalytics,
+    handleDetailedAnalytics,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "./callbacks";
@@ -45,6 +47,8 @@ bot.command("highprob", handleHighProbabilityCommand);
 bot.command("ref", handleRefCommand);
 bot.command("monitoring", handleMonitoringStats);
 bot.command("statistics", handleBotStatistics);
+bot.command("analytics", handleActiveUserAnalytics);
+bot.command("detailed", handleDetailedAnalytics);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
