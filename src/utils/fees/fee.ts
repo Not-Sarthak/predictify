@@ -58,7 +58,6 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
         let mainTreasuryFee = totalFeeAmount;
 
         if (userData?.referred_code && userData.referred_code !== "OPEN") {
-            // Look up referrer by username (stored in referred_code for new referral links)
             const { data: referrerData } = await db("Users")
                 .select("treasury_wallet_address")
                 .eq("telegram_username", userData.referred_code)
