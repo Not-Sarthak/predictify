@@ -48,7 +48,6 @@ bun run scripts/supabase-typegen.ts    # Generate TypeScript types from Supabase
 
 ```bash
 bun run set:wh          # Set Telegram webhook (prod)
-bun run set:wh -s       # Set Telegram webhook (staging)
 ```
 
 ## Architecture Overview
@@ -83,6 +82,15 @@ bun run set:wh -s       # Set Telegram webhook (staging)
 6. **Service Architecture**: Single main process managing bot, notifier, watchers, and alerts
 7. **Webhook-based**: Uses Telegram webhooks instead of polling for better performance
 
+### Application Bootstrap
+
+The main entry point (`src/index.ts`) initializes services in this order:
+1. **Cron Jobs**: Starts market data fetching every 12 hours
+2. **Watcher Restoration**: Restores price alerts, TP/SL watchers, and limit order watchers from Redis
+3. **High-Prob Alerts**: Starts high-probability market monitoring
+4. **Copy Trading System**: Initializes wallet monitoring via `initializeCopyTrading()`
+5. **Telegram Bot**: Launches with webhook configuration on configurable port
+
 ### Database Schema
 
 - `Users` - User profiles with encrypted wallet private keys
@@ -102,59 +110,67 @@ bun run set:wh -s       # Set Telegram webhook (staging)
 - `/highprob` - High-probability market filtering and trading
 - `/watchlist` - Market watchlist management
 - `/history` - Trading history
+- `/portfolio` - View trading positions
+- `/manage` - Manage limit orders
+- `/stats` - User profile statistics
+- `/monitoring` - Copy trading monitoring stats
+- `/statistics` - Bot statistics (admin)
+- `/analytics` - Active user analytics (admin)
+- `/detailed` - Detailed analytics (admin)
 
 ### Environment Variables
 
-Required environment variables are validated in `src/config/env.schema.ts`. Key variables include:
+Required environment variables are validated in `src/config/env.schema.ts` using Zod schemas. Key variables include:
 
 - `REDIS_URL` - Redis connection string
-- `TG_BOT_TOKEN` - Bot token from BotFather
+- `TG_BOT_TOKEN` - Bot token from BotFather  
+- `SECRET_TOKEN` - Webhook secret token (min 16 chars)
+- `WEBHOOK_DOMAIN` - Domain for webhook endpoint
 - `SUPABASE_URL` & `SUPABASE_SERVICE_ROLE_KEY` - Database credentials
 - `MAINNET_RPC_URL` - Blockchain RPC endpoint
 - `CLOB_API_URL` - Polymarket API endpoint
-- `PRIVATE_KEY_ENCRYPTION_KEY` - For private key encryption
+- `PRIVATE_KEY_ENCRYPTION_KEY` - For private key encryption (32 chars)
+- `USDC_CONTRACT_ADDRESS` - USDC contract address
+- `TREASURY_ADDRESS` - Treasury wallet address
+- `DEBRIDGE_API_URL` & `DEBRIDGE_API_KEY` - Cross-chain bridging
+- `PROJECT_ID` & `SUPABASE_ACCESS_TOKEN` - For type generation
+- `DB_RETRY_COUNT` & `DB_TIMEOUT_MS` - Database connection settings
 
-### Common Development Tasks
+### Bot Architecture
 
-#### Adding a New Command
+The bot uses Telegraf framework with:
+- **Middleware Stack**: Bot rejection, ID requirements
+- **Command Routing**: Declarative command registration in `src/bot/index.ts`
+- **Input Handling**: Text input processing via `handleUserTextMessage`
+- **Callback Queries**: Button interactions via `handleCallbackQuery`
+- **Error Handling**: Global error catching with context logging
 
-1. Create handler in `src/bot/commands/`
-2. Register in `src/bot/index.ts`
-3. Add UI components in `src/bot/ui/`
-4. Update types if needed
+### State Management System
 
-#### Modifying Trading Logic
+- **User Input States**: Tracked via Sets for active input sessions
+- **Redis Sessions**: Persistent state storage for complex workflows
+- **Database State**: User preferences, trading configs, wallet data
+- **Real-time Updates**: Supabase subscriptions for copy trading events
 
-1. Core logic in `src/utils/polymarket/`
-2. Order management in `src/utils/polymarket-order/`
-3. Update error handling in `src/shared/errors.ts`
+### Trading System Architecture
 
-#### Working with Copy Trading
-
-1. Watcher logic in `src/watcher/`
-2. Uses Supabase real-time subscriptions
-3. State managed through database tables
-
-### Testing Approach
-
-Currently no automated tests. Manual testing through:
-
-1. Local bot instance with test Telegram account
-2. Testnet deployment for blockchain interactions
-3. Staging environment before production
+1. **Manual Trading**: Direct user interaction through `/trade` command
+2. **Copy Trading**: Automated execution based on monitored wallets
+3. **High-Probability Trading**: Filtered market trading via `/highprob`
+4. **Order Management**: Limit orders, market orders, TP/SL functionality
+5. **Portfolio Management**: Position tracking, PnL calculation
 
 ### Deployment
 
 - Single-process architecture (no separate API server)
-- Webhook-based bot updates (not polling) on configurable port
-- Environment-specific webhook configuration (prod/staging)
-- Service management includes notification system, watchers, and alerts restoration
+- Webhook-based bot updates (not polling) using `PORT` from constants
+- Environment-specific webhook configuration
+- Service restoration includes price watchers, limit order watchers, and copy trading monitors
 
 ### Important Notes
 
-- Always encrypt private keys before storage
-- Use environment variables for sensitive data
-- Follow existing code patterns for consistency
-- When working with Supabase types, regenerate them if schema changes
-- The application requires PROJECT_ID and SUPABASE_ACCESS_TOKEN for type generation
-- Check README.md for current development priorities and TODOs
+- Always encrypt private keys before storage using `PRIVATE_KEY_ENCRYPTION_KEY`
+- Environment validation is strict - all required vars must pass Zod schema validation
+- The application bootstraps multiple services: cron jobs, watchers, alerts, then the bot
+- Copy trading uses Supabase real-time subscriptions for immediate execution
+- When working with Supabase types, regenerate using the typegen script after schema changes

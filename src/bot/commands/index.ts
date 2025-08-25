@@ -7,6 +7,8 @@ export * from "./trade";
 export * from "./watchlist";
 export * from "./high-probability";
 export * from "./referral";
+export * from "./active-user-analytics";
+export * from "./detailed-analytics";
 
 // Bot Interaction Commands
 export const botCommands: BotCommand[] = [
@@ -57,5 +59,13 @@ export const botCommands: BotCommand[] = [
     {
         command: "ref",
         description: "View referral stats and share your referral link",
+    },
+    {
+        command: "analytics",
+        description: "View active user analytics (Admin only)",
+    },
+    {
+        command: "detailed",
+        description: "View detailed analytics dashboard (Admin only)",
     },
 ];
