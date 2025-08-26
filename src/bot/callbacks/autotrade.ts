@@ -10,11 +10,14 @@ import {
     updateSubscription,
     getMonitoringStatus,
 } from "../../watcher/copy-trade";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
+    const language = await getUserLanguage(Number(userId));
     const { data, error } = await getUserCopyTradeConfig(userId);
 
     if (error) {
@@ -24,13 +27,13 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
     const configMessageValue =
         data && data.config_type
             ? `${data.config_type} (${data.config_value})`
-            : "Default (Not Set)";
+            : t("defaultNotSet", language);
 
     const configMessage =
-        `💰 *Global Copy Trader Position %*\n\n` +
-        `Set the default position percentage for new wallets:\n\n` +
-        `📊 *Current Default:* ${configMessageValue}\n\n` +
-        `Note: Individual wallet percentages override this default.`;
+        `${t("globalCopyTraderPositionTitle", language)}\n\n` +
+        `${t("setDefaultPositionPercentage", language)}\n\n` +
+        `${t("currentDefault", language)} ${configMessageValue}\n\n` +
+        `${t("individualWalletOverride", language)}`;
 
     const configButtons = [
         [
@@ -38,7 +41,7 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
             Markup.button.callback("100%", "config_position_100"),
             Markup.button.callback("Custom", "config_position_custom"),
         ],
-        [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
+        [Markup.button.callback(t("backToAutoTrade", language), "back_to_autotrade")],
     ];
 
     await ctx.editMessageText(configMessage, {
@@ -51,6 +54,8 @@ export async function handleViewWatchedWallets(ctx: Context) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
 
+    const language = await getUserLanguage(Number(userId));
+
     try {
         const { data: userWallets, error } = await db("Copy_Wallets")
             .select("*")
@@ -59,11 +64,13 @@ export async function handleViewWatchedWallets(ctx: Context) {
         if (error) throw error;
 
         if (!userWallets || userWallets.length === 0) {
-            const message = `👁️ *Watched Wallets*\n\n` + `⚠️ No Wallets Added\n\n`;
+            const message =
+                `👁️ *${t("watchedWalletsTitle", language)}*\n\n` +
+                `⚠️ ${t("noWalletsAdded", language)}\n\n`;
 
             const buttons = [
-                [Markup.button.callback("➕ Add Wallet", "add_new_wallet")],
-                [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
+                [Markup.button.callback(`➕ ${t("addWallet", language)}`, "add_new_wallet")],
+                [Markup.button.callback(t("backToAutoTrade", language), "back_to_autotrade")],
             ];
 
             return ctx.editMessageText(message, {
@@ -79,25 +86,25 @@ export async function handleViewWatchedWallets(ctx: Context) {
             .single();
 
         const message =
-            `👁️ *Watched Wallets (${userWallets.length}/5)*\n\n` +
+            `👁️ *${t("watchedWalletsTitle", language)} (${userWallets.length}/5)*\n\n` +
             userWallets
                 .map((wallet, index) => {
                     const status = wallet.is_enabled ? "✅" : "❌";
                     const percentage = wallet.percent_ratio
                         ? `${wallet.percent_ratio * 100}%`
                         : "100%";
-                    return `${index + 1}. ${status} *${wallet.wallet_address}*\n   💰 Position: ${percentage}`;
+                    return `${index + 1}. ${status} *${wallet.wallet_address}*\n   💰 ${t("position", language)}: ${percentage}`;
                 })
                 .join("\n\n") +
-            `\n\n*Copy Trading:* ${userData?.is_copytrading_enabled ? "✅ Enabled" : "❌ Disabled"}`;
+            `\n\n*${t("copyTrading", language)}:* ${userData?.is_copytrading_enabled ? `✅ ${t("enabled", language)}` : `❌ ${t("disabled", language)}`}`;
 
         const buttons = [
             [
-                Markup.button.callback("➕ Add Wallet", "add_new_wallet"),
-                Markup.button.callback("🗑️ Remove Wallet", "delete_wallet"),
+                Markup.button.callback(`➕ ${t("addWallet", language)}`, "add_new_wallet"),
+                Markup.button.callback(`🗑️ ${t("removeWallet", language)}`, "delete_wallet"),
             ],
-            [Markup.button.callback("⚙️ Configure Position %", "configure_wallets")],
-            [Markup.button.callback("↩️ Back to Auto Trade", "back_to_autotrade")],
+            [Markup.button.callback(t("configurePosition", language), "configure_wallets")],
+            [Markup.button.callback(t("backToAutoTrade", language), "back_to_autotrade")],
         ];
 
         await ctx.editMessageText(message, {
@@ -199,9 +206,8 @@ export async function handleAddNewWalletCallback(ctx: Context) {
 
     await setUserInputState(userId.toString(), "walletDetails");
 
-    const message = `🧾 *Add Wallet Address*
-
-📌 *Example:*  
+    const language = await getUserLanguage(Number(userId));
+    const message = `${t("addWalletTitle", language)}\n\n${t("addWalletDescription", language)}\n\n📌 *Example:*  
 \`0x56687bf447db6ffa42ffe2204a05edaa20f55839\`
 `;
 
@@ -339,8 +345,11 @@ export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: 
             await stopWalletMonitoring(walletAddress, Number(userId));
         }
 
+        const language = await getUserLanguage(Number(userId));
         await ctx.answerCbQuery(
-            newStatus ? "✅ Wallet monitoring enabled" : "❌ Wallet monitoring disabled"
+            newStatus
+                ? t("walletMonitoringEnabled", language)
+                : t("walletMonitoringDisabled", language)
         );
 
         // Refresh the view
@@ -353,48 +362,27 @@ export async function handleToggleWalletMonitoring(ctx: Context, walletAddress: 
 
 // Handle global copy trading toggle
 export async function handleToggleCopyTrading(ctx: Context, enable: boolean) {
-    const userId = getUserIdFromCtx(ctx);
+    const userId = ctx.from?.id?.toString();
+    if (!userId) return;
+
+    const language = await getUserLanguage(Number(userId));
 
     try {
-        // Update user settings
         await db("Users").update({ is_copytrading_enabled: enable }).eq("id", Number(userId));
 
-        // Get user's watched wallets
-        const { data: user } = await db("Users")
-            .select("watched_wallets")
-            .eq("id", Number(userId))
-            .single();
-
-        if (user?.watched_wallets && user.watched_wallets.length > 0) {
-            // Get wallet-specific percentages
-            const { data: wallets } = await db("Copy_Wallets")
-                .select("wallet_address, percent_ratio")
-                .eq("user_id", Number(userId))
-                .in("wallet_address", user.watched_wallets);
-
-            // Update monitoring for all watched wallets with their specific percentages
-            for (const wallet of wallets || []) {
-                const positionPercentage = wallet.percent_ratio ? wallet.percent_ratio * 100 : 100;
-                await updateSubscription(
-                    wallet.wallet_address,
-                    Number(userId),
-                    enable,
-                    positionPercentage
-                );
-            }
-        }
-
-        await ctx.answerCbQuery(enable ? "✅ Copy trading enabled" : "❌ Copy trading disabled");
+        await ctx.answerCbQuery(
+            enable ? t("copyTradingEnabled", language) : t("copyTradingDisabled", language)
+        );
 
         return ctx.reply(
             enable
-                ? "✅ Copy trading has been enabled. You will now automatically copy trades from your watched wallets."
-                : "❌ Copy trading has been disabled. You will still receive notifications but trades won't be copied.",
+                ? t("copyTradingEnabledMessage", language)
+                : t("copyTradingDisabledMessage", language),
             { parse_mode: "Markdown" }
         );
     } catch (error) {
         console.error("Error toggling copy trading:", error);
-        return ctx.answerCbQuery("Error updating settings");
+        return ctx.reply("❌ An error occurred while updating your settings.");
     }
 }
 
@@ -431,10 +419,12 @@ export async function handleConfigureWalletsMenu(ctx: Context) {
         if (error) throw error;
 
         if (!userWallets || userWallets.length === 0) {
-            return ctx.reply("⚠️ No wallets added yet. Please add a wallet first.");
+            const language = await getUserLanguage(Number(userId));
+            return ctx.reply(t("noWalletsAddedYet", language));
         }
 
-        const message = `⚙️ *Configure Wallet Position %*\n\nSelect a wallet to configure its position percentage:`;
+        const language = await getUserLanguage(Number(userId));
+        const message = `${t("configureWalletPositionTitle", language)}\n\n${t("selectWalletToConfigurePosition", language)}`;
 
         const buttons = userWallets.map((wallet) => {
             const percentage = wallet.percent_ratio ? `${wallet.percent_ratio * 100}%` : "100%";
@@ -477,8 +467,9 @@ export async function handleConfigureWallet(ctx: Context, walletAddress: string)
         const currentPercentage = wallet.percent_ratio ? `${wallet.percent_ratio * 100}%` : "100%";
         const walletDisplay = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
 
+        const language = await getUserLanguage(Number(userId));
         const message =
-            `💰 *Configure Position % for Wallet*\n\n` +
+            `${t("configurePositionForWallet", language)}\n\n` +
             `📱 Wallet: \`${walletDisplay}\`\n` +
             `📊 Current: ${currentPercentage}\n\n` +
             `Choose position percentage for this wallet:`;
