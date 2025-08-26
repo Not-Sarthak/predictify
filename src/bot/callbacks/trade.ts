@@ -1626,11 +1626,11 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
             const currentPrice = await getCurrentTokenPrice(symbol);
 
             priceInfo =
-                `💰 Price to Beat: $${tokenPriceAtStart.toLocaleString()}\n` +
-                `📈 Current Price: $${currentPrice.toLocaleString()}\n`;
+                `💰 ${t.priceToBeat}: $${tokenPriceAtStart.toLocaleString()}\n` +
+                `📈 ${t.currentPrice}: $${currentPrice.toLocaleString()}\n`;
         } catch (err) {
             console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
-            priceInfo = `💰 Price to Beat: N/A\n📈 Current Price: N/A\n`;
+            priceInfo = `💰 ${t.priceToBeat}: N/A\n📈 ${t.currentPrice}: N/A\n`;
         }
     }
 

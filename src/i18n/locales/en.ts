@@ -240,7 +240,7 @@ Your wallet's live. Let's degen.`,
     enableCopyTrading: "Enable Copy Trading",
     disableCopyTrading: "Disable Copy Trading",
     watchedWallets: "Watched Wallets",
-    addWallet: "Add Wallet",
+    addWallet: "➕ Add Wallet",
     removeWallet: "Remove Wallet",
 
     // Referral System
@@ -411,4 +411,53 @@ Your wallet's live. Let's degen.`,
     removeFromWatchlist: "💔 Remove from Watchlist",
     watchlist: "Watchlist",
     from: "from",
+
+    // Hourly Market Specific
+    priceToBeat: "Price to Beat",
+    currentPrice: "Current Price",
+
+    // AutoTrade Menu
+    autoTradeMenu: "AutoTrade Menu",
+    monitoring: "Monitoring",
+    wallets: "Wallets",
+    selectAction: "Select an Action:",
+    enableCopyTrade: "Enable CopyTrade",
+    disableCopyTrade: "Disable CopyTrade",
+
+    // Watched Wallets View
+    watchedWalletsTitle: "👀 Watched Wallets",
+    noWalletsAdded: "No wallets added yet.",
+    configurePosition: "⚙️ Configure Position",
+    backToAutoTrade: "↩️ Back to Auto Trade",
+    enabled: "Enabled",
+    disabled: "Disabled",
+
+    // Additional AutoTrade translations
+    addWalletTitle: "🧾 Add Wallet Address",
+    addWalletDescription: "Please enter the wallet address you want to monitor:",
+    walletMonitoringEnabled: "✅ Wallet monitoring enabled",
+    walletMonitoringDisabled: "❌ Wallet monitoring disabled",
+    copyTradingEnabled: "✅ Copy trading enabled",
+    copyTradingDisabled: "❌ Copy trading disabled",
+    copyTradingEnabledMessage:
+        "✅ Copy trading has been enabled. You will now automatically copy trades from your watched wallets.",
+    copyTradingDisabledMessage:
+        "❌ Copy trading has been disabled. You will still receive notifications but trades won't be copied.",
+    configurePositionForWallet: "💰 Configure Position % for Wallet",
+    configureWalletPositionTitle: "💰 Configure Wallet Position %",
+    selectWalletToConfigurePosition: "Select a wallet to configure its position percentage:",
+    noWalletsAddedYet: "⚠️ No wallets added yet. Please add a wallet first.",
+    globalCopyTraderPositionTitle: "💰 Global Copy Trader Position %",
+    setDefaultPositionPercentage: "Set the default position percentage for new wallets:",
+    currentDefault: "📊 Current Default:",
+    defaultNotSet: "Default (Not Set)",
+    individualWalletOverride: "Note: Individual wallet percentages override this default.",
+    insufficientSolBalance: "Insufficient SOL Balance.",
+    youHaveSol: "You have",
+    butNeedAtLeast: "SOL but need at least",
+    solToBridge: "SOL to bridge.",
+    butNeedToKeep: "SOL but need to keep",
+    solForFees: "SOL for fees.",
+    notEnoughLeftToBridge: "Not enough left to bridge.",
+    shortage: "shortage:",
 };

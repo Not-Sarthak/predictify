@@ -1,5 +1,9 @@
 import { Context, Markup } from "telegraf";
-import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "../../ui/buttons";
+import {
+    AUTO_TRADE_MENU_BUTTONS,
+    CLOSE_BUTTON,
+    generateAutoTradeMenuButtons,
+} from "../../ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
@@ -103,6 +107,7 @@ export const generateAutoTradeMenu = async (
     ctx: Context
 ): Promise<{ message: string; replyMarkup: InlineKeyboardMarkup } | undefined> => {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
     const [walletStatusList, userCopyTradeStatus] = await Promise.all([
         await checkWalletCopyTradeStatus(userId.toString()),
@@ -117,9 +122,9 @@ export const generateAutoTradeMenu = async (
     const watchedWalletsCount = walletStatusList.length;
 
     const statusMessage =
-        `🤖 *AutoTrade Menu*\n\n` +
-        `👁️ *Monitoring:* ${watchedWalletsCount}/3 Wallets\n\n` +
-        `Select an Action:`;
+        `🤖 *${t("autoTradeMenu", language)}*\n\n` +
+        `👁️ *${t("monitoring", language)}:* ${watchedWalletsCount}/3 ${t("wallets", language)}\n\n` +
+        `${t("selectAction", language)}`;
 
     const walletButtons = walletStatusList.map((wallet) => {
         const emoji = wallet.is_enabled ? "✅" : "🔔";
@@ -133,15 +138,19 @@ export const generateAutoTradeMenu = async (
         ];
     });
 
+    const autoTradeMenuButtons = await generateAutoTradeMenuButtons(userId);
+
     const combinedButtons = [
         ...walletButtons,
         [
             Markup.button.callback(
-                userCopyTradeStatus ? "❌ Disable CopyTrade" : "✅ Enable CopyTrade",
+                userCopyTradeStatus
+                    ? `❌ ${t("disableCopyTrade", language)}`
+                    : `✅ ${t("enableCopyTrade", language)}`,
                 `toggle_copy_trade:${!userCopyTradeStatus}`
             ),
         ],
-        ...AUTO_TRADE_MENU_BUTTONS,
+        ...autoTradeMenuButtons,
     ];
 
     const markup = Markup.inlineKeyboard(combinedButtons).reply_markup;
