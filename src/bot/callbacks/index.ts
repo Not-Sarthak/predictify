@@ -811,22 +811,23 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("refresh_portfolio:")) {
+        const language = await getUserLanguage(userId);
         const index = parseInt(data.split(":")[1], 10);
         const userAddress = await getUserAddressFromId(userId);
 
         if (!userAddress) {
-            return ctx.answerCbQuery("⚠️ No linked wallet.");
+            return ctx.answerCbQuery(t("noLinkedWallet", language));
         }
 
         const userPositions = await getUserPosition({ user: userAddress });
         const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
         if (!filteredUserPositions || filteredUserPositions.length === 0) {
-            return ctx.editMessageText("✅ No open positions found.");
+            return ctx.editMessageText(t("noOpenPositions", language));
         }
 
         if (index >= filteredUserPositions.length) {
-            return ctx.answerCbQuery("⚠️ Invalid index.");
+            return ctx.answerCbQuery(t("invalidIndex", language));
         }
 
         const { text, markup } = await formatSinglePositionMessage(

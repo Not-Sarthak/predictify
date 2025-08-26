@@ -493,4 +493,29 @@ export interface LocaleMessages {
     willBeNotifiedWhen: string;
     editAlert: string;
     deleteAlert: string;
+
+    // Portfolio Command Translations
+    noWalletLinked: string;
+    generatingPortfolioCard: string;
+    noActivePositionsForCard: string;
+    portfolioSummaryFor: string;
+    yourPolymarketDashboard: string;
+    profit: string;
+    loss: string;
+    invested: string;
+    value: string;
+    expires: string;
+    sellFiftyPercent: string;
+    sellHundredPercent: string;
+    sellCustom: string;
+    buyMoreMarket: string;
+    buyMoreLimit: string;
+    cancelTakeProfit: string;
+    cancelStopLoss: string;
+    generatePortfolioCard: string;
+
+    // Portfolio refresh messages
+    noLinkedWallet: string;
+    invalidIndex: string;
+    pageNotFound: string;
 }

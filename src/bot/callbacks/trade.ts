@@ -146,17 +146,17 @@ export async function handleCloseTradePositions(ctx: Context) {
 
 export async function handleViewTradePositions(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const userAddress = await getUserAddressFromId(userId);
 
     if (!userAddress) {
-        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+        return ctx.reply(t("noWalletLinked", language));
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        const language = await getUserLanguage(userId);
         return ctx.reply(t("noOpenPositions", language));
     }
 
@@ -175,10 +175,11 @@ export async function handleViewTradePositions(ctx: Context) {
 
 export async function handleTradePagination(ctx: Context, page: string) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const userAddress = await getUserAddressFromId(userId);
 
     if (!userAddress) {
-        return ctx.answerCbQuery("No Wallet Linked");
+        return ctx.answerCbQuery(t("noWalletLinked", language));
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
@@ -187,7 +188,7 @@ export async function handleTradePagination(ctx: Context, page: string) {
     const pageIndex = parseInt(page);
     const position = filteredUserPositions[pageIndex];
 
-    if (!position) return ctx.answerCbQuery("Page not found");
+    if (!position) return ctx.answerCbQuery(t("pageNotFound", language));
 
     const { text, markup } = await formatSinglePositionMessage(
         userId.toString(),
@@ -1430,21 +1431,22 @@ export async function handleRefreshTopMarkets(
 
 export async function handleGeneratePortfolioCard(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const user = await getUserDetails(userId);
 
     if (!user) return;
 
     if (!user.wallet_address) {
-        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+        return ctx.reply(t("noWalletLinked", language));
     }
 
-    const msg = await ctx.reply("⚡ Generating your Portfolio Card...");
+    const msg = await ctx.reply(t("generatingPortfolioCard", language));
 
     const userPositions = await getUserPosition({ user: user.wallet_address });
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        return ctx.reply("📭 No active positions found to generate portfolio card.");
+        return ctx.reply(t("noActivePositionsForCard", language));
     }
 
     const totalInitialValue = filteredUserPositions.reduce((sum, p) => sum + p.initialValue, 0);
@@ -1475,7 +1477,7 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
     await ctx.replyWithPhoto(
         { source: cardBuffer },
         {
-            caption: `📊 Portfolio Summary for @${user.telegram_username}`,
+            caption: `${t("portfolioSummaryFor", language)} @${user.telegram_username}`,
         }
     );
 }

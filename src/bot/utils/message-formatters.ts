@@ -5,6 +5,8 @@ import type { UserPositionResponse } from "../../types/polymarket/user-position"
 import { getUserDetails } from "../../helpers/get-user-details";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { createPaginationKeyboard } from "../ui/messages";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 const SYMBOL_MAP: Record<string, Symbols> = {
     bitcoin: "BTCUSDT",
@@ -173,6 +175,7 @@ export async function formatSinglePositionMessage(
     index: number,
     total: number
 ) {
+    const language = await getUserLanguage(parseInt(userId));
     const {
         title,
         cashPnl,
@@ -209,19 +212,21 @@ export async function formatSinglePositionMessage(
           })
         : null;
 
-    const statusLine = `${pnlEmoji} *${isProfit ? "Profit" : "Loss"}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
+    const statusLine = `${pnlEmoji} *${isProfit ? t("profit", language) : t("loss", language)}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
 
-    const expiresLine = expiryDateFormatted ? `📆 *Expires:* ${expiryDateFormatted}` : "";
+    const expiresLine = expiryDateFormatted
+        ? `📆 *${t("expires", language)}:* ${expiryDateFormatted}`
+        : "";
 
     const text = `
-*📊 Your Polymarket Dashboard*
+*${t("yourPolymarketDashboard", language)}*
 
 *${index + 1}/${total} - ${title}*
 
-${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} shares @ ${avgPriceFormatted}
-🎯 *Current Price:* ${curPriceFormatted}
+${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} ${t("shares", language)} @ ${avgPriceFormatted}
+🎯 *${t("currentPrice", language)}:* ${curPriceFormatted}
 ${statusLine}
-💸 *Invested:* ${initialValueFormatted} → *Value:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
+💸 *${t("invested", language)}:* ${initialValueFormatted} → *${t("value", language)}:* ${currentValueFormatted}${expiresLine ? "\n" + expiresLine : ""}
     `.trim();
 
     const markup = await createPaginationKeyboard(conditionId, index, total, userId, outcomeIndex);

@@ -497,4 +497,29 @@ export const zh: LocaleMessages = {
     willBeNotifiedWhen: "当满足此条件时，您将收到通知。",
     editAlert: "✏️ 编辑提醒",
     deleteAlert: "🗑️ 删除提醒",
+
+    // Portfolio Command Translations
+    noWalletLinked: "⚠️ 您的账户未关联钱包地址！",
+    generatingPortfolioCard: "⚡ 正在生成您的投资组合卡片...",
+    noActivePositionsForCard: "📭 未找到活跃头寸来生成投资组合卡片。",
+    portfolioSummaryFor: "📊 投资组合摘要",
+    yourPolymarketDashboard: "📊 您的 Polymarket 仪表板",
+    profit: "盈利",
+    loss: "亏损",
+    invested: "投资",
+    value: "价值",
+    expires: "到期",
+    sellFiftyPercent: "卖出 50%",
+    sellHundredPercent: "卖出 100%",
+    sellCustom: "自定义卖出",
+    buyMoreMarket: "市价买入更多",
+    buyMoreLimit: "限价买入更多",
+    cancelTakeProfit: "❌ 取消止盈",
+    cancelStopLoss: "❌ 取消止损",
+    generatePortfolioCard: "⚡ 生成投资组合卡片",
+
+    // Portfolio refresh messages
+    noLinkedWallet: "⚠️ 未关联钱包。",
+    invalidIndex: "⚠️ 无效索引。",
+    pageNotFound: "未找到页面",
 };
