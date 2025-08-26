@@ -23,7 +23,9 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         }
 
         return {
-            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
+            timeFilter:
+                (userFilters.timeFilter as "1h" | "4h" | "24h" | "48h") ||
+                defaultFilters.timeFilter,
             tradingMode:
                 (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
             excludeCrypto: userFilters.excludeCrypto === "true", // Now properly read from Redis
@@ -74,7 +76,7 @@ ${await t("selectStrategyPrompt", language)}
 export async function handleStrategySelection(
     ctx: Context,
     strategy: "degen" | "turtle",
-    timeFilter: "24h" | "48h" = "24h"
+    timeFilter: "1h" | "4h" | "24h" | "48h" = "1h"
 ) {
     const msg = await ctx.reply("🔍 Scanning for high-probability markets...");
 
@@ -108,6 +110,10 @@ export async function handleStrategySelection(
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
                         [
+                            Markup.button.callback("1h", `highprob:strategy:${strategy}:1h`),
+                            Markup.button.callback("4h", `highprob:strategy:${strategy}:4h`),
+                        ],
+                        [
                             Markup.button.callback("24h", `highprob:strategy:${strategy}:24h`),
                             Markup.button.callback("48h", `highprob:strategy:${strategy}:48h`),
                         ],
@@ -129,7 +135,7 @@ export async function sendStrategyMarkets(
     ctx: Context,
     markets: HighProbMarket[],
     strategy: "degen" | "turtle",
-    timeFilter: "24h" | "48h"
+    timeFilter: "1h" | "4h" | "24h" | "48h"
 ) {
     const LIMIT = 8;
     const currentMarkets = markets.slice(0, LIMIT);
@@ -173,6 +179,14 @@ export async function sendStrategyMarkets(
     // Create time filter toggle buttons
     const timeButtons = [
         Markup.button.callback(
+            timeFilter === "1h" ? "✅ 1h" : "1h",
+            `highprob:strategy:${strategy}:1h`
+        ),
+        Markup.button.callback(
+            timeFilter === "4h" ? "✅ 4h" : "4h",
+            `highprob:strategy:${strategy}:4h`
+        ),
+        Markup.button.callback(
             timeFilter === "24h" ? "✅ 24h" : "24h",
             `highprob:strategy:${strategy}:24h`
         ),
@@ -206,7 +220,9 @@ export async function sendStrategyMarkets(
     const alertStatus = alertSettings.enabled ? t("alertsOn", language) : t("alertsOff", language);
 
     const keyboard = Markup.inlineKeyboard([
-        timeButtons,
+        // Split time buttons into two rows
+        [timeButtons[0], timeButtons[1]],
+        [timeButtons[2], timeButtons[3]],
         [
             Markup.button.callback(
                 `🎯 ${t("autoSplitTrade", language)}`,
@@ -235,7 +251,7 @@ export async function sendStrategyMarkets(
 
 export async function handleViewHighProbMarkets(
     ctx: Context,
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number = 0
 ) {
     const msg = await ctx.reply("🔍 Scanning for high-probability markets...");
@@ -293,7 +309,7 @@ export async function handleViewHighProbMarkets(
 export async function sendPaginatedMarkets(
     ctx: Context,
     markets: HighProbMarket[],
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number
 ) {
     const LIMIT = 5;
@@ -346,10 +362,35 @@ export async function sendPaginatedMarkets(
     ];
 
     // Time filter toggle
-    const toggleTimeButton =
-        timeFilter === "24h"
-            ? Markup.button.callback(`📈 ${t("switchTo", language)} 48h`, "highprob:view:48h")
-            : Markup.button.callback(`📈 ${t("switchTo", language)} 24h`, "highprob:view:24h");
+    const toggleTimeButton = (() => {
+        switch (timeFilter) {
+            case "1h":
+                return Markup.button.callback(
+                    `📈 ${t("switchTo", language)} 4h`,
+                    "highprob:view:4h"
+                );
+            case "4h":
+                return Markup.button.callback(
+                    `📈 ${t("switchTo", language)} 24h`,
+                    "highprob:view:24h"
+                );
+            case "24h":
+                return Markup.button.callback(
+                    `📈 ${t("switchTo", language)} 48h`,
+                    "highprob:view:48h"
+                );
+            case "48h":
+                return Markup.button.callback(
+                    `📈 ${t("switchTo", language)} 1h`,
+                    "highprob:view:1h"
+                );
+            default:
+                return Markup.button.callback(
+                    `📈 ${t("switchTo", language)} 4h`,
+                    "highprob:view:4h"
+                );
+        }
+    })();
 
     const keyboard = Markup.inlineKeyboard([
         actionButtons,

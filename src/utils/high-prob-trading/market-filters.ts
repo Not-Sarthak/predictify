@@ -12,13 +12,13 @@ export interface HighProbMarket extends Market {
 }
 
 export interface HighProbFilters {
-    timeFilter: "24h" | "48h";
+    timeFilter: "1h" | "4h" | "24h" | "48h";
     tradingMode: "normal" | "degen";
     excludeCrypto: boolean; // Now toggleable
 }
 
 export const defaultFilters: HighProbFilters = {
-    timeFilter: "24h",
+    timeFilter: "1h",
     tradingMode: "normal",
     excludeCrypto: false, // Default to including crypto
 };
@@ -300,7 +300,14 @@ export function filterHighProbabilityMarkets(
 ): HighProbMarket[] {
     // console.log(`🔍 [HIGH-PROB] Starting filtering process with ${markets.length} markets (pre-filtered for sports, crypto, and 0DTE)`);
 
-    const timeFilterHours = filters.timeFilter === "24h" ? 24 : 48;
+    const timeFilterHours =
+        filters.timeFilter === "1h"
+            ? 1
+            : filters.timeFilter === "4h"
+              ? 4
+              : filters.timeFilter === "24h"
+                ? 24
+                : 48;
 
     // Dynamic probability range based on trading mode
     const minProbability = filters.tradingMode === "normal" ? 0.7 : 0.855; // Degen: 70%, Turtle: 85.5%

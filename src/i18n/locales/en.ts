@@ -346,6 +346,8 @@ Your wallet's live. Let's degen.`,
     refreshStats: "🔄 Refresh Stats",
 
     // More button text
+    hour1: "1h",
+    hour4: "4h",
     hour24: "24h",
     hour48: "48h",
 
