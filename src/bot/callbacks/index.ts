@@ -57,6 +57,7 @@ import { handleExportPrivateKey } from "../utils/database/export-user-private-ke
 import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
 import { getUserLanguage } from "../../helpers/user-language";
 import { getMessages } from "../../i18n/translate";
+import { t } from "../../i18n";
 import {
     handleBridgeConfirm,
     handleBridgeFunds,
@@ -508,12 +509,15 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+        const language = await getUserLanguage(userId);
+        const orderTypeKey = side === "yes" ? "marketOrderYes" : "marketOrderNo";
+
         return ctx.reply(
-            `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
-                `Enter The Amount in USDC You Want to Spend:\n\n` +
-                `**Format:** \`<amount>\`\n` +
-                `**Example:** \`50\`\n\n` +
-                `Note: Minimum Amount should be 10`,
+            `${t(orderTypeKey, language)}\n\n` +
+                `${t("enterAmountInUsdc", language)}\n\n` +
+                `**${t("formatAmount", language)}**\n` +
+                `**${t("exampleAmount", language)}**\n\n` +
+                `${t("minimumAmountNote", language)}`,
             { parse_mode: "Markdown" }
         );
     }

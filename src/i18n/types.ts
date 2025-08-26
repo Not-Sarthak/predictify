@@ -454,4 +454,43 @@ export interface LocaleMessages {
     solForFees: string;
     notEnoughLeftToBridge: string;
     shortage: string;
+
+    // Market Order Interface
+    marketOrderYes: string;
+    marketOrderNo: string;
+    enterAmountInUsdc: string;
+    formatAmount: string;
+    exampleAmount: string;
+    minimumAmountNote: string;
+    currentMarketPrice: string;
+    avgOfTopOrders: string;
+    willExecuteImmediately: string;
+    estimatedFill: string;
+    executionPrice: string;
+    totalCost: string;
+    potentialWinIfResolves: string;
+    pressConfirmOrCancel: string;
+
+    // Order Confirmation
+    buyOrderPlaced: string;
+    matched: string;
+    viewOnPolygonscan: string;
+
+    // Subscription Interface
+    noActiveSubscriptions: string;
+    enterCustomCategory: string;
+    exampleCategories: string;
+    chooseCategoryToSubscribe: string;
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: string;
+    alertsRemovedFor: string;
+    chooseCategoryToUnsubscribe: string;
+    noActivePriceAlerts: string;
+    priceAlertNumber: string;
+    outcome: string;
+    triggerPrice: string;
+    willBeNotifiedWhen: string;
+    editAlert: string;
+    deleteAlert: string;
 }

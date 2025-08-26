@@ -460,4 +460,43 @@ Your wallet's live. Let's degen.`,
     solForFees: "SOL for fees.",
     notEnoughLeftToBridge: "Not enough left to bridge.",
     shortage: "shortage:",
+
+    // Market Order Interface
+    marketOrderYes: "⚡ Market Order - YES",
+    marketOrderNo: "⚡ Market Order - NO",
+    enterAmountInUsdc: "Enter The Amount in USDC You Want to Spend:",
+    formatAmount: "Format: <amount>",
+    exampleAmount: "Example: 50",
+    minimumAmountNote: "Note: Minimum Amount should be 10",
+    currentMarketPrice: "💵 Current Market Price:",
+    avgOfTopOrders: "(avg. of top 3 orders)",
+    willExecuteImmediately: "🚀 Will execute immediately at market price",
+    estimatedFill: "Estimated Fill:",
+    executionPrice: "• Execution Price:",
+    totalCost: "• Total Cost:",
+    potentialWinIfResolves: "• Potential Win if resolves {CONDITION}:",
+    pressConfirmOrCancel: "Press Confirm to place the order or Cancel.",
+
+    // Order Confirmation
+    buyOrderPlaced: "✅ Your Buy Order Was Placed!",
+    matched: "MATCHED",
+    viewOnPolygonscan: "View on Polygonscan",
+
+    // Subscription Interface
+    noActiveSubscriptions: "⚠️ You have no Active Subscriptions.",
+    enterCustomCategory: "✍️ Enter a Custom Category",
+    exampleCategories: "Example: bitcoin or video-games",
+    chooseCategoryToSubscribe: "Choose a Category to Subscribe to",
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: "📬 You'll Now Receive Alerts for:",
+    alertsRemovedFor: "🗑️ Alerts Removed For:",
+    chooseCategoryToUnsubscribe: "Choose a category to unsubscribe from:",
+    noActivePriceAlerts: "📭 No active price alerts found.",
+    priceAlertNumber: "🔔 Price Alert",
+    outcome: "Outcome:",
+    triggerPrice: "Trigger Price:",
+    willBeNotifiedWhen: "You will be notified when this condition is met.",
+    editAlert: "✏️ Edit Alert",
+    deleteAlert: "🗑️ Delete Alert",
 };

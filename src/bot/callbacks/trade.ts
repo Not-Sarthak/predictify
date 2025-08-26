@@ -1140,6 +1140,7 @@ export async function handleCloseOpenPosition(
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const textMsgArray = textMsg.trim().split(/\s+/);
 
     if (textMsgArray.length < 1 || textMsgArray.length > 2) {
@@ -1199,25 +1200,28 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
         shares = amount / pricePerShare;
 
+        const orderTypeKey = side === "YES" ? "marketOrderYes" : "marketOrderNo";
+        const winCondition = side === "YES" ? "YES" : "NO";
+
         message = `
 📌 *${escapeMarkdown(market.question)}*
 
-💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum || 0)}
-📅 Ends: ${formatDate(endDate)}
+💧 *${market.groupItemTitle}* ${t("volume", language)}: ${formatDollarVolume(market.volumeNum || 0)}
+📅 ${t("ends", language)}: ${formatDate(endDate)}
 
-🎯 *Market Order - ${side}*
-💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
+🎯 *${t(orderTypeKey, language)}*
+💵 *${t("amount", language)}:* $${amount.toFixed(2)}
+📈 *${t("currentMarketPrice", language)}* $${pricePerShare.toFixed(4)} ${t("avgOfTopOrders", language)}
 
-🚀 *Will execute immediately* at market price
+${t("willExecuteImmediately", language)}
 
-*Estimated Fill:*
-• Shares: ${shares.toFixed(4)}
-• Execution Price: $${side === "YES" ? outcomes[0] : outcomes[1]}
-• Total Cost: $${amount.toFixed(2)}
-• Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
+*${t("estimatedFill", language)}*
+${t("shares", language)}: ${shares.toFixed(4)}
+${t("executionPrice", language)} $${side === "YES" ? outcomes[0] : outcomes[1]}
+${t("totalCost", language)} $${amount.toFixed(2)}
+${t("potentialWinIfResolves", language).replace("{CONDITION}", winCondition)} $${(shares * 1).toFixed(2)}
 
-Press *Confirm* to place the order or *Cancel*.
+${t("pressConfirmOrCancel", language)}
         `;
     } else {
         // Limit Order

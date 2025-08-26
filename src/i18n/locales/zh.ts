@@ -458,4 +458,43 @@ export const zh: LocaleMessages = {
     solForFees: "SOL作为手续费。",
     notEnoughLeftToBridge: "剩余不足以进行桥接。",
     shortage: "缺少：",
+
+    // Market Order Interface
+    marketOrderYes: "⚡ 市价单 - 看涨",
+    marketOrderNo: "⚡ 市价单 - 看跌",
+    enterAmountInUsdc: "输入您要花费的USDC金额：",
+    formatAmount: "格式：<金额>",
+    exampleAmount: "示例：50",
+    minimumAmountNote: "注意：最小金额应为10",
+    currentMarketPrice: "💵 当前市场价格：",
+    avgOfTopOrders: "（前3个订单的平均值）",
+    willExecuteImmediately: "🚀 将立即以市场价格执行",
+    estimatedFill: "预计成交：",
+    executionPrice: "• 执行价格：",
+    totalCost: "• 总成本：",
+    potentialWinIfResolves: "• 如果结果为{CONDITION}的潜在收益：",
+    pressConfirmOrCancel: "按确认下单或取消。",
+
+    // Order Confirmation
+    buyOrderPlaced: "✅ 您的买单已下达！",
+    matched: "已成交",
+    viewOnPolygonscan: "在Polygonscan上查看",
+
+    // Subscription Interface
+    noActiveSubscriptions: "⚠️ 您没有活跃的订阅。",
+    enterCustomCategory: "✍️ 输入自定义类别",
+    exampleCategories: "示例：bitcoin或video-games",
+    chooseCategoryToSubscribe: "选择要订阅的类别",
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: "📬 您现在将收到以下内容的提醒：",
+    alertsRemovedFor: "🗑️ 已移除提醒：",
+    chooseCategoryToUnsubscribe: "选择要取消订阅的类别",
+    noActivePriceAlerts: "📭 未找到活跃的价格提醒。",
+    priceAlertNumber: "🔔 价格提醒",
+    outcome: "结果：",
+    triggerPrice: "触发价格：",
+    willBeNotifiedWhen: "当满足此条件时，您将收到通知。",
+    editAlert: "✏️ 编辑提醒",
+    deleteAlert: "🗑️ 删除提醒",
 };
