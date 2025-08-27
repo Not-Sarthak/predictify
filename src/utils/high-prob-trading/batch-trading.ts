@@ -208,7 +208,7 @@ async function executeSingleTrade({
         // Track the trade & Update user data
         await Promise.all([
             trackManualTrade(userId, tokenId, "BUY", shares),
-            updateUserVolume(userId, amount),
+            updateUserVolume(userId, shares),
             updateUserMarketsTraded(userId, user?.markets_traded || 0),
             updateUserTransactionsExecuted(userId, user?.txns_executed || 0),
         ]);

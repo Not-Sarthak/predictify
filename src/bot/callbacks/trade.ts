@@ -1045,9 +1045,8 @@ export async function handleCloseOpenPosition(
     // Track this manual sell for copy trading system and update volume
     await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
 
-    // Update user's total volume (sell amount * current price)
-    const sellVolume = sellAmount * userMarketDetails.curPrice;
-    await updateUserVolume(userId, sellVolume);
+    // Update user's total volume
+    await updateUserVolume(userId, userMarketDetails.size);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;

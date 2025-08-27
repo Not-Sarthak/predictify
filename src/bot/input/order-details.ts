@@ -179,6 +179,11 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 return ctx.reply("⚠️ Error fetching market details! Please try again later.");
             }
 
+            const currentPrice =
+                side === "YES"
+                    ? JSON.parse(market.outcomePrices)[0]
+                    : JSON.parse(market.outcomePrices)[1];
+
             const { finalAmount } = feeTransaction(amount);
 
             orderResponse = await marketBuyOrder({
@@ -192,7 +197,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
             if (orderResponse && !orderResponse.error) {
                 await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
-                await updateUserVolume(userId, finalAmount);
+                await updateUserVolume(userId, finalAmount / currentPrice);
             }
         } else if (orderType === "fok_sell") {
             const isAutoExecute = orderContext.autoExecute === "true";
@@ -247,7 +252,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     position.outcome.toLowerCase() === "yes"
                         ? JSON.parse(market.outcomePrices)[0]
                         : JSON.parse(market.outcomePrices)[1];
-                const sellVolume = amount * currentPrice;
+                const sellVolume = amount / currentPrice;
                 await updateUserVolume(userId, sellVolume);
             }
         } else {
@@ -286,16 +291,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             } catch (error) {
                 console.error("Error updating Amount Deposited & Fees: ", error);
             }
-        }
-
-        try {
-            await db("Users")
-                .update({
-                    total_volume: (data?.total_volume || 0) + finalAmount,
-                })
-                .eq("id", userId);
-        } catch (error) {
-            console.error("Error updating Volume: ", error);
         }
 
         const orderPlaceAmountToShow =
