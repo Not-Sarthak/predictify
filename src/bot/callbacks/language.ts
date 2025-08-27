@@ -3,6 +3,7 @@ import { getUserIdFromCtx } from "../utils";
 import { getUserLanguage, updateUserLanguage } from "../../helpers/user-language";
 import { SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type SupportedLanguage } from "../../i18n";
 import { addTranslationToContext } from "../../utils/translation-middleware";
+import { setBotCommandsForUser } from "../index";
 
 /**
  * Show language settings menu
@@ -54,6 +55,9 @@ export async function handleLanguageSelection(ctx: Context, language: string) {
     if (!result.success) {
         return ctx.answerCbQuery("❌ Failed to update language");
     }
+
+    // Update bot commands for this user with their new language
+    setBotCommandsForUser(userId).catch(console.error);
 
     // Get translation context with new language
     const { t } = await addTranslationToContext(ctx);

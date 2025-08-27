@@ -358,11 +358,13 @@ export function filterHighProbabilityMarkets(
             //     // );
             // }
 
-            // Exclude very short-term markets (less than 30 minutes remaining)
-            // but allow some 0DTE markets that have reasonable time left
-            if (market.hoursUntilExpiry <= 0.5) {
+            // Exclude very short-term markets (adjust threshold based on time filter)
+            // For 1h filter, allow markets with at least 5 minutes remaining
+            // For longer filters, require at least 30 minutes
+            const minTimeThreshold = timeFilterHours <= 1 ? 0.083 : 0.5; // 5 minutes or 30 minutes
+            if (market.hoursUntilExpiry <= minTimeThreshold) {
                 filteredCount.zerodte++;
-                // console.log(`❌ [HIGH-PROB] Filtered: Very short-term (${market.hoursUntilExpiry.toFixed(1)}h <= 0.5h)`);
+                // console.log(`❌ [HIGH-PROB] Filtered: Very short-term (${market.hoursUntilExpiry.toFixed(1)}h <= ${minTimeThreshold}h)`);
                 return false;
             }
 

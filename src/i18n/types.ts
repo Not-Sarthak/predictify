@@ -404,6 +404,80 @@ export interface LocaleMessages {
     solana: string;
     xrp: string;
     dogecoin: string;
+    hyperliquid: string;
+    orderbook: string;
+
+    // Market direction words
+    up: string;
+    or: string;
+    down: string;
+    what: string;
+    where: string;
+    will: string;
+    with: string;
+    and: string;
+    nextMarket: string; // renamed to avoid duplicate
+    who: string;
+    together: string;
+
+    // Time periods
+    monthly: string;
+    hourly: string;
+    daily: string;
+    weekly: string;
+    priceMarket: string; // renamed to avoid duplicate
+    hit: string;
+    in: string;
+    on: string;
+    by: string;
+
+    // Months
+    january: string;
+    february: string;
+    march: string;
+    april: string;
+    may: string;
+    june: string;
+    july: string;
+    august: string;
+    september: string;
+    october: string;
+    november: string;
+    december: string;
+
+    // Price movements
+    above: string;
+    below: string;
+    dip: string;
+    allTimeHigh: string;
+    marketCap: string;
+    fdv: string;
+    before: string;
+    after: string;
+
+    // Geopolitical terms
+    russia: string;
+    ukraine: string;
+    israel: string;
+    iran: string;
+    hamas: string;
+    ceasefire: string;
+    putin: string;
+    zelenskyy: string;
+    trumpMarket: string; // renamed to avoid duplicate
+    meet: string;
+
+    // Economic terms
+    fed: string;
+    meeting: string;
+    chair: string;
+    decision: string;
+    jeromePowelll: string;
+    rate: string;
+    cut: string;
+    us: string;
+    recession: string;
+    inflation: string;
 
     // Additional UI text
     removeFromWatchlist: string;
@@ -520,4 +594,46 @@ export interface LocaleMessages {
     noLinkedWallet: string;
     invalidIndex: string;
     pageNotFound: string;
+
+    // High-probability market messages
+    noMarketsFoundMatching: string;
+    possibleReasons: string;
+    marketsExpiredRecently: string;
+    cryptoMightBeExcluded: string;
+    tryLongerTimeFrame: string;
+    adjustProbabilityRanges: string;
+    quickActions: string;
+    includeCryptoMarkets: string;
+
+    // Order and alert messages
+    priceAlertSetSuccessfully: string;
+    marketLabel: string;
+    side: string;
+    alertAtPrice: string;
+    notificationWhenMet: string;
+    enterOrderDetails: string;
+    formatExample: string;
+    priceDescription: string;
+    amountDescription: string;
+    minimumAmount: string;
+
+    // Bot command descriptions
+    cmdStart: string;
+    cmdSubscriptions: string;
+    cmdTrade: string;
+    cmdAutotrade: string;
+    cmdFund: string;
+    cmdHistory: string;
+    cmdPortfolio: string;
+    cmdManage: string;
+    cmdStats: string;
+    cmdWatchlist: string;
+    cmdHighprob: string;
+    cmdRef: string;
+    cmdAnalytics: string;
+    cmdDetailed: string;
+
+    // Subscription action messages
+    subscriptionAdded: string;
+    subscriptionRemoved: string;
 }

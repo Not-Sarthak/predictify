@@ -56,6 +56,7 @@ import {
 } from "../../notifier/ws/price-watcher";
 import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
+import { translateMarketTitle } from "../../utils/market-translation";
 
 export async function handleTradeMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -247,7 +248,10 @@ export async function handleViewTopMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. *${escapeMarkdown(market.title)}*
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. *${escapeMarkdown(translatedTitle)}*
 💧 ${t("volume", language)} : ${fVolumne}
 ⌛ ${t("ends", language)}: ${fDate}
 
@@ -357,7 +361,10 @@ export async function handleShowZeroDTEMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVol = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${escapeMarkdown(market.title)}**
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. **${escapeMarkdown(translatedTitle)}**
 💧 Volume: ${fVol}
 ⌛ Ends: ${fDate}
 
@@ -652,9 +659,13 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     const volume = formatDollarVolume(market.volume1mo || 0);
     const liquidity = formatDollarVolume(market.liquidityNum || 0);
 
-    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+    // Translate market question and description
+    const translatedQuestion = translateMarketTitle(market.question, language);
+    const translatedDescription = translateMarketTitle(market.description.trim(), language);
 
-    message += `📝 ${escapeMarkdown(market.description.trim())}\n\n`;
+    let message = `📊 **${escapeMarkdown(translatedQuestion)}**\n\n`;
+
+    message += `📝 ${escapeMarkdown(translatedDescription)}\n\n`;
     message += `----------------------------------\n\n`;
     message += `⏰ **Ends:** ${endDate}\n`;
     message += `💰 **Liquidity:** ${liquidity} | **Volume:** ${volume}\n\n`;
@@ -1046,9 +1057,8 @@ export async function handleCloseOpenPosition(
     // Track this manual sell for copy trading system and update volume
     await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
 
-    // Update user's total volume (sell amount * current price)
-    const sellVolume = sellAmount * userMarketDetails.curPrice;
-    await updateUserVolume(userId, sellVolume);
+    // Update user's total volume
+    await updateUserVolume(userId, userMarketDetails.size);
 
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { sellType, originalSize } = orderContext;
@@ -1142,6 +1152,7 @@ export async function handleCloseOpenPosition(
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
+    const t = getMessages(language);
     const textMsgArray = textMsg.trim().split(/\s+/);
 
     if (textMsgArray.length < 1 || textMsgArray.length > 2) {
@@ -1201,28 +1212,26 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
         shares = amount / pricePerShare;
 
-        const orderTypeKey = side === "YES" ? "marketOrderYes" : "marketOrderNo";
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
         const winCondition = side === "YES" ? "YES" : "NO";
 
         message = `
-📌 *${escapeMarkdown(market.question)}*
+📌 *${escapeMarkdown(translatedQuestion)}*
 
-💧 *${market.groupItemTitle}* ${t("volume", language)}: ${formatDollarVolume(market.volumeNum || 0)}
-📅 ${t("ends", language)}: ${formatDate(endDate)}
+💧 *${market.groupItemTitle}* ${t.volume}: ${formatDollarVolume(market.volumeNum || 0)}
+📅 ${t.ends}: ${formatDate(endDate)}
 
-🎯 *${t(orderTypeKey, language)}*
-💵 *${t("amount", language)}:* $${amount.toFixed(2)}
-📈 *${t("currentMarketPrice", language)}* $${pricePerShare.toFixed(4)} ${t("avgOfTopOrders", language)}
 
-${t("willExecuteImmediately", language)}
+${t.willExecuteImmediately || "🚀 Will execute immediately at market price"}
 
-*${t("estimatedFill", language)}*
-${t("shares", language)}: ${shares.toFixed(4)}
-${t("executionPrice", language)} $${side === "YES" ? outcomes[0] : outcomes[1]}
-${t("totalCost", language)} $${amount.toFixed(2)}
-${t("potentialWinIfResolves", language).replace("{CONDITION}", winCondition)} $${(shares * 1).toFixed(2)}
+*${t.estimatedFill || "Estimated Fill"}*
+${t.shares}: ${shares.toFixed(4)}
+${t.executionPrice || "Execution Price"} $${side === "YES" ? outcomes[0] : outcomes[1]}
+${t.totalCost || "Total Cost"} $${amount.toFixed(2)}
+${(t.potentialWinIfResolves || "Potential Win if resolves").replace("{CONDITION}", winCondition)} $${(shares * 1).toFixed(2)}
 
-${t("pressConfirmOrCancel", language)}
+${t.pressConfirmOrCancel || "Press *Confirm* to place the order or *Cancel*."}
         `;
     } else {
         // Limit Order
@@ -1248,23 +1257,23 @@ ${t("pressConfirmOrCancel", language)}
         const priceDiff = (((price - pricePerShare) / pricePerShare) * 100).toFixed(1);
         const totalPayout = shares * 1;
 
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
+
         message = `
-📌 *${escapeMarkdown(market.question)}*
+📌 *${escapeMarkdown(translatedQuestion)}*
 
-💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
-📅 Ends: ${formatDate(endDate)}
+💧 *${market.groupItemTitle}* ${t.volume}: ${formatDollarVolume(market.volumeNum)}
+📅 ${t.ends}: ${formatDate(endDate)}
 
-🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
-💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
 
 ${
     isExecutableNow
-        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare.toFixed(4)})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
-        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        ? `🚀 ${t.willExecuteImmediately || "Will execute immediately"} - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare.toFixed(4)})\n\n*${t.estimatedFill || "Estimated Fill"} (at market price):*\n• ${t.shares}: ${shares.toFixed(4)}\n• ${t.executionPrice || "Execution Price"}: $${executionPrice.toFixed(4)}\n• ${t.totalCost || "Total Cost"}: $${amount.toFixed(2)}\n• ${t.potentialWinIfResolves || "Potential Win if resolves"} ${side}: $${totalPayout.toFixed(2)}`
+        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• ${t.shares}: ${shares.toFixed(4)}\n• ${t.executionPrice || "Execution Price"}: $${executionPrice.toFixed(4)}\n• ${t.totalCost || "Total Cost"}: $${amount.toFixed(2)}\n• ${t.potentialWinIfResolves || "Potential Win if resolves"} ${side}: $${totalPayout.toFixed(2)}`
 }
 
-Press *Confirm* to place the order or *Cancel*.
+${t.pressConfirmOrCancel || "Press *Confirm* to place the order or *Cancel*."}
         `;
     }
 
@@ -1357,7 +1366,10 @@ export async function handleRefreshTopMarkets(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${market.title}**
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. **${translatedTitle}**
 💧 ${t("volume", language)} : ${fVolumne}
 ⏰ ${t("ends", language)}: ${fDate}
 
@@ -1484,6 +1496,8 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
 
 export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const LIMIT = 8;
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
     // Current ET hour window
     const nowET = DateTime.now().setZone("America/New_York");
@@ -1513,7 +1527,10 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
         const minutesLeft = Math.max(0, Math.floor(endTime.diffNow("minutes").minutes));
         const fVol = formatDollarVolume(market.volumeNum || 0);
 
-        message += `${i + 1}. *${escapeMarkdown(market.question)}*
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
+
+        message += `${i + 1}. *${escapeMarkdown(translatedQuestion)}*
 💧 Volume: ${fVol}
 ⌛ Time left: ${minutesLeft} minutes
 
@@ -1601,7 +1618,8 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
         return ctx.reply(`❌ ${t.errorFetchingMarket}!`);
     }
 
-    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+    const translatedQuestion = translateMarketTitle(market.question, language);
+    let message = `📊 **${escapeMarkdown(translatedQuestion)}**\n\n`;
 
     // Add prominent price display right before order book for better visibility
     const outcomes = JSON.parse(market.outcomePrices);
