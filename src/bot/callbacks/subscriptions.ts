@@ -2,16 +2,23 @@ import { setUserInputState } from "../input/state";
 import {
     CLOSE_BUTTON,
     generateSubscriptionButtons,
+    generateTranslatedSubscriptionButtons,
     SUBSCRIPTIONS_MENU_BUTTONS,
     generateTranslatedSubscriptionMenuButtons,
 } from "../ui/buttons";
-import { formatActiveSubscriptionsMessage, getUserIdFromCtx } from "../utils";
+import {
+    formatActiveSubscriptionsMessage,
+    formatActiveSubscriptionsMessageWithTranslation,
+    getUserIdFromCtx,
+} from "../utils";
 import { redisClient } from "../../lib/redis";
 import { getMarketQuestion } from "../../notifier/utils";
 import { CATEGORY_LIST } from "../../shared/constants";
 import { shortHashKey } from "../../utils/crypto";
 import { Markup, type Context } from "telegraf";
 import type { InlineKeyboardButton } from "telegraf/types";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getMessages } from "../../i18n";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -21,11 +28,19 @@ export async function handleSubscriptionsMenu(ctx: Context) {
 }
 
 export async function handleSubscriptionMenuCallbacks(ctx: Context, action: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
+
     switch (action) {
         case "subscribe":
-            const buttons = generateSubscriptionButtons(CATEGORY_LIST, "subscribe");
+            const buttons = await generateTranslatedSubscriptionButtons(
+                CATEGORY_LIST,
+                "subscribe",
+                userId
+            );
             return ctx.reply(
-                "Choose a Category to Subscribe to",
+                t.chooseSubscriptionOption,
                 Markup.inlineKeyboard([...buttons, [CLOSE_BUTTON]])
             );
         case "unsubscribe":
@@ -39,13 +54,14 @@ export async function handleSubscriptionMenuCallbacks(ctx: Context, action: stri
 
 export async function handleDisplayActiveSubscriptions(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const categories = await redisClient.sMembers(`user:subs:${userId}`);
 
     if (categories.length === 0) {
         return ctx.reply("⚠️ You have no Active Subscriptions.");
     }
 
-    return ctx.reply(formatActiveSubscriptionsMessage(categories), {
+    return ctx.reply(formatActiveSubscriptionsMessageWithTranslation(categories, language), {
         reply_markup: Markup.inlineKeyboard([CLOSE_BUTTON]).reply_markup,
     });
 }
@@ -56,6 +72,8 @@ export async function handleSubscriptionManagement(
     category: string
 ) {
     const userId = getUserIdFromCtx(ctx).toString();
+    const language = await getUserLanguage(parseInt(userId));
+    const t = getMessages(language);
 
     if (isSubscribe === "yes") {
         await redisClient
@@ -64,7 +82,8 @@ export async function handleSubscriptionManagement(
             .hIncrBy("categories", category, 1)
             .exec();
 
-        return ctx.editMessageText(`📬 You'll Now Receive Alerts for: ${category}`);
+        const translatedCategory = t[category.toLowerCase() as keyof typeof t] || category;
+        return ctx.editMessageText(`📬 You'll Now Receive Alerts for: ${translatedCategory}`);
     }
 
     await redisClient.sRem(`user:subs:${userId}`, category);
@@ -74,27 +93,32 @@ export async function handleSubscriptionManagement(
         await redisClient.hDel("categories", category);
     }
 
-    return ctx.editMessageText(`🗑️ Alerts Removed For: ${category}`);
+    const translatedCategory = t[category.toLowerCase() as keyof typeof t] || category;
+    return ctx.editMessageText(`🗑️ Alerts Removed For: ${translatedCategory}`);
 }
 
 export async function handleUnsubscribe(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
     const categories = await redisClient.sMembers(`user:subs:${userId}`);
 
     if (categories.length === 0) {
         return ctx.reply("⚠️ You have no Active Subscriptions.");
     }
 
-    const buttons = generateSubscriptionButtons(categories, "unsubscribe");
+    const buttons = await generateTranslatedSubscriptionButtons(categories, "unsubscribe", userId);
 
     return ctx.reply(
-        "Choose a Category to Unsubscribe from",
+        t.chooseSubscriptionOption || "Choose a Category to Unsubscribe from",
         Markup.inlineKeyboard([...buttons, [CLOSE_BUTTON]])
     );
 }
 
 export async function handleCustomCategoryInput(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx).toString();
+    const language = await getUserLanguage(parseInt(userId));
+    const t = getMessages(language);
 
     await redisClient
         .multi()

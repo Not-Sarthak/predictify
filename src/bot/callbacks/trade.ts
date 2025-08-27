@@ -56,6 +56,7 @@ import {
 } from "../../notifier/ws/price-watcher";
 import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
+import { translateMarketTitle } from "../../utils/market-translation";
 
 export async function handleTradeMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -246,7 +247,10 @@ export async function handleViewTopMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. *${escapeMarkdown(market.title)}*
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. *${escapeMarkdown(translatedTitle)}*
 💧 ${t("volume", language)} : ${fVolumne}
 ⌛ ${t("ends", language)}: ${fDate}
 
@@ -356,7 +360,10 @@ export async function handleShowZeroDTEMarketsByCategory(
         const fDate = formatDate(market.endDate);
         const fVol = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${escapeMarkdown(market.title)}**
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. **${escapeMarkdown(translatedTitle)}**
 💧 Volume: ${fVol}
 ⌛ Ends: ${fDate}
 
@@ -651,9 +658,13 @@ export async function handleMarketDetails(ctx: Context, marketId: string) {
     const volume = formatDollarVolume(market.volume1mo || 0);
     const liquidity = formatDollarVolume(market.liquidityNum || 0);
 
-    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+    // Translate market question and description
+    const translatedQuestion = translateMarketTitle(market.question, language);
+    const translatedDescription = translateMarketTitle(market.description.trim(), language);
 
-    message += `📝 ${escapeMarkdown(market.description.trim())}\n\n`;
+    let message = `📊 **${escapeMarkdown(translatedQuestion)}**\n\n`;
+
+    message += `📝 ${escapeMarkdown(translatedDescription)}\n\n`;
     message += `----------------------------------\n\n`;
     message += `⏰ **Ends:** ${endDate}\n`;
     message += `💰 **Liquidity:** ${liquidity} | **Volume:** ${volume}\n\n`;
@@ -1140,6 +1151,7 @@ export async function handleCloseOpenPosition(
 
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const textMsgArray = textMsg.trim().split(/\s+/);
 
     if (textMsgArray.length < 1 || textMsgArray.length > 2) {
@@ -1199,8 +1211,11 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
         shares = amount / pricePerShare;
 
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
+
         message = `
-📌 *${escapeMarkdown(market.question)}*
+📌 *${escapeMarkdown(translatedQuestion)}*
 
 💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum || 0)}
 📅 Ends: ${formatDate(endDate)}
@@ -1243,8 +1258,11 @@ Press *Confirm* to place the order or *Cancel*.
         const priceDiff = (((price - pricePerShare) / pricePerShare) * 100).toFixed(1);
         const totalPayout = shares * 1;
 
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
+
         message = `
-📌 *${escapeMarkdown(market.question)}*
+📌 *${escapeMarkdown(translatedQuestion)}*
 
 💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
 📅 Ends: ${formatDate(endDate)}
@@ -1352,7 +1370,10 @@ export async function handleRefreshTopMarkets(
         const fDate = formatDate(market.endDate);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
-        message += `${i + 1}. **${market.title}**
+        // Translate market title based on user's language
+        const translatedTitle = translateMarketTitle(market.title, language);
+
+        message += `${i + 1}. **${translatedTitle}**
 💧 ${t("volume", language)} : ${fVolumne}
 ⏰ ${t("ends", language)}: ${fDate}
 
@@ -1478,6 +1499,8 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
 
 export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const LIMIT = 8;
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
     // Current ET hour window
     const nowET = DateTime.now().setZone("America/New_York");
@@ -1507,7 +1530,10 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
         const minutesLeft = Math.max(0, Math.floor(endTime.diffNow("minutes").minutes));
         const fVol = formatDollarVolume(market.volumeNum || 0);
 
-        message += `${i + 1}. *${escapeMarkdown(market.question)}*
+        // Translate market question
+        const translatedQuestion = translateMarketTitle(market.question, language);
+
+        message += `${i + 1}. *${escapeMarkdown(translatedQuestion)}*
 💧 Volume: ${fVol}
 ⌛ Time left: ${minutesLeft} minutes
 
@@ -1595,7 +1621,8 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
         return ctx.reply(`❌ ${t.errorFetchingMarket}!`);
     }
 
-    let message = `📊 **${escapeMarkdown(market.question)}**\n\n`;
+    const translatedQuestion = translateMarketTitle(market.question, language);
+    let message = `📊 **${escapeMarkdown(translatedQuestion)}**\n\n`;
 
     // Add prominent price display right before order book for better visibility
     const outcomes = JSON.parse(market.outcomePrices);

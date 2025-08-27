@@ -57,6 +57,7 @@ import { handleExportPrivateKey } from "../utils/database/export-user-private-ke
 import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
 import { getUserLanguage } from "../../helpers/user-language";
 import { getMessages } from "../../i18n/translate";
+import { t } from "../../i18n";
 import {
     handleBridgeConfirm,
     handleBridgeFunds,
@@ -486,14 +487,16 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+
+        const language = await getUserLanguage(userId);
+
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
-                `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100\`\n\n` +
-                `• **Price:** The Limit Price You Want to Pay\n` +
-                `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `Note: Amount / Price should be minimum 10`,
+                `${await t("enterOrderDetails", language)}\n\n` +
+                `**${await t("formatExample", language)}**\n\n` +
+                `• **${await t("priceDescription", language)}**\n` +
+                `• **${await t("amountDescription", language)}**\n` +
+                `${await t("minimumAmount", language)}`,
             { parse_mode: "Markdown" }
         );
     }
@@ -543,14 +546,16 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+
+        const language = await getUserLanguage(userId);
+
         return ctx.reply(
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
-                `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100\`\n\n` +
-                `• **Price:** The Limit Price You Want to Pay\n` +
-                `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `Note: Amount / Price should be minimum 10`,
+                `${await t("enterOrderDetails", language)}\n\n` +
+                `**${await t("formatExample", language)}**\n\n` +
+                `• **${await t("priceDescription", language)}**\n` +
+                `• **${await t("amountDescription", language)}**\n` +
+                `${await t("minimumAmount", language)}`,
             { parse_mode: "Markdown" }
         );
     }

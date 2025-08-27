@@ -1,4 +1,5 @@
 import type { BotCommand } from "telegraf/types";
+import { t } from "../../i18n";
 
 export * from "./settings";
 export * from "./start";
@@ -9,63 +10,63 @@ export * from "./high-probability";
 export * from "./referral";
 export * from "./active-user-analytics";
 export * from "./detailed-analytics";
-
-// Bot Interaction Commands
-export const botCommands: BotCommand[] = [
+export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
     {
         command: "start",
-        description: "Get started and see what this bot can do",
+        description: t("cmdStart", locale as any),
     },
     {
         command: "subscriptions",
-        description: "View and manage your market subscriptions",
+        description: t("cmdSubscriptions", locale as any),
     },
     {
         command: "trade",
-        description: "Manually place a market trade",
+        description: t("cmdTrade", locale as any),
     },
     {
         command: "autotrade",
-        description: "Enable or configure copy trading from wallets",
+        description: t("cmdAutotrade", locale as any),
     },
     {
         command: "fund",
-        description: "Update preferences like wallet or notification settings",
+        description: t("cmdFund", locale as any),
     },
     {
         command: "history",
-        description: "View your Trade History",
+        description: t("cmdHistory", locale as any),
     },
     {
         command: "portfolio",
-        description: "View your Portfolio",
+        description: t("cmdPortfolio", locale as any),
     },
     {
         command: "manage",
-        description: "Manage your Open Limit Orders",
+        description: t("cmdManage", locale as any),
     },
     {
         command: "stats",
-        description: "View your Trading Stats",
+        description: t("cmdStats", locale as any),
     },
     {
         command: "watchlist",
-        description: "View your favorite markets watchlist",
+        description: t("cmdWatchlist", locale as any),
     },
     {
         command: "highprob",
-        description: "Trade high-probability markets (85-95% odds)",
+        description: t("cmdHighprob", locale as any),
     },
     {
         command: "ref",
-        description: "View referral stats and share your referral link",
+        description: t("cmdRef", locale as any),
     },
     {
         command: "analytics",
-        description: "View active user analytics (Admin only)",
+        description: t("cmdAnalytics", locale as any),
     },
     {
         command: "detailed",
-        description: "View detailed analytics dashboard (Admin only)",
+        description: t("cmdDetailed", locale as any),
     },
 ];
+// Bot Interaction Commands (default Chinese)
+export const botCommands: BotCommand[] = getBotCommands("zh");

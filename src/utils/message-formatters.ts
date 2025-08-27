@@ -1,5 +1,6 @@
 import { getUserLanguage } from "../helpers/user-language";
 import { t, type SupportedLanguage } from "../i18n";
+import { translateMarketTitle } from "./market-translation";
 
 /**
  * Format market dexport function getOrderStatusText(status: string, language: SupportedLanguage): string {
@@ -26,7 +27,9 @@ export async function formatMarketMessage(
 
     const volume = market.volume || market.volumeUSD || 0;
 
-    let message = `📊 **${market.question || market.title}**\n\n`;
+    // Translate the market question/title
+    const translatedTitle = translateMarketTitle(market.question || market.title, language);
+    let message = `📊 **${translatedTitle}**\n\n`;
 
     // Market details
     message += `📈 **${t("volume", language)}**: $${formatNumber(volume)}\n`;
@@ -60,7 +63,12 @@ export async function formatPositionMessage(userId: number, position: any): Prom
     const pnlText = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
     const pnlEmoji = pnl >= 0 ? "🟢" : "🔴";
 
-    let message = `📊 **${position.market?.question || position.title}**\n\n`;
+    // Translate the market question/title
+    const translatedTitle = translateMarketTitle(
+        position.market?.question || position.title,
+        language
+    );
+    let message = `📊 **${translatedTitle}**\n\n`;
     message += `${pnlEmoji} **${t("pnl", language)}**: ${pnlText}\n`;
     message += `💰 **${t("shares", language)}**: ${position.size || 0}\n`;
     message += `📊 **${t("entry", language)}**: ${(position.avgPrice * 100).toFixed(1)}%\n`;

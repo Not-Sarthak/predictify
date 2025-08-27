@@ -28,6 +28,18 @@ import { t } from "../../i18n";
 import { db } from "../../lib/supabase";
 import { encodeMarketConditionId } from "../../utils/encoding";
 
+/**
+ * Helper function to fetch markets with user's language automatically
+ */
+async function fetchMarketsForUser(
+    userId: number,
+    filters: HighProbFilters,
+    limit: number = 50
+): Promise<HighProbMarket[]> {
+    const language = await getUserLanguage(userId);
+    return fetchHighProbabilityMarkets(filters, limit, language);
+}
+
 // Helper function to get user's custom filters or defaults
 export async function getUserFilters(userId: number): Promise<HighProbFilters> {
     try {
@@ -163,6 +175,7 @@ export async function handleViewHighProbMarket(
     try {
         // Always fetch from high-probability markets to ensure we have complete volume data
         const userId = getUserIdFromCtx(ctx);
+        const language = await getUserLanguage(userId);
         const userFilters = await getUserFilters(userId);
         const filters: HighProbFilters = {
             ...userFilters,
@@ -170,7 +183,7 @@ export async function handleViewHighProbMarket(
             tradingMode: strategy === "degen" ? "normal" : ("degen" as "normal" | "degen"),
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchHighProbabilityMarkets(filters, 50, language);
 
         // Find the market in our high-prob results
         const market = markets.find((m) => m.id === marketId);
@@ -178,8 +191,6 @@ export async function handleViewHighProbMarket(
         if (!market) {
             return ctx.reply("❌ Market not found. It may have been removed or changed.");
         }
-
-        const language = await getUserLanguage(userId);
 
         // Format the market message manually to avoid compatibility issues
         const outcomes = market.outcomePrices ? JSON.parse(market.outcomePrices) : [0, 0];
@@ -354,7 +365,7 @@ export async function handleAutoSplitSetup(
             timeFilter,
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         await ctx.deleteMessage(msg.message_id);
 
@@ -437,7 +448,7 @@ export async function handleManualSelectionSetup(
             timeFilter,
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         await ctx.deleteMessage(msg.message_id);
 
@@ -885,7 +896,7 @@ export async function handleManualMarketToggle(
         // Fetch markets and re-render
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, updatedSelection);
     } catch (error) {
@@ -909,7 +920,7 @@ export async function handleManualNavigation(
         // Fetch markets and render new page
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, selectedMarkets);
     } catch (error) {
@@ -936,7 +947,7 @@ export async function handleManualClearSelection(
         // Fetch markets and re-render
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, []);
     } catch (error) {
@@ -1030,7 +1041,7 @@ export async function handleExecuteTrade(ctx: Context, mode: "autosplit" | "manu
             ...userFilters,
             timeFilter: tradeData.timeFilter as "1h" | "4h" | "24h" | "48h",
         };
-        const allMarkets = await fetchHighProbabilityMarkets(filters, 100);
+        const allMarkets = await fetchMarketsForUser(userId, filters, 100);
         const selectedMarkets = allMarkets.filter((m) => marketIds.includes(m.id));
 
         if (selectedMarkets.length === 0) {

@@ -6,6 +6,8 @@ import { decodeMarketId } from "../../utils/encoding";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 import { clearUserInputState } from "../input/state";
 import { startPriceAlertWatcher, type PriceWatchConfig } from "../../notifier/ws/price-watcher";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 
 export async function handleSetMarketPriceAlert(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -52,15 +54,17 @@ export async function handleSetMarketPriceAlert(ctx: Context, textMessage: strin
 
     startPriceAlertWatcher(userId.toString(), decodedMarketId, assetId, alertConfig);
 
+    const language = await getUserLanguage(userId);
+
     return ctx.reply(
-        `🔔 <b>Price Alert Set Successfully!</b>
+        `🔔 <b>${await t("priceAlertSetSuccessfully", language)}</b>
 
-<b>Market:</b> ${market.question}
-<b>Side:</b> ${side.toUpperCase()}
+<b>${await t("marketLabel", language)}</b> ${market.question}
+<b>${await t("side", language)}</b> ${side.toUpperCase()}
 
-<b>Alert at Price:</b> ${price}
+<b>${await t("alertAtPrice", language)}</b> ${price}
 
-You will receive a notification when the conditions are met.`,
+${await t("notificationWhenMet", language)}`,
         { parse_mode: "HTML" }
     );
 }

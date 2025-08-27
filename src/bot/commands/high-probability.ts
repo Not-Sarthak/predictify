@@ -94,7 +94,8 @@ export async function handleStrategySelection(
             tradingMode: strategy === "degen" ? "normal" : "degen", // Map: degen->normal (70-85%), turtle->degen (85.5-95%)
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const language = await getUserLanguage(userId);
+        const markets = await fetchHighProbabilityMarkets(filters, 50, language);
 
         await ctx.deleteMessage(msg.message_id);
 
@@ -104,19 +105,19 @@ export async function handleStrategySelection(
 
             return ctx.reply(
                 `📊 **No ${strategyName} Markets Found**\n\n` +
-                    `No markets found matching ${minProb}-${maxProb}% probability range (${timeFilter}).\n\n` +
-                    `**Possible reasons:**\n` +
-                    `• Markets may have expired or closed recently\n` +
-                    `• Crypto markets might be excluded in your filters\n` +
-                    `• Try a longer time frame (4h, 24h, or 48h)\n` +
-                    `• Adjust probability ranges in filter settings\n\n` +
-                    `**Quick Actions:**`,
+                    `${await t("noMarketsFoundMatching", language)} ${minProb}-${maxProb}% probability range (${timeFilter}).\n\n` +
+                    `**${await t("possibleReasons", language)}**\n` +
+                    `• ${await t("marketsExpiredRecently", language)}\n` +
+                    `• ${await t("cryptoMightBeExcluded", language)}\n` +
+                    `• ${await t("tryLongerTimeFrame", language)}\n` +
+                    `• ${await t("adjustProbabilityRanges", language)}\n\n` +
+                    `**${await t("quickActions", language)}**`,
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
                         [
                             Markup.button.callback(
-                                "🪙 Include Crypto",
+                                await t("includeCryptoMarkets", language),
                                 `highprob:toggle_crypto:${strategy}:${timeFilter}`
                             ),
                         ],
@@ -270,13 +271,14 @@ export async function handleViewHighProbMarkets(
     try {
         const userId = getUserIdFromCtx(ctx);
         const userFilters = await getUserFilters(userId);
+        const language = await getUserLanguage(userId);
 
         const filters: HighProbFilters = {
             ...userFilters,
             timeFilter,
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchHighProbabilityMarkets(filters, 50, language);
 
         await ctx.deleteMessage(msg.message_id);
 
