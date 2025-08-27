@@ -383,6 +383,10 @@ export const zh: LocaleMessages = {
     hyperliquid: "Hyperliquid",
     orderbook: "订单簿",
 
+    // Profile toggle
+    showUsernameInPnLCards: "✅ 在PnL卡显示用户名",
+    hideUsernameInPnLCards: "❌ 在PnL卡隐藏用户名",
+
     // Market direction words
     up: "上涨",
     or: "或",

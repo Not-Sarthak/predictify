@@ -411,6 +411,10 @@ Your wallet's live. Let's degen.`,
     hyperliquid: "Hyperliquid",
     orderbook: "Orderbook",
 
+    // Profile toggle
+    showUsernameInPnLCards: "✅ Show Username in PnL Cards",
+    hideUsernameInPnLCards: "❌ Hide Username in PnL Cards",
+
     // Market direction words
     up: "Up",
     or: "Or",

@@ -8,6 +8,20 @@ export async function handleRefCommand(ctx: Context) {
 
         const botInfo = await ctx.telegram.getMe();
         const botUsername = botInfo.username;
+        const language = await (async () => {
+            try {
+                return (
+                    (ctx.from &&
+                        (await import("../../helpers/user-language").then((m) =>
+                            m.getUserLanguage(ctx.from!.id)
+                        ))) ||
+                    "en"
+                );
+            } catch {
+                return "en";
+            }
+        })();
+        const messages = (await import("../../i18n/translate")).getMessages(language as any);
 
         const stats = await getReferralStats(userId, botUsername);
 
@@ -25,7 +39,7 @@ export async function handleRefCommand(ctx: Context) {
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback("🔄 Try Again", "referral:refresh")],
+                        [Markup.button.callback(messages.refresh, "referral:refresh")],
                         [Markup.button.callback("🔙 Main Menu", "main_menu")],
                     ]).reply_markup,
                 }
@@ -78,7 +92,10 @@ export async function handleRefCommand(ctx: Context) {
                 ),
             ],
             [
-                Markup.button.callback("🔄 Refresh Stats", "referral:refresh"),
+                Markup.button.callback(
+                    messages.refreshStats || `${messages.refresh} Stats`,
+                    "referral:refresh"
+                ),
                 Markup.button.callback("🔙 Main Menu", "main_menu"),
             ],
         ]);
@@ -111,7 +128,16 @@ export async function handleRefCommand(ctx: Context) {
 
 export async function handleRefreshReferralStats(ctx: Context) {
     try {
-        await ctx.answerCbQuery("🔄 Refreshing...");
+        const language =
+            (ctx.from &&
+                (await import("../../helpers/user-language").then((m) =>
+                    m.getUserLanguage(ctx.from!.id)
+                ))) ||
+            "en";
+        await ctx.answerCbQuery(
+            (await import("../../i18n/translate")).getMessages(language as any).refresh ||
+                "🔄 Refreshing..."
+        );
 
         if (ctx.callbackQuery && "message" in ctx.callbackQuery && ctx.callbackQuery.message) {
             await ctx.deleteMessage();

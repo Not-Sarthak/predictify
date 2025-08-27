@@ -67,8 +67,12 @@ export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: nu
         Markup.button.callback("❌ Cancel Order", `cancel_order:${encodedOrderId}`),
     ];
 
+    const userId = getUserIdFromCtx(ctx);
+    const language = await (await import("../../helpers/user-language")).getUserLanguage(userId);
+    const messages = (await import("../../i18n/translate")).getMessages(language as any);
+
     const bottomButtons = [
-        Markup.button.callback("🔄 Refresh", `refresh_order:${offset}`),
+        Markup.button.callback(messages.refresh, `refresh_order:${offset}`),
         CLOSE_BUTTON,
     ];
 
@@ -157,10 +161,13 @@ export async function sendPaginatedTpSlOrder(ctx: Context, orders: any[], offset
     const cancelBtnData = isOrderTp
         ? `stop_tp:${encodeMarketConditionId(order.marketId)}`
         : `stop_sl:${encodeMarketConditionId(order.marketId)}`;
+    const userId2 = getUserIdFromCtx(ctx);
+    const language2 = await (await import("../../helpers/user-language")).getUserLanguage(userId2);
+    const messages2 = (await import("../../i18n/translate")).getMessages(language2 as any);
     const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("❌ Cancel", cancelBtnData)],
         navButtons,
-        [Markup.button.callback("🔄 Refresh", `tp_sl:refresh:${offset}`), CLOSE_BUTTON],
+        [Markup.button.callback(messages2.refresh, `tp_sl:refresh:${offset}`), CLOSE_BUTTON],
     ]);
 
     const isPaginatedNavigation = (ctx.callbackQuery as any)?.data?.startsWith("tp_sl:");

@@ -846,7 +846,8 @@ export async function handleCallbackQuery(ctx: Context) {
                 parse_mode: "Markdown",
                 reply_markup: markup,
             });
-            await ctx.answerCbQuery("🔄 Refreshed!");
+            const language = await getUserLanguage(userId);
+            await ctx.answerCbQuery(`${getMessages(language).refresh}ed!`);
         } catch (err) {
             console.error("Refresh failed:", err);
             await ctx.answerCbQuery("⚠️ Could not refresh.");
@@ -935,13 +936,21 @@ Example: <code>0.7</code> <code>No</code>`;
         const message = isTp ? "💸 Set Take Profit" : "🛑 Set Stop Loss";
         const cbId = isTp ? "tp" : "sl";
 
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
+
         const keyboard = [
             [
                 Markup.button.callback("25%", `${cbId}:25`),
                 Markup.button.callback("50%", `${cbId}:50`),
                 Markup.button.callback("100%", `${cbId}:100`),
             ],
-            [Markup.button.callback("Custom", `${cbId}:custom`)],
+            [
+                Markup.button.callback(
+                    messages.enterCustom.replace("✨ ", "") || messages.enterCustom,
+                    `${cbId}:custom`
+                ),
+            ],
         ];
 
         return ctx.reply(message, {
@@ -993,9 +1002,11 @@ Example: <code>0.7</code> <code>No</code>`;
             return ctx.reply("❌ Internal Server Error. Failed to Update your preferences.");
         }
 
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
         const toggleButtonTitle = toggleTo
-            ? "❌ Hide Username in PnL Cards"
-            : "✅ Show Username in PnL Cards";
+            ? messages.hideUsernameInPnLCards
+            : messages.showUsernameInPnLCards;
 
         const toggleButtonCallbackData = toggleTo
             ? "toggle_show_username:0"

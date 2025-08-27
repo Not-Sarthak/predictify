@@ -301,7 +301,7 @@ export async function handleViewTopMarketsByCategory(
         paginationButtons,
         [
             Markup.button.callback(
-                "🔄 Refresh",
+                getMessages(language).refresh,
                 `refresh_top_markets:${marketCategory}:${filter}:${offset}`
             ),
             Markup.button.callback("❌ Close", "close_message"),
@@ -394,7 +394,12 @@ ${t.endsLabel} ${fDate}
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`)],
+        [
+            Markup.button.callback(
+                getMessages(language).refresh,
+                `zero_dte_category:${category}:${offset}`
+            ),
+        ],
         [
             Markup.button.callback("⬅️ Back", "back_to_zero_dte_categories"),
             Markup.button.callback("❌ Close", "close_message"),
@@ -567,7 +572,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
         [
-            Markup.button.callback("🔄 Refresh", `refresh_markets:${eventId}`),
+            Markup.button.callback(getMessages(language).refresh, `refresh_markets:${eventId}`),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
@@ -1425,7 +1430,7 @@ export async function handleRefreshTopMarkets(
         paginationButtons,
         [
             Markup.button.callback(
-                "🔄 Refresh",
+                getMessages(language).refresh,
                 `refresh_top_markets:${marketCategory}:${filter}:${offsetNum}`
             ),
             Markup.button.callback("❌ Close", "close_message"),
@@ -1551,7 +1556,7 @@ ${t.timeLeftLabel} ${minutesLeft} ${t.minutesShort}
 
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
-        [Markup.button.callback("🔄 Refresh", `current_btc_hourly_markets`)],
+        [Markup.button.callback(getMessages(language).refresh, `current_btc_hourly_markets`)],
         [Markup.button.callback("❌ Close", "close_message")],
     ]);
 

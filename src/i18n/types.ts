@@ -406,6 +406,9 @@ export interface LocaleMessages {
     dogecoin: string;
     hyperliquid: string;
     orderbook: string;
+    // Profile toggle
+    showUsernameInPnLCards: string;
+    hideUsernameInPnLCards: string;
 
     // Market direction words
     up: string;

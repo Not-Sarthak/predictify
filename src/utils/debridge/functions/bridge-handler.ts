@@ -8,7 +8,7 @@ import { getSOLBalance } from "../../../helpers/get-user-balance";
 import { CLOSE_BUTTON } from "../../../bot/ui/buttons";
 import { getUserIdFromCtx } from "../../../bot/utils";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t } from "../../../i18n";
+import { t, getMessages } from "../../../i18n";
 import { executeSolanaTransaction } from "../../solana/transaction";
 import { decryptPrivateKey } from "../../../utils/crypto";
 import { needsPOLForGas } from "../../../helpers/get-pol-balance";
@@ -405,7 +405,7 @@ export async function handleBridgeStatus(ctx: Context, userId: string): Promise<
         {
             parse_mode: "Markdown",
             ...Markup.inlineKeyboard([
-                [Markup.button.callback("🔄 Refresh", `bridge_status:${userId}`)],
+                [Markup.button.callback(getMessages(language).refresh, `bridge_status:${userId}`)],
                 [Markup.button.callback(`🏠 ${t("mainMenu", language)}`, "back_to_main_menu")],
             ]),
         }
