@@ -572,6 +572,11 @@ export interface LocaleMessages {
     willBeNotifiedWhen: string;
     editAlert: string;
     deleteAlert: string;
+    // Edit Price Alert flow
+    editPriceAlertTitle: string;
+    editPriceAlertMarketLabel: string;
+    editPriceAlertCurrentTrigger: string;
+    editPriceAlertPrompt: string;
 
     // Portfolio Command Translations
     noWalletLinked: string;

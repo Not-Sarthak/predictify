@@ -236,14 +236,16 @@ export async function handleCallbackQuery(ctx: Context) {
 
         await redisClient.hSet(`user:edit_price_alert:${userId}`, shortKey, configStr);
         await setUserInputState(userIdStr, "edit_price_alert");
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
 
-        return ctx.reply(
-            `✏️ <b>Edit Price Alert</b>\n\n` +
-                `<b>Market:</b> ${marketTitle}\n` +
-                `<b>Current Trigger:</b> ${config.price}\n\n` +
-                `Please send a new price for this alert (between 0 and 1).`,
-            { parse_mode: "HTML" }
-        );
+        const reply =
+            `${messages.editPriceAlertTitle}\n\n` +
+            `${messages.editPriceAlertMarketLabel} ${marketTitle}\n` +
+            `${messages.editPriceAlertCurrentTrigger} ${config.price}\n\n` +
+            `${messages.editPriceAlertPrompt}`;
+
+        return ctx.reply(reply, { parse_mode: "HTML" });
     }
 
     if (data.startsWith("close_position:")) {

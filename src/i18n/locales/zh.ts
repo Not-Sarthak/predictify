@@ -616,6 +616,12 @@ export const zh: LocaleMessages = {
     editAlert: "✏️ 编辑提醒",
     deleteAlert: "🗑️ 删除提醒",
 
+    // Edit Price Alert flow
+    editPriceAlertTitle: "✏️ <b>编辑 价格 提示</b>",
+    editPriceAlertMarketLabel: "<b>市场：</b>",
+    editPriceAlertCurrentTrigger: "<b>当前触发价：</b>",
+    editPriceAlertPrompt: "请为此提醒发送一个新的价格（介于 0 和 1 之间）。",
+
     // Portfolio Command Translations
     noWalletLinked: "⚠️ 您的账户未关联钱包地址！",
     generatingPortfolioCard: "⚡ 正在生成您的投资组合卡片...",

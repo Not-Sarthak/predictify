@@ -580,6 +580,12 @@ Your wallet's live. Let's degen.`,
     editAlert: "✏️ Edit Alert",
     deleteAlert: "🗑️ Delete Alert",
 
+    // Edit Price Alert flow
+    editPriceAlertTitle: "✏️ <b>Edit Price Alert</b>",
+    editPriceAlertMarketLabel: "<b>Market:</b>",
+    editPriceAlertCurrentTrigger: "<b>Current Trigger:</b>",
+    editPriceAlertPrompt: "Please send a new price for this alert (between 0 and 1).",
+
     // Portfolio Command Translations
     noWalletLinked: "⚠️ No Associated Wallet Address Found With Your Account!",
     generatingPortfolioCard: "⚡ Generating your Portfolio Card...",

@@ -346,7 +346,10 @@ export async function handleShowZeroDTEMarketsByCategory(
     const language = await getUserLanguage(userId);
     const t = getMessages(language);
 
-    let message = `${t.topZeroDteMarketsFor} **${category.charAt(0).toUpperCase() + category.slice(1)}**\n\n`;
+    const displayCategory =
+        (t as any)[category.toLowerCase()] || category.charAt(0).toUpperCase() + category.slice(1);
+
+    let message = `${t.topZeroDteMarketsFor} **${displayCategory}**\n\n`;
 
     const markets = await fetchMarkets(category, filter, offset);
 
