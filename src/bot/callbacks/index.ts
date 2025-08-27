@@ -57,6 +57,7 @@ import { handleExportPrivateKey } from "../utils/database/export-user-private-ke
 import { handleWithdrawSOL, handleWithdrawUSDC } from "../../utils/withdrawal";
 import { getUserLanguage } from "../../helpers/user-language";
 import { getMessages } from "../../i18n/translate";
+import { t } from "../../i18n";
 import {
     handleBridgeConfirm,
     handleBridgeFunds,
@@ -486,14 +487,16 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+
+        const language = await getUserLanguage(userId);
+
         return ctx.reply(
             `🎯 **Limit Order - ${side.toUpperCase()}**\n\n` +
-                `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100\`\n\n` +
-                `• **Price:** The Limit Price You Want to Pay\n` +
-                `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `Note: Amount / Price should be minimum 10`,
+                `${await t("enterOrderDetails", language)}\n\n` +
+                `**${await t("formatExample", language)}**\n\n` +
+                `• **${await t("priceDescription", language)}**\n` +
+                `• **${await t("amountDescription", language)}**\n` +
+                `${await t("minimumAmount", language)}`,
             { parse_mode: "Markdown" }
         );
     }
@@ -508,12 +511,15 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+        const language = await getUserLanguage(userId);
+        const orderTypeKey = side === "yes" ? "marketOrderYes" : "marketOrderNo";
+
         return ctx.reply(
-            `⚡ **Market Order - ${side.toUpperCase()}**\n\n` +
-                `Enter The Amount in USDC You Want to Spend:\n\n` +
-                `**Format:** \`<amount>\`\n` +
-                `**Example:** \`50\`\n\n` +
-                `Note: Minimum Amount should be 10`,
+            `${t(orderTypeKey, language)}\n\n` +
+                `${t("enterAmountInUsdc", language)}\n\n` +
+                `**${t("formatAmount", language)}**\n` +
+                `**${t("exampleAmount", language)}**\n\n` +
+                `${t("minimumAmountNote", language)}`,
             { parse_mode: "Markdown" }
         );
     }
@@ -543,14 +549,16 @@ export async function handleCallbackQuery(ctx: Context) {
         });
 
         await setUserInputState(userIdStr, "orderDetails");
+
+        const language = await getUserLanguage(userId);
+
         return ctx.reply(
             `🎯 **Limit Order - ${order.side.toUpperCase()}**\n\n` +
-                `Enter Your Order Details:\n\n` +
-                `**Format:** \`<price> <amount>\`\n` +
-                `**Example:** \`0.65 100\`\n\n` +
-                `• **Price:** The Limit Price You Want to Pay\n` +
-                `• **Amount:** The USD amount you want to spend at this limit price\n` +
-                `Note: Amount / Price should be minimum 10`,
+                `${await t("enterOrderDetails", language)}\n\n` +
+                `**${await t("formatExample", language)}**\n\n` +
+                `• **${await t("priceDescription", language)}**\n` +
+                `• **${await t("amountDescription", language)}**\n` +
+                `${await t("minimumAmount", language)}`,
             { parse_mode: "Markdown" }
         );
     }
@@ -807,22 +815,23 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("refresh_portfolio:")) {
+        const language = await getUserLanguage(userId);
         const index = parseInt(data.split(":")[1], 10);
         const userAddress = await getUserAddressFromId(userId);
 
         if (!userAddress) {
-            return ctx.answerCbQuery("⚠️ No linked wallet.");
+            return ctx.answerCbQuery(t("noLinkedWallet", language));
         }
 
         const userPositions = await getUserPosition({ user: userAddress });
         const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
         if (!filteredUserPositions || filteredUserPositions.length === 0) {
-            return ctx.editMessageText("✅ No open positions found.");
+            return ctx.editMessageText(t("noOpenPositions", language));
         }
 
         if (index >= filteredUserPositions.length) {
-            return ctx.answerCbQuery("⚠️ Invalid index.");
+            return ctx.answerCbQuery(t("invalidIndex", language));
         }
 
         const { text, markup } = await formatSinglePositionMessage(

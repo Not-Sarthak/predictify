@@ -1,6 +1,6 @@
 import { Telegraf } from "telegraf";
 import { env } from "../config/env";
-import { botCommands } from "./commands";
+import { botCommands, getBotCommands } from "./commands";
 import { message } from "telegraf/filters";
 import { rejectBotSenders, requireId } from "./middlewares";
 import {
@@ -23,14 +23,42 @@ import { handleAutoTradeMenu } from "./ui/messages";
 import { handleViewProfileCallback } from "./callbacks/start";
 import { handleMonitoringStats } from "./callbacks/autotrade";
 import { handleBotStatistics } from "./commands/bot-statistics";
+import { getUserLanguage } from "../helpers/user-language";
 
 const bot = new Telegraf(env.TG_BOT_TOKEN);
 
-bot.telegram.setMyCommands(botCommands);
+// Set bot commands (default Chinese since most users are Chinese)
+bot.telegram.setMyCommands(getBotCommands("zh"));
+
+// Helper function to set commands for a specific language
+export const setBotCommandsForLanguage = async (language: string) => {
+    await bot.telegram.setMyCommands(getBotCommands(language));
+};
+
+// Helper function to set commands for a specific user's language
+export const setBotCommandsForUser = async (userId: number) => {
+    try {
+        const userLanguage = await getUserLanguage(userId);
+        await bot.telegram.setMyCommands(getBotCommands(userLanguage), {
+            scope: { type: "chat", chat_id: userId },
+        });
+    } catch (error) {
+        console.error("Failed to set user-specific commands:", error);
+    }
+};
 
 // Register Middlewares
 bot.use(requireId);
 bot.use(rejectBotSenders);
+
+// Middleware to set user-specific commands
+bot.use(async (ctx, next) => {
+    if (ctx.from?.id) {
+        // Set commands for this specific user based on their language preference
+        setBotCommandsForUser(ctx.from.id).catch(console.error);
+    }
+    return next();
+});
 
 // Command Handlers
 bot.command("start", handleStartCommand);

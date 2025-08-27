@@ -342,6 +342,8 @@ export interface LocaleMessages {
     refreshStats: string;
 
     // More button text
+    hour1: string;
+    hour4: string;
     hour24: string;
     hour48: string;
 
@@ -402,9 +404,236 @@ export interface LocaleMessages {
     solana: string;
     xrp: string;
     dogecoin: string;
+    hyperliquid: string;
+    orderbook: string;
+
+    // Market direction words
+    up: string;
+    or: string;
+    down: string;
+    what: string;
+    where: string;
+    will: string;
+    with: string;
+    and: string;
+    nextMarket: string; // renamed to avoid duplicate
+    who: string;
+    together: string;
+
+    // Time periods
+    monthly: string;
+    hourly: string;
+    daily: string;
+    weekly: string;
+    priceMarket: string; // renamed to avoid duplicate
+    hit: string;
+    in: string;
+    on: string;
+    by: string;
+
+    // Months
+    january: string;
+    february: string;
+    march: string;
+    april: string;
+    may: string;
+    june: string;
+    july: string;
+    august: string;
+    september: string;
+    october: string;
+    november: string;
+    december: string;
+
+    // Price movements
+    above: string;
+    below: string;
+    dip: string;
+    allTimeHigh: string;
+    marketCap: string;
+    fdv: string;
+    before: string;
+    after: string;
+
+    // Geopolitical terms
+    russia: string;
+    ukraine: string;
+    israel: string;
+    iran: string;
+    hamas: string;
+    ceasefire: string;
+    putin: string;
+    zelenskyy: string;
+    trumpMarket: string; // renamed to avoid duplicate
+    meet: string;
+
+    // Economic terms
+    fed: string;
+    meeting: string;
+    chair: string;
+    decision: string;
+    jeromePowelll: string;
+    rate: string;
+    cut: string;
+    us: string;
+    recession: string;
+    inflation: string;
 
     // Additional UI text
     removeFromWatchlist: string;
     watchlist: string;
     from: string;
+
+    // Hourly Market Specific
+    priceToBeat: string;
+    currentPrice: string;
+
+    // AutoTrade Menu
+    autoTradeMenu: string;
+    monitoring: string;
+    wallets: string;
+    selectAction: string;
+    enableCopyTrade: string;
+    disableCopyTrade: string;
+
+    // Watched Wallets View
+    watchedWalletsTitle: string;
+    noWalletsAdded: string;
+    configurePosition: string;
+    backToAutoTrade: string;
+    enabled: string;
+    disabled: string;
+
+    // Additional AutoTrade translations
+    addWalletTitle: string;
+    addWalletDescription: string;
+    walletMonitoringEnabled: string;
+    walletMonitoringDisabled: string;
+    copyTradingEnabled: string;
+    copyTradingDisabled: string;
+    copyTradingEnabledMessage: string;
+    copyTradingDisabledMessage: string;
+    configurePositionForWallet: string;
+    configureWalletPositionTitle: string;
+    selectWalletToConfigurePosition: string;
+    noWalletsAddedYet: string;
+    globalCopyTraderPositionTitle: string;
+    setDefaultPositionPercentage: string;
+    currentDefault: string;
+    defaultNotSet: string;
+    individualWalletOverride: string;
+    insufficientSolBalance: string;
+    youHaveSol: string;
+    butNeedAtLeast: string;
+    solToBridge: string;
+    butNeedToKeep: string;
+    solForFees: string;
+    notEnoughLeftToBridge: string;
+    shortage: string;
+
+    // Market Order Interface
+    marketOrderYes: string;
+    marketOrderNo: string;
+    enterAmountInUsdc: string;
+    formatAmount: string;
+    exampleAmount: string;
+    minimumAmountNote: string;
+    currentMarketPrice: string;
+    avgOfTopOrders: string;
+    willExecuteImmediately: string;
+    estimatedFill: string;
+    executionPrice: string;
+    totalCost: string;
+    potentialWinIfResolves: string;
+    pressConfirmOrCancel: string;
+
+    // Order Confirmation
+    buyOrderPlaced: string;
+    matched: string;
+    viewOnPolygonscan: string;
+
+    // Subscription Interface
+    noActiveSubscriptions: string;
+    enterCustomCategory: string;
+    exampleCategories: string;
+    chooseCategoryToSubscribe: string;
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: string;
+    alertsRemovedFor: string;
+    chooseCategoryToUnsubscribe: string;
+    noActivePriceAlerts: string;
+    priceAlertNumber: string;
+    outcome: string;
+    triggerPrice: string;
+    willBeNotifiedWhen: string;
+    editAlert: string;
+    deleteAlert: string;
+
+    // Portfolio Command Translations
+    noWalletLinked: string;
+    generatingPortfolioCard: string;
+    noActivePositionsForCard: string;
+    portfolioSummaryFor: string;
+    yourPolymarketDashboard: string;
+    profit: string;
+    loss: string;
+    invested: string;
+    value: string;
+    expires: string;
+    sellFiftyPercent: string;
+    sellHundredPercent: string;
+    sellCustom: string;
+    buyMoreMarket: string;
+    buyMoreLimit: string;
+    cancelTakeProfit: string;
+    cancelStopLoss: string;
+    generatePortfolioCard: string;
+
+    // Portfolio refresh messages
+    noLinkedWallet: string;
+    invalidIndex: string;
+    pageNotFound: string;
+
+    // High-probability market messages
+    noMarketsFoundMatching: string;
+    possibleReasons: string;
+    marketsExpiredRecently: string;
+    cryptoMightBeExcluded: string;
+    tryLongerTimeFrame: string;
+    adjustProbabilityRanges: string;
+    quickActions: string;
+    includeCryptoMarkets: string;
+
+    // Order and alert messages
+    priceAlertSetSuccessfully: string;
+    marketLabel: string;
+    side: string;
+    alertAtPrice: string;
+    notificationWhenMet: string;
+    enterOrderDetails: string;
+    formatExample: string;
+    priceDescription: string;
+    amountDescription: string;
+    minimumAmount: string;
+
+    // Bot command descriptions
+    cmdStart: string;
+    cmdSubscriptions: string;
+    cmdTrade: string;
+    cmdAutotrade: string;
+    cmdFund: string;
+    cmdHistory: string;
+    cmdPortfolio: string;
+    cmdManage: string;
+    cmdStats: string;
+    cmdWatchlist: string;
+    cmdHighprob: string;
+    cmdRef: string;
+    cmdAnalytics: string;
+    cmdDetailed: string;
+
+    // Subscription action messages
+    subscriptionAdded: string;
+    subscriptionRemoved: string;
 }

@@ -60,8 +60,9 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         const MIN_BALANCE = 0.01; // Need at least 0.01 SOL to cover any fees
 
         if (solBalance <= MIN_BALANCE) {
+            const language = await getUserLanguage(Number(userId));
             await ctx.reply(
-                `❌ Insufficient SOL Balance. You have ${solBalance.toFixed(4)} SOL but need at least ${MIN_BALANCE.toFixed(4)} SOL to bridge.`
+                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedAtLeast", language)} ${MIN_BALANCE.toFixed(4)} ${t("solToBridge", language)}`
             );
             return;
         }
@@ -70,8 +71,9 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         const maxBridgeable = Math.max(0, solBalance - 0.03);
 
         if (maxBridgeable <= 0.001) {
+            const language = await getUserLanguage(Number(userId));
             await ctx.reply(
-                `❌ Insufficient SOL balance. You have ${solBalance.toFixed(4)} SOL but need to keep 0.03 SOL for fees.`
+                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedToKeep", language)} 0.03 ${t("solForFees", language)}`
             );
             return;
         }
@@ -111,11 +113,12 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
 
         if (maxBridgeableSOL <= 0.001) {
+            const language = await getUserLanguage(Number(userId));
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                `❌ Insufficient SOL balance. You have ${solBalance.toFixed(4)} SOL but need to keep ${RESERVE_AMOUNT} SOL for fees. Not enough left to bridge.`
+                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedToKeep", language)} ${RESERVE_AMOUNT} ${t("solForFees", language)} ${t("notEnoughLeftToBridge", language)}`
             );
             return;
         }

@@ -13,7 +13,7 @@ export const zh: LocaleMessages = {
     clearFilters: "清除筛选器",
     noMarketsFound: "未找到市场",
 
-    // High Probability Command specific
+    // High Probability Command
     conservative: "保守型",
     aggressive: "激进型",
     viewMarkets: "查看市场",
@@ -240,7 +240,7 @@ export const zh: LocaleMessages = {
     enableCopyTrading: "启用跟单交易",
     disableCopyTrading: "禁用跟单交易",
     watchedWallets: "监控钱包",
-    addWallet: "添加钱包",
+    addWallet: "➕ 添加钱包",
     removeWallet: "移除钱包",
 
     // Referral System
@@ -346,6 +346,8 @@ export const zh: LocaleMessages = {
     refreshStats: "🔄 刷新统计",
 
     // More button text
+    hour1: "1小时",
+    hour4: "4小时",
     hour24: "24小时",
     hour48: "48小时",
 
@@ -378,6 +380,80 @@ export const zh: LocaleMessages = {
     solana: "Solana",
     xrp: "瑞波币",
     dogecoin: "狗狗币",
+    hyperliquid: "Hyperliquid",
+    orderbook: "订单簿",
+
+    // Market direction words
+    up: "上涨",
+    or: "或",
+    down: "下跌",
+    what: "什么",
+    where: "哪里",
+    will: "将会",
+    with: "与",
+    and: "和",
+    nextMarket: "下一个",
+    who: "谁",
+    together: "一起",
+
+    // Time periods
+    monthly: "每月",
+    hourly: "每小时",
+    daily: "每日",
+    weekly: "每周",
+    priceMarket: "价格",
+    hit: "达到",
+    in: "在",
+    on: "在",
+    by: "到",
+
+    // Months
+    january: "一月",
+    february: "二月",
+    march: "三月",
+    april: "四月",
+    may: "五月",
+    june: "六月",
+    july: "七月",
+    august: "八月",
+    september: "九月",
+    october: "十月",
+    november: "十一月",
+    december: "十二月",
+
+    // Price movements
+    above: "高于",
+    below: "低于",
+    dip: "回调",
+    allTimeHigh: "历史新高",
+    marketCap: "市值",
+    fdv: "完全稀释市值",
+    before: "之前",
+    after: "之后",
+
+    // Geopolitical terms
+    russia: "俄罗斯",
+    ukraine: "乌克兰",
+    israel: "以色列",
+    iran: "伊朗",
+    hamas: "哈马斯",
+    ceasefire: "停火",
+    putin: "普京",
+    zelenskyy: "泽连斯基",
+    trumpMarket: "特朗普",
+    meet: "会面",
+
+    // Economic terms
+    fed: "美联储",
+    meeting: "会议",
+    chair: "主席",
+    decision: "决定",
+    jeromePowelll: "杰罗姆·鲍威尔",
+    rate: "利率",
+    cut: "降息",
+    us: "美国",
+    recession: "衰退",
+    inflation: "通胀",
 
     // Additional UI text
     removeFromWatchlist: "💔 从观察列表移除",
@@ -411,4 +487,157 @@ export const zh: LocaleMessages = {
     yourReferralCode: "您的推荐码:",
     viewOnPolymarket: "🔗 在Polymarket查看",
     notAssigned: "未分配",
+
+    // High-probability market messages
+    noMarketsFoundMatching: "未找到匹配的市场",
+    possibleReasons: "可能的原因:",
+    marketsExpiredRecently: "市场可能刚刚到期或关闭",
+    cryptoMightBeExcluded: "加密货币市场可能在您的筛选条件中被排除",
+    tryLongerTimeFrame: "尝试更长的时间范围（4小时、24小时或48小时）",
+    adjustProbabilityRanges: "在筛选设置中调整概率范围",
+    quickActions: "快速操作:",
+    includeCryptoMarkets: "🪙 包含加密货币",
+
+    // Order and alert messages
+    priceAlertSetSuccessfully: "🔔 价格提醒设置成功！",
+    marketLabel: "市场:",
+    side: "方向:",
+    alertAtPrice: "提醒价格:",
+    notificationWhenMet: "当条件满足时，您将收到通知。",
+    enterOrderDetails: "输入您的订单详情:",
+    formatExample: "格式: <价格> <金额>\n示例: 0.65 100",
+    priceDescription: "价格: 您想要支付的限价",
+    amountDescription: "金额: 您想要以此限价花费的美元金额",
+    minimumAmount: "注意: 金额 / 价格 应至少为 10",
+
+    // Bot command descriptions
+    cmdStart: "开始使用并了解此机器人的功能",
+    cmdSubscriptions: "查看和管理您的市场订阅",
+    cmdTrade: "手动下市价单",
+    cmdAutotrade: "启用或配置钱包跟单交易",
+    cmdFund: "更新钱包或通知设置等偏好",
+    cmdHistory: "查看您的交易历史",
+    cmdPortfolio: "查看您的投资组合",
+    cmdManage: "管理您的开放限价单",
+    cmdStats: "查看您的交易统计",
+    cmdWatchlist: "查看您的收藏市场列表",
+    cmdHighprob: "交易高概率市场（1小时-48小时时间框架）",
+    cmdRef: "查看推荐统计并分享您的推荐链接",
+    cmdAnalytics: "查看活跃用户分析（仅限管理员）",
+    cmdDetailed: "查看详细分析仪表板（仅限管理员）",
+
+    // Hourly Market Specific
+    priceToBeat: "目标价格",
+    currentPrice: "当前价格",
+
+    // AutoTrade Menu
+    autoTradeMenu: "自动交易菜单",
+    monitoring: "监控",
+    wallets: "钱包",
+    selectAction: "选择操作:",
+    enableCopyTrade: "启用跟单交易",
+    disableCopyTrade: "禁用跟单交易",
+
+    // Watched Wallets View
+    watchedWalletsTitle: "👀 监控钱包",
+    noWalletsAdded: "尚未添加钱包。",
+    configurePosition: "⚙️ 配置仓位",
+    backToAutoTrade: "↩️ 返回自动交易",
+    enabled: "启用",
+    disabled: "禁用",
+
+    // Additional AutoTrade translations
+    addWalletTitle: "🧾 添加钱包地址",
+    addWalletDescription: "请输入您要监控的钱包地址：",
+    walletMonitoringEnabled: "✅ 钱包监控已启用",
+    walletMonitoringDisabled: "❌ 钱包监控已禁用",
+    copyTradingEnabled: "✅ 跟单交易已启用",
+    copyTradingDisabled: "❌ 跟单交易已禁用",
+    copyTradingEnabledMessage: "✅ 跟单交易已启用。您现在将自动跟随监控钱包的交易。",
+    copyTradingDisabledMessage: "❌ 跟单交易已禁用。您仍会收到通知，但不会跟随交易。",
+    configurePositionForWallet: "💰 配置钱包仓位百分比",
+    configureWalletPositionTitle: "💰 配置钱包仓位百分比",
+    selectWalletToConfigurePosition: "选择要配置仓位百分比的钱包：",
+    noWalletsAddedYet: "⚠️ 尚未添加钱包。请先添加钱包。",
+    globalCopyTraderPositionTitle: "💰 全局跟单交易仓位百分比",
+    setDefaultPositionPercentage: "设置新钱包的默认仓位百分比：",
+    currentDefault: "📊 当前默认：",
+    defaultNotSet: "默认（未设置）",
+    individualWalletOverride: "注意：单个钱包百分比会覆盖此默认设置。",
+    insufficientSolBalance: "SOL余额不足。",
+    youHaveSol: "您有",
+    butNeedAtLeast: "SOL，但至少需要",
+    solToBridge: "SOL才能进行桥接。",
+    butNeedToKeep: "SOL，但需要保留",
+    solForFees: "SOL作为手续费。",
+    notEnoughLeftToBridge: "剩余不足以进行桥接。",
+    shortage: "缺少：",
+
+    // Market Order Interface
+    marketOrderYes: "⚡ 市价单 - 看涨",
+    marketOrderNo: "⚡ 市价单 - 看跌",
+    enterAmountInUsdc: "输入您要花费的USDC金额：",
+    formatAmount: "格式：<金额>",
+    exampleAmount: "示例：50",
+    minimumAmountNote: "注意：最小金额应为10",
+    currentMarketPrice: "💵 当前市场价格：",
+    avgOfTopOrders: "（前3个订单的平均值）",
+    willExecuteImmediately: "🚀 将立即以市场价格执行",
+    estimatedFill: "预计成交：",
+    executionPrice: "• 执行价格：",
+    totalCost: "• 总成本：",
+    potentialWinIfResolves: "• 如果结果为{CONDITION}的潜在收益：",
+    pressConfirmOrCancel: "按确认下单或取消。",
+
+    // Order Confirmation
+    buyOrderPlaced: "✅ 您的买单已下达！",
+    matched: "已成交",
+    viewOnPolygonscan: "在Polygonscan上查看",
+
+    // Subscription Interface
+    noActiveSubscriptions: "⚠️ 您没有活跃的订阅。",
+    enterCustomCategory: "✍️ 输入自定义类别",
+    exampleCategories: "示例：bitcoin或video-games",
+    chooseCategoryToSubscribe: "选择要订阅的类别",
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: "📬 您现在将收到以下内容的提醒：",
+    alertsRemovedFor: "🗑️ 已移除提醒：",
+    chooseCategoryToUnsubscribe: "选择要取消订阅的类别",
+    noActivePriceAlerts: "📭 未找到活跃的价格提醒。",
+    priceAlertNumber: "🔔 价格提醒",
+    outcome: "结果：",
+    triggerPrice: "触发价格：",
+    willBeNotifiedWhen: "当满足此条件时，您将收到通知。",
+    editAlert: "✏️ 编辑提醒",
+    deleteAlert: "🗑️ 删除提醒",
+
+    // Portfolio Command Translations
+    noWalletLinked: "⚠️ 您的账户未关联钱包地址！",
+    generatingPortfolioCard: "⚡ 正在生成您的投资组合卡片...",
+    noActivePositionsForCard: "📭 未找到活跃头寸来生成投资组合卡片。",
+    portfolioSummaryFor: "📊 投资组合摘要",
+    yourPolymarketDashboard: "📊 您的 Polymarket 仪表板",
+    profit: "盈利",
+    loss: "亏损",
+    invested: "投资",
+    value: "价值",
+    expires: "到期",
+    sellFiftyPercent: "卖出 50%",
+    sellHundredPercent: "卖出 100%",
+    sellCustom: "自定义卖出",
+    buyMoreMarket: "市价买入更多",
+    buyMoreLimit: "限价买入更多",
+    cancelTakeProfit: "❌ 取消止盈",
+    cancelStopLoss: "❌ 取消止损",
+    generatePortfolioCard: "⚡ 生成投资组合卡片",
+
+    // Portfolio refresh messages
+    noLinkedWallet: "⚠️ 未关联钱包。",
+    invalidIndex: "⚠️ 无效索引。",
+    pageNotFound: "未找到页面",
+
+    // Subscription action messages
+    subscriptionAdded: "📬 您现在将收到以下提醒：",
+    subscriptionRemoved: "🗑️ 已移除以下提醒：",
 };
