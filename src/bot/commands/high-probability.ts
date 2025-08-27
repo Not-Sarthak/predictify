@@ -105,10 +105,21 @@ export async function handleStrategySelection(
             return ctx.reply(
                 `📊 **No ${strategyName} Markets Found**\n\n` +
                     `No markets found matching ${minProb}-${maxProb}% probability range (${timeFilter}).\n\n` +
-                    `Try adjusting filters or check back later.`,
+                    `**Possible reasons:**\n` +
+                    `• Markets may have expired or closed recently\n` +
+                    `• Crypto markets might be excluded in your filters\n` +
+                    `• Try a longer time frame (4h, 24h, or 48h)\n` +
+                    `• Adjust probability ranges in filter settings\n\n` +
+                    `**Quick Actions:**`,
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
+                        [
+                            Markup.button.callback(
+                                "🪙 Include Crypto",
+                                `highprob:toggle_crypto:${strategy}:${timeFilter}`
+                            ),
+                        ],
                         [
                             Markup.button.callback("1h", `highprob:strategy:${strategy}:1h`),
                             Markup.button.callback("4h", `highprob:strategy:${strategy}:4h`),

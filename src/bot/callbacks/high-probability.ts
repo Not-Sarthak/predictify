@@ -731,7 +731,11 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
                             );
                             if (context.mode && context.timeFilter) {
                                 const strategy = context.mode === "normal" ? "turtle" : "degen";
-                                const timeFilter = context.timeFilter as "24h" | "48h";
+                                const timeFilter = context.timeFilter as
+                                    | "1h"
+                                    | "4h"
+                                    | "24h"
+                                    | "48h";
                                 return handleStrategySelection(ctx, strategy, timeFilter);
                             }
                         } catch (e) {
@@ -1022,7 +1026,10 @@ export async function handleExecuteTrade(ctx: Context, mode: "autosplit" | "manu
 
         // Fetch current market data
         const userFilters = await getUserFilters(userId);
-        const filters = { ...userFilters, timeFilter: tradeData.timeFilter as "24h" | "48h" };
+        const filters = {
+            ...userFilters,
+            timeFilter: tradeData.timeFilter as "1h" | "4h" | "24h" | "48h",
+        };
         const allMarkets = await fetchHighProbabilityMarkets(filters, 100);
         const selectedMarkets = allMarkets.filter((m) => marketIds.includes(m.id));
 
