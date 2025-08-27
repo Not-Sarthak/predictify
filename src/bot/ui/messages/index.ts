@@ -1,18 +1,22 @@
 import { Context, Markup } from "telegraf";
-import { AUTO_TRADE_MENU_BUTTONS, CLOSE_BUTTON } from "../../ui/buttons";
+import {
+    AUTO_TRADE_MENU_BUTTONS,
+    CLOSE_BUTTON,
+    generateAutoTradeMenuButtons,
+} from "../../ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
     getUserIdFromCtx,
 } from "../../utils";
+import { getUserLanguage } from "../../../helpers/user-language";
+import { t } from "../../../i18n";
 import type { InlineKeyboardMarkup } from "telegraf/types";
 import { encodeMarketConditionId } from "../../../utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
 import { redisClient } from "../../../lib/redis";
 import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
-import { getUserLanguage } from "../../../helpers/user-language";
 import { getMessages } from "../../../i18n";
-import { t } from "../../../i18n";
 
 export const generateWelcomeMessage = async (
     evm_address: string,
@@ -103,6 +107,7 @@ export const generateAutoTradeMenu = async (
     ctx: Context
 ): Promise<{ message: string; replyMarkup: InlineKeyboardMarkup } | undefined> => {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
 
     const [walletStatusList, userCopyTradeStatus] = await Promise.all([
         await checkWalletCopyTradeStatus(userId.toString()),
@@ -117,9 +122,9 @@ export const generateAutoTradeMenu = async (
     const watchedWalletsCount = walletStatusList.length;
 
     const statusMessage =
-        `🤖 *AutoTrade Menu*\n\n` +
-        `👁️ *Monitoring:* ${watchedWalletsCount}/3 Wallets\n\n` +
-        `Select an Action:`;
+        `🤖 *${t("autoTradeMenu", language)}*\n\n` +
+        `👁️ *${t("monitoring", language)}:* ${watchedWalletsCount}/3 ${t("wallets", language)}\n\n` +
+        `${t("selectAction", language)}`;
 
     const walletButtons = walletStatusList.map((wallet) => {
         const emoji = wallet.is_enabled ? "✅" : "🔔";
@@ -133,15 +138,19 @@ export const generateAutoTradeMenu = async (
         ];
     });
 
+    const autoTradeMenuButtons = await generateAutoTradeMenuButtons(userId);
+
     const combinedButtons = [
         ...walletButtons,
         [
             Markup.button.callback(
-                userCopyTradeStatus ? "❌ Disable CopyTrade" : "✅ Enable CopyTrade",
+                userCopyTradeStatus
+                    ? `❌ ${t("disableCopyTrade", language)}`
+                    : `✅ ${t("enableCopyTrade", language)}`,
                 `toggle_copy_trade:${!userCopyTradeStatus}`
             ),
         ],
-        ...AUTO_TRADE_MENU_BUTTONS,
+        ...autoTradeMenuButtons,
     ];
 
     const markup = Markup.inlineKeyboard(combinedButtons).reply_markup;
@@ -156,6 +165,7 @@ export async function createPaginationKeyboard(
     userId: string,
     outcomeIndex: number
 ) {
+    const language = await getUserLanguage(parseInt(userId));
     const redisKey = `user:tp_sl_watchers:${userId}`;
     const tpSlEntries = await redisClient.hGetAll(redisKey); // Get all fields + values
 
@@ -179,44 +189,56 @@ export async function createPaginationKeyboard(
     const paginationButtons = [];
 
     if (index > 0) {
-        paginationButtons.push(Markup.button.callback("⬅️ Prev", `portfolio_page:${index - 1}`));
+        paginationButtons.push(
+            Markup.button.callback(`⬅️ ${t("previous", language)}`, `portfolio_page:${index - 1}`)
+        );
     }
     if (index < total - 1) {
-        paginationButtons.push(Markup.button.callback("Next ➡️", `portfolio_page:${index + 1}`));
+        paginationButtons.push(
+            Markup.button.callback(`${t("next", language)} ➡️`, `portfolio_page:${index + 1}`)
+        );
     }
 
-    paginationButtons.push(Markup.button.callback("🔄 Refresh", `refresh_portfolio:${index}`));
+    paginationButtons.push(
+        Markup.button.callback(`🔄 ${t("refresh", language)}`, `refresh_portfolio:${index}`)
+    );
 
     const rows = [
         [
-            Markup.button.callback("Sell 50%", `sell_50_${encodeMarketConditionId(conditionId)}`),
-            Markup.button.callback("Sell 100%", `sell_100_${encodeMarketConditionId(conditionId)}`),
             Markup.button.callback(
-                "Sell Custom",
+                t("sellFiftyPercent", language),
+                `sell_50_${encodeMarketConditionId(conditionId)}`
+            ),
+            Markup.button.callback(
+                t("sellHundredPercent", language),
+                `sell_100_${encodeMarketConditionId(conditionId)}`
+            ),
+            Markup.button.callback(
+                t("sellCustom", language),
                 `sell_custom_${encodeMarketConditionId(conditionId)}`
             ),
         ],
         [
             Markup.button.callback(
-                "Buy More Market",
+                t("buyMoreMarket", language),
                 `market_order:${market.id}:${outcomeIndex === 0 ? "yes" : "no"}`
             ),
             Markup.button.callback(
-                "Buy More Limit",
+                t("buyMoreLimit", language),
                 `limit_order:${market.id}:${outcomeIndex === 0 ? "yes" : "no"}`
             ),
         ],
         [
             Markup.button.callback(
-                "🔔 Set Price Alert",
+                `🔔 ${t("setPriceAlert", language)}`,
                 `set_price_alert:${encodeMarketConditionId(conditionId)}`
             ),
             Markup.button.callback(
-                "💸 Take Profit",
+                `💸 ${t("takeProfit", language)}`,
                 `take_profit:${encodeMarketConditionId(conditionId)}`
             ),
             Markup.button.callback(
-                "🛑 Stop Loss",
+                `🛑 ${t("stopLoss", language)}`,
                 `stop_loss:${encodeMarketConditionId(conditionId)}`
             ),
         ],
@@ -224,7 +246,7 @@ export async function createPaginationKeyboard(
             ...(showStopTP
                 ? [
                       Markup.button.callback(
-                          "❌ Cancel Take Profit",
+                          t("cancelTakeProfit", language),
                           `stop_tp:${encodeMarketConditionId(conditionId)}`
                       ),
                   ]
@@ -232,14 +254,14 @@ export async function createPaginationKeyboard(
             ...(showStopSL
                 ? [
                       Markup.button.callback(
-                          "❌ Cancel Stop Loss",
+                          t("cancelStopLoss", language),
                           `stop_sl:${encodeMarketConditionId(conditionId)}`
                       ),
                   ]
                 : []),
         ],
         paginationButtons,
-        [Markup.button.callback("⚡ Generate Portfolio Card", "generate_portfolio_card")],
+        [Markup.button.callback(t("generatePortfolioCard", language), "generate_portfolio_card")],
         [CLOSE_BUTTON],
     ];
 

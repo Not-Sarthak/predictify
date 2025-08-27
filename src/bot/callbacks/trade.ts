@@ -147,17 +147,17 @@ export async function handleCloseTradePositions(ctx: Context) {
 
 export async function handleViewTradePositions(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const userAddress = await getUserAddressFromId(userId);
 
     if (!userAddress) {
-        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+        return ctx.reply(t("noWalletLinked", language));
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        const language = await getUserLanguage(userId);
         return ctx.reply(t("noOpenPositions", language));
     }
 
@@ -176,10 +176,11 @@ export async function handleViewTradePositions(ctx: Context) {
 
 export async function handleTradePagination(ctx: Context, page: string) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const userAddress = await getUserAddressFromId(userId);
 
     if (!userAddress) {
-        return ctx.answerCbQuery("No Wallet Linked");
+        return ctx.answerCbQuery(t("noWalletLinked", language));
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
@@ -188,7 +189,7 @@ export async function handleTradePagination(ctx: Context, page: string) {
     const pageIndex = parseInt(page);
     const position = filteredUserPositions[pageIndex];
 
-    if (!position) return ctx.answerCbQuery("Page not found");
+    if (!position) return ctx.answerCbQuery(t("pageNotFound", language));
 
     const { text, markup } = await formatSinglePositionMessage(
         userId.toString(),
@@ -1152,6 +1153,7 @@ export async function handleCloseOpenPosition(
 export async function handleConfirmOrder(ctx: Context, textMsg: string) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
+    const t = getMessages(language);
     const textMsgArray = textMsg.trim().split(/\s+/);
 
     if (textMsgArray.length < 1 || textMsgArray.length > 2) {
@@ -1213,26 +1215,24 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
 
         // Translate market question
         const translatedQuestion = translateMarketTitle(market.question, language);
+        const winCondition = side === "YES" ? "YES" : "NO";
 
         message = `
 📌 *${escapeMarkdown(translatedQuestion)}*
 
-💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum || 0)}
-📅 Ends: ${formatDate(endDate)}
+💧 *${market.groupItemTitle}* ${t.volume}: ${formatDollarVolume(market.volumeNum || 0)}
+📅 ${t.ends}: ${formatDate(endDate)}
 
-🎯 *Market Order - ${side}*
-💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
 
-🚀 *Will execute immediately* at market price
+${t.willExecuteImmediately || "🚀 Will execute immediately at market price"}
 
-*Estimated Fill:*
-• Shares: ${shares.toFixed(4)}
-• Execution Price: $${side === "YES" ? outcomes[0] : outcomes[1]}
-• Total Cost: $${amount.toFixed(2)}
-• Potential Win if resolves ${side}: $${(shares * 1).toFixed(2)}
+*${t.estimatedFill || "Estimated Fill"}*
+${t.shares}: ${shares.toFixed(4)}
+${t.executionPrice || "Execution Price"} $${side === "YES" ? outcomes[0] : outcomes[1]}
+${t.totalCost || "Total Cost"} $${amount.toFixed(2)}
+${(t.potentialWinIfResolves || "Potential Win if resolves").replace("{CONDITION}", winCondition)} $${(shares * 1).toFixed(2)}
 
-Press *Confirm* to place the order or *Cancel*.
+${t.pressConfirmOrCancel || "Press *Confirm* to place the order or *Cancel*."}
         `;
     } else {
         // Limit Order
@@ -1264,20 +1264,17 @@ Press *Confirm* to place the order or *Cancel*.
         message = `
 📌 *${escapeMarkdown(translatedQuestion)}*
 
-💧 *${market.groupItemTitle}* Volume: ${formatDollarVolume(market.volumeNum)}
-📅 Ends: ${formatDate(endDate)}
+💧 *${market.groupItemTitle}* ${t.volume}: ${formatDollarVolume(market.volumeNum)}
+📅 ${t.ends}: ${formatDate(endDate)}
 
-🎯 *Limit Order - ${side} at $${price.toFixed(4)}*
-💵 *Amount:* $${amount.toFixed(2)}
-📈 *Current Market Price:* $${pricePerShare.toFixed(4)} (avg. of top 3 orders)
 
 ${
     isExecutableNow
-        ? `🚀 Will execute immediately - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare.toFixed(4)})\n\n*Estimated Fill (at market price):*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
-        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• Shares: ${shares.toFixed(4)}\n• Execution Price: $${executionPrice.toFixed(4)}\n• Total Cost: $${amount.toFixed(2)}\n• Potential Win if resolves ${side}: $${totalPayout.toFixed(2)}`
+        ? `🚀 ${t.willExecuteImmediately || "Will execute immediately"} - Your limit ($${price.toFixed(4)}) is ${priceDiff}% above current price ($${pricePerShare.toFixed(4)})\n\n*${t.estimatedFill || "Estimated Fill"} (at market price):*\n• ${t.shares}: ${shares.toFixed(4)}\n• ${t.executionPrice || "Execution Price"}: $${executionPrice.toFixed(4)}\n• ${t.totalCost || "Total Cost"}: $${amount.toFixed(2)}\n• ${t.potentialWinIfResolves || "Potential Win if resolves"} ${side}: $${totalPayout.toFixed(2)}`
+        : `⏳ Waiting to match at your limit price\n\n*Order Details:*\n• ${t.shares}: ${shares.toFixed(4)}\n• ${t.executionPrice || "Execution Price"}: $${executionPrice.toFixed(4)}\n• ${t.totalCost || "Total Cost"}: $${amount.toFixed(2)}\n• ${t.potentialWinIfResolves || "Potential Win if resolves"} ${side}: $${totalPayout.toFixed(2)}`
 }
 
-Press *Confirm* to place the order or *Cancel*.
+${t.pressConfirmOrCancel || "Press *Confirm* to place the order or *Cancel*."}
         `;
     }
 
@@ -1447,21 +1444,22 @@ export async function handleRefreshTopMarkets(
 
 export async function handleGeneratePortfolioCard(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const user = await getUserDetails(userId);
 
     if (!user) return;
 
     if (!user.wallet_address) {
-        return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
+        return ctx.reply(t("noWalletLinked", language));
     }
 
-    const msg = await ctx.reply("⚡ Generating your Portfolio Card...");
+    const msg = await ctx.reply(t("generatingPortfolioCard", language));
 
     const userPositions = await getUserPosition({ user: user.wallet_address });
     const filteredUserPositions = userPositions.filter((position) => !position.redeemable);
 
     if (filteredUserPositions.length === 0) {
-        return ctx.reply("📭 No active positions found to generate portfolio card.");
+        return ctx.reply(t("noActivePositionsForCard", language));
     }
 
     const totalInitialValue = filteredUserPositions.reduce((sum, p) => sum + p.initialValue, 0);
@@ -1492,7 +1490,7 @@ export async function handleGeneratePortfolioCard(ctx: Context) {
     await ctx.replyWithPhoto(
         { source: cardBuffer },
         {
-            caption: `📊 Portfolio Summary for @${user.telegram_username}`,
+            caption: `${t("portfolioSummaryFor", language)} @${user.telegram_username}`,
         }
     );
 }
@@ -1653,11 +1651,11 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
             const currentPrice = await getCurrentTokenPrice(symbol);
 
             priceInfo =
-                `💰 Price to Beat: $${tokenPriceAtStart.toLocaleString()}\n` +
-                `📈 Current Price: $${currentPrice.toLocaleString()}\n`;
+                `💰 ${t.priceToBeat}: $${tokenPriceAtStart.toLocaleString()}\n` +
+                `📈 ${t.currentPrice}: $${currentPrice.toLocaleString()}\n`;
         } catch (err) {
             console.error(`⚠️ Failed to fetch price for ${symbol}`, err);
-            priceInfo = `💰 Price to Beat: N/A\n📈 Current Price: N/A\n`;
+            priceInfo = `💰 ${t.priceToBeat}: N/A\n📈 ${t.currentPrice}: N/A\n`;
         }
     }
 

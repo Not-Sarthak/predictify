@@ -19,6 +19,8 @@ import { getUserPositionByMarket } from "../../utils/polymarket/get-user-positio
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { ADMIN_USERS_ID } from "../../shared/constants/misc";
 import { clearUserInputState } from "../input/state";
+import { getUserLanguage } from "../../helpers/user-language";
+import { t } from "../../i18n";
 import { getMarketByConditionId, getMarketById } from "../../utils/polymarket/get-markets";
 import { cancelOrder } from "../../utils/polymarket-order/cancel-order";
 import { getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
@@ -35,6 +37,7 @@ import {
 
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
     const { id } = await redisClient.hGetAll(`user:confirm_msg_id:${userId}`);
 
@@ -314,20 +317,20 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
         if (orderResponse?.response.success) {
             const polygonScanMsg = txHash
-                ? `\n<a href="https://polygonscan.com/tx/${txHash}">View on Polygonscan</a>\n`
+                ? `\n<a href="https://polygonscan.com/tx/${txHash}">${t("viewOnPolygonscan", language)}</a>\n`
                 : "\n";
 
             const orderPlacedMessage =
                 orderType === "fok_sell"
                     ? `✅ Your Sell Order was Placed!\n\n` +
-                      `<b>Market:</b> ${market.question}\n` +
+                      `<b>${t("market", language)}:</b> ${market.question}\n` +
                       `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
                       `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
                       polygonScanMsg
-                    : `✅ <b>Your Buy Order Was Placed!</b>\n\n` +
-                      `<b>Status:</b> ${orderResponse.response.status.toUpperCase()}\n` +
-                      `<b>Market:</b> ${market.question}\n` +
-                      `<b>Amount:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
+                    : `${t("buyOrderPlaced", language)}\n\n` +
+                      `<b>Status:</b> ${t("matched", language)}\n` +
+                      `<b>${t("market", language)}:</b> ${market.question}\n` +
+                      `<b>${t("amount", language)}:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;
 
             const button_callback_data =
