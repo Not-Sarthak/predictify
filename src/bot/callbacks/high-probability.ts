@@ -28,6 +28,18 @@ import { t } from "../../i18n";
 import { db } from "../../lib/supabase";
 import { encodeMarketConditionId } from "../../utils/encoding";
 
+/**
+ * Helper function to fetch markets with user's language automatically
+ */
+async function fetchMarketsForUser(
+    userId: number,
+    filters: HighProbFilters,
+    limit: number = 50
+): Promise<HighProbMarket[]> {
+    const language = await getUserLanguage(userId);
+    return fetchHighProbabilityMarkets(filters, limit, language);
+}
+
 // Helper function to get user's custom filters or defaults
 export async function getUserFilters(userId: number): Promise<HighProbFilters> {
     try {
@@ -38,7 +50,9 @@ export async function getUserFilters(userId: number): Promise<HighProbFilters> {
         }
 
         return {
-            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
+            timeFilter:
+                (userFilters.timeFilter as "1h" | "4h" | "24h" | "48h") ||
+                defaultFilters.timeFilter,
             tradingMode:
                 (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
             excludeCrypto: userFilters.excludeCrypto === "true", // Now properly read from Redis
@@ -57,32 +71,32 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
 
             case "strategy":
                 const strategy = params?.[0] as "degen" | "turtle";
-                const timeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                const timeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
                 return handleStrategySelection(ctx, strategy, timeFilter);
 
             case "market":
                 const marketId = params?.[0];
                 const marketStrategy = params?.[1] as "degen" | "turtle";
-                const marketTimeFilter = params?.[2] as "24h" | "48h";
+                const marketTimeFilter = params?.[2] as "1h" | "4h" | "24h" | "48h";
                 return handleViewHighProbMarket(ctx, marketId!, marketStrategy, marketTimeFilter);
 
             case "toggle_crypto":
                 const toggleStrategy = params?.[0] as "degen" | "turtle";
-                const toggleTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                const toggleTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
                 return handleToggleCrypto(ctx, toggleStrategy, toggleTimeFilter);
 
             case "strategy_alerts":
                 const alertStrategy = params?.[0] as "degen" | "turtle";
-                const alertTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                const alertTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
                 return handleStrategyAlertsToggle(ctx, alertStrategy, alertTimeFilter);
 
             case "autosplit":
                 const autoStrategy = params?.[0] as "degen" | "turtle";
-                const autoTimeFilter = (params?.[1] as "24h" | "48h") || "24h";
+                const autoTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
                 return handleAutoSplitSetup(ctx, autoTimeFilter, autoStrategy);
 
             case "view":
-                const oldTimeFilter = (params?.[0] as "24h" | "48h") || "24h";
+                const oldTimeFilter = (params?.[0] as "1h" | "4h" | "24h" | "48h") || "1h";
                 const offset = parseInt(params?.[1] || "0");
                 return handleViewHighProbMarkets(ctx, oldTimeFilter, offset);
 
@@ -101,6 +115,48 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
             case "help":
                 return handleHighProbHelp(ctx);
 
+            case "manual":
+                const manualTimeFilter = (params?.[0] as "1h" | "4h" | "24h" | "48h") || "1h";
+                return handleManualSelectionSetup(ctx, manualTimeFilter);
+
+            case "manual_select":
+                const selectMarketId = params?.[0];
+                const selectTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const selectOffset = parseInt(params?.[2] || "0");
+                return handleManualMarketToggle(
+                    ctx,
+                    selectMarketId!,
+                    true,
+                    selectTimeFilter,
+                    selectOffset
+                );
+
+            case "manual_deselect":
+                const deselectMarketId = params?.[0];
+                const deselectTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const deselectOffset = parseInt(params?.[2] || "0");
+                return handleManualMarketToggle(
+                    ctx,
+                    deselectMarketId!,
+                    false,
+                    deselectTimeFilter,
+                    deselectOffset
+                );
+
+            case "manual_nav":
+                const navTimeFilter = (params?.[0] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const navOffset = parseInt(params?.[1] || "0");
+                return handleManualNavigation(ctx, navTimeFilter, navOffset);
+
+            case "manual_clear":
+                const clearTimeFilter = (params?.[0] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const clearOffset = parseInt(params?.[1] || "0");
+                return handleManualClearSelection(ctx, clearTimeFilter, clearOffset);
+
+            case "manual_trade":
+                const tradeTimeFilter = (params?.[0] as "1h" | "4h" | "24h" | "48h") || "1h";
+                return handleManualTradeSetup(ctx, tradeTimeFilter);
+
             default:
                 return handleHighProbabilityCommand(ctx);
         }
@@ -114,11 +170,12 @@ export async function handleViewHighProbMarket(
     ctx: Context,
     marketId: string,
     strategy: "degen" | "turtle",
-    timeFilter: "24h" | "48h"
+    timeFilter: "1h" | "4h" | "24h" | "48h"
 ) {
     try {
         // Always fetch from high-probability markets to ensure we have complete volume data
         const userId = getUserIdFromCtx(ctx);
+        const language = await getUserLanguage(userId);
         const userFilters = await getUserFilters(userId);
         const filters: HighProbFilters = {
             ...userFilters,
@@ -126,7 +183,7 @@ export async function handleViewHighProbMarket(
             tradingMode: strategy === "degen" ? "normal" : ("degen" as "normal" | "degen"),
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchHighProbabilityMarkets(filters, 50, language);
 
         // Find the market in our high-prob results
         const market = markets.find((m) => m.id === marketId);
@@ -134,8 +191,6 @@ export async function handleViewHighProbMarket(
         if (!market) {
             return ctx.reply("❌ Market not found. It may have been removed or changed.");
         }
-
-        const language = await getUserLanguage(userId);
 
         // Format the market message manually to avoid compatibility issues
         const outcomes = market.outcomePrices ? JSON.parse(market.outcomePrices) : [0, 0];
@@ -244,7 +299,7 @@ export async function handleViewHighProbMarket(
 export async function handleToggleCrypto(
     ctx: Context,
     strategy: "degen" | "turtle",
-    timeFilter: "24h" | "48h"
+    timeFilter: "1h" | "4h" | "24h" | "48h"
 ) {
     const userId = getUserIdFromCtx(ctx);
 
@@ -271,7 +326,7 @@ export async function handleToggleCrypto(
 export async function handleStrategyAlertsToggle(
     ctx: Context,
     strategy: "degen" | "turtle",
-    timeFilter: "24h" | "48h"
+    timeFilter: "1h" | "4h" | "24h" | "48h"
 ) {
     const userId = getUserIdFromCtx(ctx);
 
@@ -296,7 +351,7 @@ export async function handleStrategyAlertsToggle(
 
 export async function handleAutoSplitSetup(
     ctx: Context,
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     strategy?: "degen" | "turtle"
 ) {
     const msg = await ctx.reply("🔍 Loading qualifying markets...");
@@ -310,7 +365,7 @@ export async function handleAutoSplitSetup(
             timeFilter,
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         await ctx.deleteMessage(msg.message_id);
 
@@ -378,7 +433,10 @@ export async function handleAutoSplitSetup(
     }
 }
 
-export async function handleManualSelectionSetup(ctx: Context, timeFilter: "24h" | "48h") {
+export async function handleManualSelectionSetup(
+    ctx: Context,
+    timeFilter: "1h" | "4h" | "24h" | "48h"
+) {
     const msg = await ctx.reply("🔍 Loading markets for manual selection...");
 
     try {
@@ -390,7 +448,7 @@ export async function handleManualSelectionSetup(ctx: Context, timeFilter: "24h"
             timeFilter,
         };
 
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         await ctx.deleteMessage(msg.message_id);
 
@@ -421,7 +479,7 @@ export async function handleManualSelectionSetup(ctx: Context, timeFilter: "24h"
 async function sendManualSelectionMarkets(
     ctx: Context,
     markets: HighProbMarket[],
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number,
     selectedMarkets: string[]
 ) {
@@ -558,6 +616,8 @@ export async function handleFiltersMenu(ctx: Context) {
     const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
     // Create ticks for selected options
+    const timeFilterTick1h = userFilters.timeFilter === "1h" ? "✅" : "⏰";
+    const timeFilterTick4h = userFilters.timeFilter === "4h" ? "✅" : "⏰";
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
     const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
 
@@ -591,6 +651,10 @@ ${alertStatus}
     `;
 
     const keyboard = Markup.inlineKeyboard([
+        [
+            Markup.button.callback(`${timeFilterTick1h} Time: 1h`, "highprob:filter:time:1h"),
+            Markup.button.callback(`${timeFilterTick4h} Time: 4h`, "highprob:filter:time:4h"),
+        ],
         [
             Markup.button.callback(`${timeFilterTick24h} Time: 24h`, "highprob:filter:time:24h"),
             Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
@@ -643,7 +707,7 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
         // Update the specific filter
         switch (filterType) {
             case "time":
-                userFilters.timeFilter = filterValue as "24h" | "48h";
+                userFilters.timeFilter = filterValue as "1h" | "4h" | "24h" | "48h";
                 break;
             case "mode":
                 userFilters.tradingMode = filterValue as "normal" | "degen";
@@ -678,7 +742,11 @@ export async function handleFilterChange(ctx: Context, filterType: string, filte
                             );
                             if (context.mode && context.timeFilter) {
                                 const strategy = context.mode === "normal" ? "turtle" : "degen";
-                                const timeFilter = context.timeFilter as "24h" | "48h";
+                                const timeFilter = context.timeFilter as
+                                    | "1h"
+                                    | "4h"
+                                    | "24h"
+                                    | "48h";
                                 return handleStrategySelection(ctx, strategy, timeFilter);
                             }
                         } catch (e) {
@@ -709,6 +777,8 @@ async function showUpdatedFiltersMenu(ctx: Context, userFilters: any) {
     const riskLevel = userFilters.tradingMode === "normal" ? "Conservative" : "Aggressive";
 
     // Create ticks for selected options
+    const timeFilterTick1h = userFilters.timeFilter === "1h" ? "✅" : "⏰";
+    const timeFilterTick4h = userFilters.timeFilter === "4h" ? "✅" : "⏰";
     const timeFilterTick24h = userFilters.timeFilter === "24h" ? "✅" : "⏰";
     const timeFilterTick48h = userFilters.timeFilter === "48h" ? "✅" : "⏰";
 
@@ -744,6 +814,10 @@ ${alertStatus}
     `;
 
     const keyboard = Markup.inlineKeyboard([
+        [
+            Markup.button.callback(`${timeFilterTick1h} Time: 1h`, "highprob:filter:time:1h"),
+            Markup.button.callback(`${timeFilterTick4h} Time: 4h`, "highprob:filter:time:4h"),
+        ],
         [
             Markup.button.callback(`${timeFilterTick24h} Time: 24h`, "highprob:filter:time:24h"),
             Markup.button.callback(`${timeFilterTick48h} Time: 48h`, "highprob:filter:time:48h"),
@@ -795,7 +869,7 @@ export async function handleManualMarketToggle(
     ctx: Context,
     marketId: string,
     isSelect: boolean,
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number
 ) {
     const userId = getUserIdFromCtx(ctx);
@@ -822,7 +896,7 @@ export async function handleManualMarketToggle(
         // Fetch markets and re-render
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, updatedSelection);
     } catch (error) {
@@ -833,7 +907,7 @@ export async function handleManualMarketToggle(
 
 export async function handleManualNavigation(
     ctx: Context,
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number
 ) {
     const userId = getUserIdFromCtx(ctx);
@@ -846,7 +920,7 @@ export async function handleManualNavigation(
         // Fetch markets and render new page
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, selectedMarkets);
     } catch (error) {
@@ -857,7 +931,7 @@ export async function handleManualNavigation(
 
 export async function handleManualClearSelection(
     ctx: Context,
-    timeFilter: "24h" | "48h",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
     offset: number
 ) {
     const userId = getUserIdFromCtx(ctx);
@@ -873,7 +947,7 @@ export async function handleManualClearSelection(
         // Fetch markets and re-render
         const userFilters = await getUserFilters(userId);
         const filters = { ...userFilters, timeFilter };
-        const markets = await fetchHighProbabilityMarkets(filters, 50);
+        const markets = await fetchMarketsForUser(userId, filters, 50);
 
         return sendManualSelectionMarkets(ctx, markets, timeFilter, offset, []);
     } catch (error) {
@@ -882,7 +956,10 @@ export async function handleManualClearSelection(
     }
 }
 
-export async function handleManualTradeSetup(ctx: Context, timeFilter: "24h" | "48h") {
+export async function handleManualTradeSetup(
+    ctx: Context,
+    timeFilter: "1h" | "4h" | "24h" | "48h"
+) {
     const userId = getUserIdFromCtx(ctx);
 
     try {
@@ -960,8 +1037,11 @@ export async function handleExecuteTrade(ctx: Context, mode: "autosplit" | "manu
 
         // Fetch current market data
         const userFilters = await getUserFilters(userId);
-        const filters = { ...userFilters, timeFilter: tradeData.timeFilter as "24h" | "48h" };
-        const allMarkets = await fetchHighProbabilityMarkets(filters, 100);
+        const filters = {
+            ...userFilters,
+            timeFilter: tradeData.timeFilter as "1h" | "4h" | "24h" | "48h",
+        };
+        const allMarkets = await fetchMarketsForUser(userId, filters, 100);
         const selectedMarkets = allMarkets.filter((m) => marketIds.includes(m.id));
 
         if (selectedMarkets.length === 0) {

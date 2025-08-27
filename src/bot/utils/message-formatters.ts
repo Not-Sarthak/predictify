@@ -5,6 +5,9 @@ import type { UserPositionResponse } from "../../types/polymarket/user-position"
 import { getUserDetails } from "../../helpers/get-user-details";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { createPaginationKeyboard } from "../ui/messages";
+import type { SupportedLanguage } from "../../i18n";
+import { getMessages } from "../../i18n";
+import { getMarketCategoryText } from "../../utils/message-formatters";
 import { getUserLanguage } from "../../helpers/user-language";
 import { t } from "../../i18n";
 
@@ -47,6 +50,15 @@ export function formatDate(dateString: string): string {
 
 export function formatActiveSubscriptionsMessage(categories: string[]): string {
     return `Your Subscriptions:\n• ${categories.join("\n• ")}`;
+}
+
+export function formatActiveSubscriptionsMessageWithTranslation(
+    categories: string[],
+    language: SupportedLanguage
+): string {
+    const translatedCategories = categories.map((cat) => getMarketCategoryText(cat, language));
+    const t = getMessages(language);
+    return `${t.mySubscriptions}:\n• ${translatedCategories.join("\n• ")}`;
 }
 
 export function formatCurrentTradePositionsMessage(userPositions: UserPositionResponse[]) {

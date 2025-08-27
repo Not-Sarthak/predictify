@@ -346,6 +346,8 @@ export const zh: LocaleMessages = {
     refreshStats: "🔄 刷新统计",
 
     // More button text
+    hour1: "1小时",
+    hour4: "4小时",
     hour24: "24小时",
     hour48: "48小时",
 
@@ -378,6 +380,80 @@ export const zh: LocaleMessages = {
     solana: "Solana",
     xrp: "瑞波币",
     dogecoin: "狗狗币",
+    hyperliquid: "Hyperliquid",
+    orderbook: "订单簿",
+
+    // Market direction words
+    up: "上涨",
+    or: "或",
+    down: "下跌",
+    what: "什么",
+    where: "哪里",
+    will: "将会",
+    with: "与",
+    and: "和",
+    nextMarket: "下一个",
+    who: "谁",
+    together: "一起",
+
+    // Time periods
+    monthly: "每月",
+    hourly: "每小时",
+    daily: "每日",
+    weekly: "每周",
+    priceMarket: "价格",
+    hit: "达到",
+    in: "在",
+    on: "在",
+    by: "到",
+
+    // Months
+    january: "一月",
+    february: "二月",
+    march: "三月",
+    april: "四月",
+    may: "五月",
+    june: "六月",
+    july: "七月",
+    august: "八月",
+    september: "九月",
+    october: "十月",
+    november: "十一月",
+    december: "十二月",
+
+    // Price movements
+    above: "高于",
+    below: "低于",
+    dip: "回调",
+    allTimeHigh: "历史新高",
+    marketCap: "市值",
+    fdv: "完全稀释市值",
+    before: "之前",
+    after: "之后",
+
+    // Geopolitical terms
+    russia: "俄罗斯",
+    ukraine: "乌克兰",
+    israel: "以色列",
+    iran: "伊朗",
+    hamas: "哈马斯",
+    ceasefire: "停火",
+    putin: "普京",
+    zelenskyy: "泽连斯基",
+    trumpMarket: "特朗普",
+    meet: "会面",
+
+    // Economic terms
+    fed: "美联储",
+    meeting: "会议",
+    chair: "主席",
+    decision: "决定",
+    jeromePowelll: "杰罗姆·鲍威尔",
+    rate: "利率",
+    cut: "降息",
+    us: "美国",
+    recession: "衰退",
+    inflation: "通胀",
 
     // Additional UI text
     removeFromWatchlist: "💔 从观察列表移除",
@@ -411,6 +487,44 @@ export const zh: LocaleMessages = {
     yourReferralCode: "您的推荐码:",
     viewOnPolymarket: "🔗 在Polymarket查看",
     notAssigned: "未分配",
+
+    // High-probability market messages
+    noMarketsFoundMatching: "未找到匹配的市场",
+    possibleReasons: "可能的原因:",
+    marketsExpiredRecently: "市场可能刚刚到期或关闭",
+    cryptoMightBeExcluded: "加密货币市场可能在您的筛选条件中被排除",
+    tryLongerTimeFrame: "尝试更长的时间范围（4小时、24小时或48小时）",
+    adjustProbabilityRanges: "在筛选设置中调整概率范围",
+    quickActions: "快速操作:",
+    includeCryptoMarkets: "🪙 包含加密货币",
+
+    // Order and alert messages
+    priceAlertSetSuccessfully: "🔔 价格提醒设置成功！",
+    marketLabel: "市场:",
+    side: "方向:",
+    alertAtPrice: "提醒价格:",
+    notificationWhenMet: "当条件满足时，您将收到通知。",
+    enterOrderDetails: "输入您的订单详情:",
+    formatExample: "格式: <价格> <金额>\n示例: 0.65 100",
+    priceDescription: "价格: 您想要支付的限价",
+    amountDescription: "金额: 您想要以此限价花费的美元金额",
+    minimumAmount: "注意: 金额 / 价格 应至少为 10",
+
+    // Bot command descriptions
+    cmdStart: "开始使用并了解此机器人的功能",
+    cmdSubscriptions: "查看和管理您的市场订阅",
+    cmdTrade: "手动下市价单",
+    cmdAutotrade: "启用或配置钱包跟单交易",
+    cmdFund: "更新钱包或通知设置等偏好",
+    cmdHistory: "查看您的交易历史",
+    cmdPortfolio: "查看您的投资组合",
+    cmdManage: "管理您的开放限价单",
+    cmdStats: "查看您的交易统计",
+    cmdWatchlist: "查看您的收藏市场列表",
+    cmdHighprob: "交易高概率市场（1小时-48小时时间框架）",
+    cmdRef: "查看推荐统计并分享您的推荐链接",
+    cmdAnalytics: "查看活跃用户分析（仅限管理员）",
+    cmdDetailed: "查看详细分析仪表板（仅限管理员）",
 
     // Hourly Market Specific
     priceToBeat: "目标价格",
@@ -522,4 +636,8 @@ export const zh: LocaleMessages = {
     noLinkedWallet: "⚠️ 未关联钱包。",
     invalidIndex: "⚠️ 无效索引。",
     pageNotFound: "未找到页面",
+
+    // Subscription action messages
+    subscriptionAdded: "📬 您现在将收到以下提醒：",
+    subscriptionRemoved: "🗑️ 已移除以下提醒：",
 };

@@ -20,7 +20,9 @@ async function getUserFilters(userId: number): Promise<HighProbFilters> {
         }
 
         return {
-            timeFilter: (userFilters.timeFilter as "24h" | "48h") || defaultFilters.timeFilter,
+            timeFilter:
+                (userFilters.timeFilter as "1h" | "4h" | "24h" | "48h") ||
+                defaultFilters.timeFilter,
             tradingMode:
                 (userFilters.tradingMode as "normal" | "degen") || defaultFilters.tradingMode,
             excludeCrypto: userFilters.excludeCrypto === "true",
@@ -61,7 +63,7 @@ export async function handleHighProbAutoSplitAmount(ctx: Context, textMessage: s
             });
         }
 
-        const timeFilter = (context.timeFilter as "24h" | "48h") || "24h";
+        const timeFilter = (context.timeFilter as "1h" | "4h" | "24h" | "48h") || "1h";
         const marketCount = parseInt(context.marketCount) || 10;
 
         clearUserInputState(userId.toString());
@@ -194,7 +196,7 @@ export async function handleHighProbManualAmount(ctx: Context, textMessage: stri
             });
         }
 
-        const timeFilter = (context.timeFilter as "24h" | "48h") || "24h";
+        const timeFilter = (context.timeFilter as "1h" | "4h" | "24h" | "48h") || "1h";
 
         clearUserInputState(userId.toString());
 

@@ -7,6 +7,8 @@ import {
     defaultFilters,
 } from "./market-filters";
 import { CATEGORY_LIST } from "../../shared/constants";
+import { translateMarketTitle, getTranslatedMarketText } from "../market-translation";
+import type { SupportedLanguage } from "../../i18n";
 
 /**
  * Fetches markets using the same logic as the trade command
@@ -73,13 +75,15 @@ async function fetchMarketsLikeTrade(
  */
 export async function fetchHighProbabilityMarkets(
     filters: HighProbFilters = defaultFilters,
-    limit: number = 50
+    limit: number = 50,
+    language: SupportedLanguage = "en"
 ): Promise<HighProbMarket[]> {
     try {
         console.log(`🚀 [HIGH-PROB] Starting market fetch with filters:`, {
             timeFilter: filters.timeFilter,
             tradingMode: filters.tradingMode,
             excludeCrypto: filters.excludeCrypto,
+            language,
         });
 
         // Get NON-SPORTS and NON-CRYPTO categories like before
@@ -122,12 +126,35 @@ export async function fetchHighProbabilityMarkets(
 
         console.log(`🎯 [HIGH-PROB] Qualifying markets after filtering: ${highProbMarkets.length}`);
 
+        // Translate market titles if language is not English
+        if (language !== "en") {
+            highProbMarkets.forEach((market) => {
+                const translated = getTranslatedMarketText(market, language);
+                market.question = translated.question;
+                if (market.description && translated.description) {
+                    market.description = translated.description;
+                }
+            });
+            console.log(`🌐 [HIGH-PROB] Markets translated to ${language}`);
+        }
+
         // Return up to the requested limit
         return highProbMarkets.slice(0, limit);
     } catch (error) {
         console.error("❌ [HIGH-PROB] Error fetching high probability markets:", error);
         return [];
     }
+}
+
+/**
+ * Legacy function without language parameter for backward compatibility
+ * @deprecated Use fetchHighProbabilityMarkets with language parameter instead
+ */
+export async function fetchHighProbabilityMarketsLegacy(
+    filters: HighProbFilters = defaultFilters,
+    limit: number = 50
+): Promise<HighProbMarket[]> {
+    return fetchHighProbabilityMarkets(filters, limit, "en");
 }
 
 /**
@@ -151,9 +178,10 @@ export async function getMarketLiquidity(tokenIds: string[], userId: string): Pr
 export async function getTopHighProbabilityMarkets(
     filters: HighProbFilters = defaultFilters,
     offset: number = 0,
-    limit: number = 10
+    limit: number = 10,
+    language: SupportedLanguage = "en"
 ): Promise<{ markets: HighProbMarket[]; hasMore: boolean }> {
-    const allMarkets = await fetchHighProbabilityMarkets(filters, 100);
+    const allMarkets = await fetchHighProbabilityMarkets(filters, 100, language);
 
     const startIndex = offset;
     const endIndex = offset + limit;
