@@ -240,7 +240,7 @@ Your wallet's live. Let's degen.`,
     enableCopyTrading: "Enable Copy Trading",
     disableCopyTrading: "Disable Copy Trading",
     watchedWallets: "Watched Wallets",
-    addWallet: "Add Wallet",
+    addWallet: "➕ Add Wallet",
     removeWallet: "Remove Wallet",
 
     // Referral System
@@ -413,4 +413,117 @@ Your wallet's live. Let's degen.`,
     removeFromWatchlist: "💔 Remove from Watchlist",
     watchlist: "Watchlist",
     from: "from",
+
+    // Hourly Market Specific
+    priceToBeat: "Price to Beat",
+    currentPrice: "Current Price",
+
+    // AutoTrade Menu
+    autoTradeMenu: "AutoTrade Menu",
+    monitoring: "Monitoring",
+    wallets: "Wallets",
+    selectAction: "Select an Action:",
+    enableCopyTrade: "Enable CopyTrade",
+    disableCopyTrade: "Disable CopyTrade",
+
+    // Watched Wallets View
+    watchedWalletsTitle: "👀 Watched Wallets",
+    noWalletsAdded: "No wallets added yet.",
+    configurePosition: "⚙️ Configure Position",
+    backToAutoTrade: "↩️ Back to Auto Trade",
+    enabled: "Enabled",
+    disabled: "Disabled",
+
+    // Additional AutoTrade translations
+    addWalletTitle: "🧾 Add Wallet Address",
+    addWalletDescription: "Please enter the wallet address you want to monitor:",
+    walletMonitoringEnabled: "✅ Wallet monitoring enabled",
+    walletMonitoringDisabled: "❌ Wallet monitoring disabled",
+    copyTradingEnabled: "✅ Copy trading enabled",
+    copyTradingDisabled: "❌ Copy trading disabled",
+    copyTradingEnabledMessage:
+        "✅ Copy trading has been enabled. You will now automatically copy trades from your watched wallets.",
+    copyTradingDisabledMessage:
+        "❌ Copy trading has been disabled. You will still receive notifications but trades won't be copied.",
+    configurePositionForWallet: "💰 Configure Position % for Wallet",
+    configureWalletPositionTitle: "💰 Configure Wallet Position %",
+    selectWalletToConfigurePosition: "Select a wallet to configure its position percentage:",
+    noWalletsAddedYet: "⚠️ No wallets added yet. Please add a wallet first.",
+    globalCopyTraderPositionTitle: "💰 Global Copy Trader Position %",
+    setDefaultPositionPercentage: "Set the default position percentage for new wallets:",
+    currentDefault: "📊 Current Default:",
+    defaultNotSet: "Default (Not Set)",
+    individualWalletOverride: "Note: Individual wallet percentages override this default.",
+    insufficientSolBalance: "Insufficient SOL Balance.",
+    youHaveSol: "You have",
+    butNeedAtLeast: "SOL but need at least",
+    solToBridge: "SOL to bridge.",
+    butNeedToKeep: "SOL but need to keep",
+    solForFees: "SOL for fees.",
+    notEnoughLeftToBridge: "Not enough left to bridge.",
+    shortage: "shortage:",
+
+    // Market Order Interface
+    marketOrderYes: "⚡ Market Order - YES",
+    marketOrderNo: "⚡ Market Order - NO",
+    enterAmountInUsdc: "Enter The Amount in USDC You Want to Spend:",
+    formatAmount: "Format: <amount>",
+    exampleAmount: "Example: 50",
+    minimumAmountNote: "Note: Minimum Amount should be 10",
+    currentMarketPrice: "💵 Current Market Price:",
+    avgOfTopOrders: "(avg. of top 3 orders)",
+    willExecuteImmediately: "🚀 Will execute immediately at market price",
+    estimatedFill: "Estimated Fill:",
+    executionPrice: "• Execution Price:",
+    totalCost: "• Total Cost:",
+    potentialWinIfResolves: "• Potential Win if resolves {CONDITION}:",
+    pressConfirmOrCancel: "Press Confirm to place the order or Cancel.",
+
+    // Order Confirmation
+    buyOrderPlaced: "✅ Your Buy Order Was Placed!",
+    matched: "MATCHED",
+    viewOnPolygonscan: "View on Polygonscan",
+
+    // Subscription Interface
+    noActiveSubscriptions: "⚠️ You have no Active Subscriptions.",
+    enterCustomCategory: "✍️ Enter a Custom Category",
+    exampleCategories: "Example: bitcoin or video-games",
+    chooseCategoryToSubscribe: "Choose a Category to Subscribe to",
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: "📬 You'll Now Receive Alerts for:",
+    alertsRemovedFor: "🗑️ Alerts Removed For:",
+    chooseCategoryToUnsubscribe: "Choose a category to unsubscribe from:",
+    noActivePriceAlerts: "📭 No active price alerts found.",
+    priceAlertNumber: "🔔 Price Alert",
+    outcome: "Outcome:",
+    triggerPrice: "Trigger Price:",
+    willBeNotifiedWhen: "You will be notified when this condition is met.",
+    editAlert: "✏️ Edit Alert",
+    deleteAlert: "🗑️ Delete Alert",
+
+    // Portfolio Command Translations
+    noWalletLinked: "⚠️ No Associated Wallet Address Found With Your Account!",
+    generatingPortfolioCard: "⚡ Generating your Portfolio Card...",
+    noActivePositionsForCard: "📭 No active positions found to generate portfolio card.",
+    portfolioSummaryFor: "📊 Portfolio Summary for",
+    yourPolymarketDashboard: "📊 Your Polymarket Dashboard",
+    profit: "Profit",
+    loss: "Loss",
+    invested: "Invested",
+    value: "Value",
+    expires: "Expires",
+    sellFiftyPercent: "Sell 50%",
+    sellHundredPercent: "Sell 100%",
+    sellCustom: "Sell Custom",
+    buyMoreMarket: "Buy More Market",
+    buyMoreLimit: "Buy More Limit",
+    cancelTakeProfit: "❌ Cancel Take Profit",
+    cancelStopLoss: "❌ Cancel Stop Loss",
+    generatePortfolioCard: "⚡ Generate Portfolio Card",
+
+    // Portfolio refresh messages
+    noLinkedWallet: "⚠️ No linked wallet.",
+    invalidIndex: "⚠️ Invalid index.",
+    pageNotFound: "Page not found",
 };

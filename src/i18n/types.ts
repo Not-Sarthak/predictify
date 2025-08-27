@@ -409,4 +409,115 @@ export interface LocaleMessages {
     removeFromWatchlist: string;
     watchlist: string;
     from: string;
+
+    // Hourly Market Specific
+    priceToBeat: string;
+    currentPrice: string;
+
+    // AutoTrade Menu
+    autoTradeMenu: string;
+    monitoring: string;
+    wallets: string;
+    selectAction: string;
+    enableCopyTrade: string;
+    disableCopyTrade: string;
+
+    // Watched Wallets View
+    watchedWalletsTitle: string;
+    noWalletsAdded: string;
+    configurePosition: string;
+    backToAutoTrade: string;
+    enabled: string;
+    disabled: string;
+
+    // Additional AutoTrade translations
+    addWalletTitle: string;
+    addWalletDescription: string;
+    walletMonitoringEnabled: string;
+    walletMonitoringDisabled: string;
+    copyTradingEnabled: string;
+    copyTradingDisabled: string;
+    copyTradingEnabledMessage: string;
+    copyTradingDisabledMessage: string;
+    configurePositionForWallet: string;
+    configureWalletPositionTitle: string;
+    selectWalletToConfigurePosition: string;
+    noWalletsAddedYet: string;
+    globalCopyTraderPositionTitle: string;
+    setDefaultPositionPercentage: string;
+    currentDefault: string;
+    defaultNotSet: string;
+    individualWalletOverride: string;
+    insufficientSolBalance: string;
+    youHaveSol: string;
+    butNeedAtLeast: string;
+    solToBridge: string;
+    butNeedToKeep: string;
+    solForFees: string;
+    notEnoughLeftToBridge: string;
+    shortage: string;
+
+    // Market Order Interface
+    marketOrderYes: string;
+    marketOrderNo: string;
+    enterAmountInUsdc: string;
+    formatAmount: string;
+    exampleAmount: string;
+    minimumAmountNote: string;
+    currentMarketPrice: string;
+    avgOfTopOrders: string;
+    willExecuteImmediately: string;
+    estimatedFill: string;
+    executionPrice: string;
+    totalCost: string;
+    potentialWinIfResolves: string;
+    pressConfirmOrCancel: string;
+
+    // Order Confirmation
+    buyOrderPlaced: string;
+    matched: string;
+    viewOnPolygonscan: string;
+
+    // Subscription Interface
+    noActiveSubscriptions: string;
+    enterCustomCategory: string;
+    exampleCategories: string;
+    chooseCategoryToSubscribe: string;
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: string;
+    alertsRemovedFor: string;
+    chooseCategoryToUnsubscribe: string;
+    noActivePriceAlerts: string;
+    priceAlertNumber: string;
+    outcome: string;
+    triggerPrice: string;
+    willBeNotifiedWhen: string;
+    editAlert: string;
+    deleteAlert: string;
+
+    // Portfolio Command Translations
+    noWalletLinked: string;
+    generatingPortfolioCard: string;
+    noActivePositionsForCard: string;
+    portfolioSummaryFor: string;
+    yourPolymarketDashboard: string;
+    profit: string;
+    loss: string;
+    invested: string;
+    value: string;
+    expires: string;
+    sellFiftyPercent: string;
+    sellHundredPercent: string;
+    sellCustom: string;
+    buyMoreMarket: string;
+    buyMoreLimit: string;
+    cancelTakeProfit: string;
+    cancelStopLoss: string;
+    generatePortfolioCard: string;
+
+    // Portfolio refresh messages
+    noLinkedWallet: string;
+    invalidIndex: string;
+    pageNotFound: string;
 }

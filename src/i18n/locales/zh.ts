@@ -13,7 +13,7 @@ export const zh: LocaleMessages = {
     clearFilters: "清除筛选器",
     noMarketsFound: "未找到市场",
 
-    // High Probability Command specific
+    // High Probability Command
     conservative: "保守型",
     aggressive: "激进型",
     viewMarkets: "查看市场",
@@ -240,7 +240,7 @@ export const zh: LocaleMessages = {
     enableCopyTrading: "启用跟单交易",
     disableCopyTrading: "禁用跟单交易",
     watchedWallets: "监控钱包",
-    addWallet: "添加钱包",
+    addWallet: "➕ 添加钱包",
     removeWallet: "移除钱包",
 
     // Referral System
@@ -411,4 +411,115 @@ export const zh: LocaleMessages = {
     yourReferralCode: "您的推荐码:",
     viewOnPolymarket: "🔗 在Polymarket查看",
     notAssigned: "未分配",
+
+    // Hourly Market Specific
+    priceToBeat: "目标价格",
+    currentPrice: "当前价格",
+
+    // AutoTrade Menu
+    autoTradeMenu: "自动交易菜单",
+    monitoring: "监控",
+    wallets: "钱包",
+    selectAction: "选择操作:",
+    enableCopyTrade: "启用跟单交易",
+    disableCopyTrade: "禁用跟单交易",
+
+    // Watched Wallets View
+    watchedWalletsTitle: "👀 监控钱包",
+    noWalletsAdded: "尚未添加钱包。",
+    configurePosition: "⚙️ 配置仓位",
+    backToAutoTrade: "↩️ 返回自动交易",
+    enabled: "启用",
+    disabled: "禁用",
+
+    // Additional AutoTrade translations
+    addWalletTitle: "🧾 添加钱包地址",
+    addWalletDescription: "请输入您要监控的钱包地址：",
+    walletMonitoringEnabled: "✅ 钱包监控已启用",
+    walletMonitoringDisabled: "❌ 钱包监控已禁用",
+    copyTradingEnabled: "✅ 跟单交易已启用",
+    copyTradingDisabled: "❌ 跟单交易已禁用",
+    copyTradingEnabledMessage: "✅ 跟单交易已启用。您现在将自动跟随监控钱包的交易。",
+    copyTradingDisabledMessage: "❌ 跟单交易已禁用。您仍会收到通知，但不会跟随交易。",
+    configurePositionForWallet: "💰 配置钱包仓位百分比",
+    configureWalletPositionTitle: "💰 配置钱包仓位百分比",
+    selectWalletToConfigurePosition: "选择要配置仓位百分比的钱包：",
+    noWalletsAddedYet: "⚠️ 尚未添加钱包。请先添加钱包。",
+    globalCopyTraderPositionTitle: "💰 全局跟单交易仓位百分比",
+    setDefaultPositionPercentage: "设置新钱包的默认仓位百分比：",
+    currentDefault: "📊 当前默认：",
+    defaultNotSet: "默认（未设置）",
+    individualWalletOverride: "注意：单个钱包百分比会覆盖此默认设置。",
+    insufficientSolBalance: "SOL余额不足。",
+    youHaveSol: "您有",
+    butNeedAtLeast: "SOL，但至少需要",
+    solToBridge: "SOL才能进行桥接。",
+    butNeedToKeep: "SOL，但需要保留",
+    solForFees: "SOL作为手续费。",
+    notEnoughLeftToBridge: "剩余不足以进行桥接。",
+    shortage: "缺少：",
+
+    // Market Order Interface
+    marketOrderYes: "⚡ 市价单 - 看涨",
+    marketOrderNo: "⚡ 市价单 - 看跌",
+    enterAmountInUsdc: "输入您要花费的USDC金额：",
+    formatAmount: "格式：<金额>",
+    exampleAmount: "示例：50",
+    minimumAmountNote: "注意：最小金额应为10",
+    currentMarketPrice: "💵 当前市场价格：",
+    avgOfTopOrders: "（前3个订单的平均值）",
+    willExecuteImmediately: "🚀 将立即以市场价格执行",
+    estimatedFill: "预计成交：",
+    executionPrice: "• 执行价格：",
+    totalCost: "• 总成本：",
+    potentialWinIfResolves: "• 如果结果为{CONDITION}的潜在收益：",
+    pressConfirmOrCancel: "按确认下单或取消。",
+
+    // Order Confirmation
+    buyOrderPlaced: "✅ 您的买单已下达！",
+    matched: "已成交",
+    viewOnPolygonscan: "在Polygonscan上查看",
+
+    // Subscription Interface
+    noActiveSubscriptions: "⚠️ 您没有活跃的订阅。",
+    enterCustomCategory: "✍️ 输入自定义类别",
+    exampleCategories: "示例：bitcoin或video-games",
+    chooseCategoryToSubscribe: "选择要订阅的类别",
+
+    // Subscription Alerts
+    youWillReceiveAlertsFor: "📬 您现在将收到以下内容的提醒：",
+    alertsRemovedFor: "🗑️ 已移除提醒：",
+    chooseCategoryToUnsubscribe: "选择要取消订阅的类别",
+    noActivePriceAlerts: "📭 未找到活跃的价格提醒。",
+    priceAlertNumber: "🔔 价格提醒",
+    outcome: "结果：",
+    triggerPrice: "触发价格：",
+    willBeNotifiedWhen: "当满足此条件时，您将收到通知。",
+    editAlert: "✏️ 编辑提醒",
+    deleteAlert: "🗑️ 删除提醒",
+
+    // Portfolio Command Translations
+    noWalletLinked: "⚠️ 您的账户未关联钱包地址！",
+    generatingPortfolioCard: "⚡ 正在生成您的投资组合卡片...",
+    noActivePositionsForCard: "📭 未找到活跃头寸来生成投资组合卡片。",
+    portfolioSummaryFor: "📊 投资组合摘要",
+    yourPolymarketDashboard: "📊 您的 Polymarket 仪表板",
+    profit: "盈利",
+    loss: "亏损",
+    invested: "投资",
+    value: "价值",
+    expires: "到期",
+    sellFiftyPercent: "卖出 50%",
+    sellHundredPercent: "卖出 100%",
+    sellCustom: "自定义卖出",
+    buyMoreMarket: "市价买入更多",
+    buyMoreLimit: "限价买入更多",
+    cancelTakeProfit: "❌ 取消止盈",
+    cancelStopLoss: "❌ 取消止损",
+    generatePortfolioCard: "⚡ 生成投资组合卡片",
+
+    // Portfolio refresh messages
+    noLinkedWallet: "⚠️ 未关联钱包。",
+    invalidIndex: "⚠️ 无效索引。",
+    pageNotFound: "未找到页面",
 };
