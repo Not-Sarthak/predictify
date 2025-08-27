@@ -39,7 +39,7 @@ export async function handleCopyTradeConfigureMenu(ctx: Context) {
         [
             Markup.button.callback("50%", "config_position_50"),
             Markup.button.callback("100%", "config_position_100"),
-            Markup.button.callback("Custom", "config_position_custom"),
+            Markup.button.callback(t("enterCustom", language), "config_position_custom"),
         ],
         [Markup.button.callback(t("backToAutoTrade", language), "back_to_autotrade")],
     ];
@@ -120,6 +120,7 @@ export async function handleViewWatchedWallets(ctx: Context) {
 export async function handleCopyTradeConfigCallbacks(ctx: Context, action: string) {
     const userId = ctx.from?.id?.toString();
     if (!userId) return;
+    const language = await getUserLanguage(Number(userId));
 
     try {
         let configType = "";
@@ -136,10 +137,14 @@ export async function handleCopyTradeConfigCallbacks(ctx: Context, action: strin
                 break;
             case "position_custom":
                 configType = "Position Percentage";
-                configValue = "Custom";
+                configValue = t("enterCustom", language);
 
                 await setUserInputState(userId, "config");
-                await redisClient.hSet(`user:config_input:${userId}`, "key", "Custom");
+                await redisClient.hSet(
+                    `user:config_input:${userId}`,
+                    "key",
+                    t("enterCustom", language)
+                );
                 return ctx.reply("🔥 Enter a Percentage: ");
             case "same_proportion":
                 configType = "Copy Method";
@@ -482,7 +487,10 @@ export async function handleConfigureWallet(ctx: Context, walletAddress: string)
             ],
             [
                 Markup.button.callback("100%", `wallet_config:${walletAddress}:100`),
-                Markup.button.callback("Custom %", `wallet_config:${walletAddress}:custom`),
+                Markup.button.callback(
+                    `${t("enterCustom", language)} %`,
+                    `wallet_config:${walletAddress}:custom`
+                ),
             ],
             [Markup.button.callback("↩️ Back", "configure_wallets")],
         ];

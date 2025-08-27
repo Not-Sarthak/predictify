@@ -301,7 +301,7 @@ export async function handleViewTopMarketsByCategory(
         paginationButtons,
         [
             Markup.button.callback(
-                "🔄 Refresh",
+                getMessages(language).refresh,
                 `refresh_top_markets:${marketCategory}:${filter}:${offset}`
             ),
             Markup.button.callback("❌ Close", "close_message"),
@@ -346,14 +346,17 @@ export async function handleShowZeroDTEMarketsByCategory(
     const language = await getUserLanguage(userId);
     const t = getMessages(language);
 
-    let message = `${t.topZeroDteMarketsFor} **${category.charAt(0).toUpperCase() + category.slice(1)}**\n\n`;
+    const displayCategory =
+        (t as any)[category.toLowerCase()] || category.charAt(0).toUpperCase() + category.slice(1);
+
+    let message = `${t.topZeroDteMarketsFor} **${displayCategory}**\n\n`;
 
     const markets = await fetchMarkets(category, filter, offset);
 
     const filteredMarkets = markets.filter((m) => m.volume24hr && m.volume24hr > 0);
 
     if (filteredMarkets.length === 0) {
-        return ctx.reply("⚠️ No Available 0DTE Markets!");
+        return ctx.reply(t.noAvailableZeroDteMarkets);
     }
 
     for (let i = 0; i < filteredMarkets.length; i++) {
@@ -365,8 +368,8 @@ export async function handleShowZeroDTEMarketsByCategory(
         const translatedTitle = translateMarketTitle(market.title, language);
 
         message += `${i + 1}. **${escapeMarkdown(translatedTitle)}**
-💧 Volume: ${fVol}
-⌛ Ends: ${fDate}
+${t.volumeLabel} ${fVol}
+${t.endsLabel} ${fDate}
 
 `;
     }
@@ -394,7 +397,12 @@ export async function handleShowZeroDTEMarketsByCategory(
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
         paginationButtons,
-        [Markup.button.callback("🔄 Refresh", `zero_dte_category:${category}:${offset}`)],
+        [
+            Markup.button.callback(
+                getMessages(language).refresh,
+                `zero_dte_category:${category}:${offset}`
+            ),
+        ],
         [
             Markup.button.callback("⬅️ Back", "back_to_zero_dte_categories"),
             Markup.button.callback("❌ Close", "close_message"),
@@ -518,6 +526,10 @@ export async function handleShowZeroDTEMarketsByCategory(
 //             break;
 
 export async function handleShowMarkets(ctx: Context, eventId: number) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
+
     const response = await axios.get(`https://gamma-api.polymarket.com/events?id=${eventId}`);
     const data = response.data[0];
 
@@ -536,7 +548,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         .sort((a: any, b: any) => b.yesPrice - a.yesPrice);
 
     if (markets.length === 0) {
-        return ctx.reply("❌ No Active Markets Available in This Event.");
+        return ctx.reply(t.noActiveMarketsInEvent);
     }
 
     if (markets.length === 1) {
@@ -545,7 +557,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 
     let message = `📊 **${escapeMarkdown(title)}**\n\n`;
 
-    message += `🎯 **${markets.length} Markets Available**\n\n`;
+    message += `🎯 **${markets.length} ${t.marketsAvailable}**\n\n`;
 
     const marketButtons = [];
 
@@ -563,7 +575,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
         [
-            Markup.button.callback("🔄 Refresh", `refresh_markets:${eventId}`),
+            Markup.button.callback(getMessages(language).refresh, `refresh_markets:${eventId}`),
             Markup.button.callback("❌ Close", "close_message"),
         ],
     ]);
@@ -1420,7 +1432,7 @@ export async function handleRefreshTopMarkets(
         paginationButtons,
         [
             Markup.button.callback(
-                "🔄 Refresh",
+                getMessages(language).refresh,
                 `refresh_top_markets:${marketCategory}:${filter}:${offsetNum}`
             ),
             Markup.button.callback("❌ Close", "close_message"),
@@ -1498,6 +1510,7 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const LIMIT = 8;
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
+    const t = getMessages(language);
 
     // Current ET hour window
     const nowET = DateTime.now().setZone("America/New_York");
@@ -1531,8 +1544,8 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
         const translatedQuestion = translateMarketTitle(market.question, language);
 
         message += `${i + 1}. *${escapeMarkdown(translatedQuestion)}*
-💧 Volume: ${fVol}
-⌛ Time left: ${minutesLeft} minutes
+${t.volumeLabel} ${fVol}
+${t.timeLeftLabel} ${minutesLeft} ${t.minutesShort}
 
 `;
     }
@@ -1545,7 +1558,7 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
 
     const keyboard = Markup.inlineKeyboard([
         ...marketButtonsLayout,
-        [Markup.button.callback("🔄 Refresh", `current_btc_hourly_markets`)],
+        [Markup.button.callback(getMessages(language).refresh, `current_btc_hourly_markets`)],
         [Markup.button.callback("❌ Close", "close_message")],
     ]);
 
