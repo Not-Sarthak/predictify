@@ -383,6 +383,10 @@ export const zh: LocaleMessages = {
     hyperliquid: "Hyperliquid",
     orderbook: "订单簿",
 
+    // Profile toggle
+    showUsernameInPnLCards: "✅ 在PnL卡显示用户名",
+    hideUsernameInPnLCards: "❌ 在PnL卡隐藏用户名",
+
     // Market direction words
     up: "上涨",
     or: "或",
@@ -612,6 +616,12 @@ export const zh: LocaleMessages = {
     editAlert: "✏️ 编辑提醒",
     deleteAlert: "🗑️ 删除提醒",
 
+    // Edit Price Alert flow
+    editPriceAlertTitle: "✏️ <b>编辑 价格 提示</b>",
+    editPriceAlertMarketLabel: "<b>市场：</b>",
+    editPriceAlertCurrentTrigger: "<b>当前触发价：</b>",
+    editPriceAlertPrompt: "请为此提醒发送一个新的价格（介于 0 和 1 之间）。",
+
     // Portfolio Command Translations
     noWalletLinked: "⚠️ 您的账户未关联钱包地址！",
     generatingPortfolioCard: "⚡ 正在生成您的投资组合卡片...",
@@ -640,4 +650,27 @@ export const zh: LocaleMessages = {
     // Subscription action messages
     subscriptionAdded: "📬 您现在将收到以下提醒：",
     subscriptionRemoved: "🗑️ 已移除以下提醒：",
+
+    // 0DTE and hourly market labels
+    volumeLabel: "💧 交易量：",
+    timeLeftLabel: "⌛ 剩余时间：",
+    endsLabel: "⌛ 结束时间：",
+    marketsAvailable: "可用市场",
+    minutesShort: "分钟",
+
+    // Error messages for markets
+    noActiveMarketsInEvent: "❌ 此事件中没有活跃的市场。",
+    noAvailableZeroDteMarkets: "⚠️ 没有可用的0DTE市场！",
+
+    // Watchlist messages
+    watchlistEmpty: "❤️ 您的观察列表为空",
+    watchlistEmptyDescription: "将市场添加到您的观察列表以便轻松跟踪。",
+    addToWatchlistInstruction: "您可以在查看任何市场时点击'❤️ 添加到我的观察列表'按钮来添加市场。",
+    yourWatchlist: "❤️ 您的观察列表",
+    errorFetchingWatchlist: "❌ 获取观察列表时出错。请稍后重试。",
+    watchlistErrorGeneral: "❌ 获取观察列表时发生错误。请稍后重试。",
+    unableToDisplayMarkets: "无法显示市场。请稍后重试。",
+    pricesRefreshForLatest: "价格：*刷新获取最新价格*",
+    unknownMarket: "未知市场",
+    unknownEndDate: "未知",
 };

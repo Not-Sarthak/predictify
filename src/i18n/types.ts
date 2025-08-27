@@ -406,6 +406,9 @@ export interface LocaleMessages {
     dogecoin: string;
     hyperliquid: string;
     orderbook: string;
+    // Profile toggle
+    showUsernameInPnLCards: string;
+    hideUsernameInPnLCards: string;
 
     // Market direction words
     up: string;
@@ -569,6 +572,11 @@ export interface LocaleMessages {
     willBeNotifiedWhen: string;
     editAlert: string;
     deleteAlert: string;
+    // Edit Price Alert flow
+    editPriceAlertTitle: string;
+    editPriceAlertMarketLabel: string;
+    editPriceAlertCurrentTrigger: string;
+    editPriceAlertPrompt: string;
 
     // Portfolio Command Translations
     noWalletLinked: string;
@@ -636,4 +644,27 @@ export interface LocaleMessages {
     // Subscription action messages
     subscriptionAdded: string;
     subscriptionRemoved: string;
+
+    // 0DTE and hourly market labels
+    volumeLabel: string;
+    timeLeftLabel: string;
+    endsLabel: string;
+    marketsAvailable: string;
+    minutesShort: string;
+
+    // Error messages for markets
+    noActiveMarketsInEvent: string;
+    noAvailableZeroDteMarkets: string;
+
+    // Watchlist messages
+    watchlistEmpty: string;
+    watchlistEmptyDescription: string;
+    addToWatchlistInstruction: string;
+    yourWatchlist: string;
+    errorFetchingWatchlist: string;
+    watchlistErrorGeneral: string;
+    unableToDisplayMarkets: string;
+    pricesRefreshForLatest: string;
+    unknownMarket: string;
+    unknownEndDate: string;
 }

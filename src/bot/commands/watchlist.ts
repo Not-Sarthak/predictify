@@ -3,9 +3,13 @@ import { getUserIdFromCtx } from "../utils";
 import { db } from "../../lib/supabase";
 import { getMarketById } from "../../utils/polymarket/get-markets";
 import { formatDate, formatDollarVolume, escapeMarkdown } from "../utils";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getMessages } from "../../i18n";
 
 export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
     const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
     const MARKETS_PER_PAGE = 5;
     const currentPage = typeof page === "number" ? page : 0;
 
@@ -17,16 +21,16 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
 
         if (error || !user) {
             console.error("Error fetching user watchlist:", error);
-            return ctx.reply("❌ Error fetching your watchlist. Please try again later.");
+            return ctx.reply(t.errorFetchingWatchlist);
         }
 
         const allWatchedMarkets = user.market_watchlist || [];
 
         if (allWatchedMarkets.length === 0) {
             return ctx.reply(
-                "❤️ **Your Watchlist is Empty**\n\n" +
-                    "Add markets to your watchlist to track them easily.\n\n" +
-                    "You can add markets by clicking the '❤️ Add to My Watchlist' button when viewing any market.",
+                `**${t.watchlistEmpty}**\n\n` +
+                    `${t.watchlistEmptyDescription}\n\n` +
+                    `${t.addToWatchlistInstruction}`,
                 { parse_mode: "Markdown" }
             );
         }
@@ -97,13 +101,12 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
         });
 
         if (validMarkets.length === 0) {
-            return ctx.reply(
-                "❤️ **Your Watchlist**\n\n" + "Unable to display markets. Please try again later.",
-                { parse_mode: "Markdown" }
-            );
+            return ctx.reply(`**${t.yourWatchlist}**\n\n` + `${t.unableToDisplayMarkets}`, {
+                parse_mode: "Markdown",
+            });
         }
 
-        let message = `❤️ **Your Watchlist** (${allWatchedMarkets.length}/20) - Page ${currentPage + 1}/${totalPages}\n\n`;
+        let message = `**${t.yourWatchlist}** (${allWatchedMarkets.length}/20) - ${t.page} ${currentPage + 1}/${totalPages}\n\n`;
 
         validMarkets.forEach((market, index) => {
             const globalIndex = startIndex + index + 1;
@@ -137,15 +140,15 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
             }
 
             const volumeStr = volume > 0 ? formatDollarVolume(volume) : "N/A";
-            const endDate = market.endDate ? formatDate(market.endDate) : "Unknown";
-            const title = market.question || market.title || "Unknown Market";
+            const endDate = market.endDate ? formatDate(market.endDate) : t.unknownEndDate;
+            const title = market.question || market.title || t.unknownMarket;
 
             message += `${globalIndex}. **${escapeMarkdown(title)}**\n`;
 
             if (yesPrice > 0 || noPrice > 0) {
-                message += `   💹 Yes: $${yesPrice.toFixed(2)} | No: $${noPrice.toFixed(2)}\n`;
+                message += `   💹 ${t.yes}: $${yesPrice.toFixed(2)} | ${t.no}: $${noPrice.toFixed(2)}\n`;
             } else {
-                message += `   💹 Prices: *Refresh for latest*\n`;
+                message += `   💹 ${t.pricesRefreshForLatest}\n`;
             }
 
             message += `   💧 Volume: ${volumeStr} | ⏰ Ends: ${endDate}\n\n`;
@@ -167,12 +170,12 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
         const paginationButtons = [];
         if (currentPage > 0) {
             paginationButtons.push(
-                Markup.button.callback("⏮️ Previous", `watchlist_page:${currentPage - 1}`)
+                Markup.button.callback(`⏮️ ${t.previous}`, `watchlist_page:${currentPage - 1}`)
             );
         }
         if (endIndex < allWatchedMarkets.length) {
             paginationButtons.push(
-                Markup.button.callback("Next ⏭️", `watchlist_page:${currentPage + 1}`)
+                Markup.button.callback(`${t.next} ⏭️`, `watchlist_page:${currentPage + 1}`)
             );
         }
 
@@ -181,11 +184,11 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
         }
 
         buttonRows.push([
-            Markup.button.callback("🔄 Refresh", `watchlist_page:${currentPage}`),
-            Markup.button.callback("🗑️ Clear All", "clear_watchlist"),
+            Markup.button.callback(`🔄 ${t.refresh}`, `watchlist_page:${currentPage}`),
+            Markup.button.callback(`🗑️ ${t.clearAll}`, "clear_watchlist"),
         ]);
 
-        buttonRows.push([Markup.button.callback("❌ Close", "close_message")]);
+        buttonRows.push([Markup.button.callback(`❌ ${t.close}`, "close_message")]);
 
         return ctx.reply(message, {
             parse_mode: "Markdown",
@@ -193,8 +196,8 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
         });
     } catch (error) {
         console.error("Error in handleWatchlistCommand:", error);
-        return ctx.reply(
-            "❌ An error occurred while fetching your watchlist. Please try again later."
-        );
+        const language = await getUserLanguage(userId);
+        const t = getMessages(language);
+        return ctx.reply(t.watchlistErrorGeneral);
     }
 }
