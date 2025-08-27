@@ -640,4 +640,27 @@ export const zh: LocaleMessages = {
     // Subscription action messages
     subscriptionAdded: "📬 您现在将收到以下提醒：",
     subscriptionRemoved: "🗑️ 已移除以下提醒：",
+
+    // 0DTE and hourly market labels
+    volumeLabel: "💧 交易量：",
+    timeLeftLabel: "⌛ 剩余时间：",
+    endsLabel: "⌛ 结束时间：",
+    marketsAvailable: "可用市场",
+    minutesShort: "分钟",
+
+    // Error messages for markets
+    noActiveMarketsInEvent: "❌ 此事件中没有活跃的市场。",
+    noAvailableZeroDteMarkets: "⚠️ 没有可用的0DTE市场！",
+
+    // Watchlist messages
+    watchlistEmpty: "❤️ 您的观察列表为空",
+    watchlistEmptyDescription: "将市场添加到您的观察列表以便轻松跟踪。",
+    addToWatchlistInstruction: "您可以在查看任何市场时点击'❤️ 添加到我的观察列表'按钮来添加市场。",
+    yourWatchlist: "❤️ 您的观察列表",
+    errorFetchingWatchlist: "❌ 获取观察列表时出错。请稍后重试。",
+    watchlistErrorGeneral: "❌ 获取观察列表时发生错误。请稍后重试。",
+    unableToDisplayMarkets: "无法显示市场。请稍后重试。",
+    pricesRefreshForLatest: "价格：*刷新获取最新价格*",
+    unknownMarket: "未知市场",
+    unknownEndDate: "未知",
 };

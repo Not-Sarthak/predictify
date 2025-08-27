@@ -353,7 +353,7 @@ export async function handleShowZeroDTEMarketsByCategory(
     const filteredMarkets = markets.filter((m) => m.volume24hr && m.volume24hr > 0);
 
     if (filteredMarkets.length === 0) {
-        return ctx.reply("⚠️ No Available 0DTE Markets!");
+        return ctx.reply(t.noAvailableZeroDteMarkets);
     }
 
     for (let i = 0; i < filteredMarkets.length; i++) {
@@ -365,8 +365,8 @@ export async function handleShowZeroDTEMarketsByCategory(
         const translatedTitle = translateMarketTitle(market.title, language);
 
         message += `${i + 1}. **${escapeMarkdown(translatedTitle)}**
-💧 Volume: ${fVol}
-⌛ Ends: ${fDate}
+${t.volumeLabel} ${fVol}
+${t.endsLabel} ${fDate}
 
 `;
     }
@@ -518,6 +518,10 @@ export async function handleShowZeroDTEMarketsByCategory(
 //             break;
 
 export async function handleShowMarkets(ctx: Context, eventId: number) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const t = getMessages(language);
+
     const response = await axios.get(`https://gamma-api.polymarket.com/events?id=${eventId}`);
     const data = response.data[0];
 
@@ -536,7 +540,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
         .sort((a: any, b: any) => b.yesPrice - a.yesPrice);
 
     if (markets.length === 0) {
-        return ctx.reply("❌ No Active Markets Available in This Event.");
+        return ctx.reply(t.noActiveMarketsInEvent);
     }
 
     if (markets.length === 1) {
@@ -545,7 +549,7 @@ export async function handleShowMarkets(ctx: Context, eventId: number) {
 
     let message = `📊 **${escapeMarkdown(title)}**\n\n`;
 
-    message += `🎯 **${markets.length} Markets Available**\n\n`;
+    message += `🎯 **${markets.length} ${t.marketsAvailable}**\n\n`;
 
     const marketButtons = [];
 
@@ -1499,6 +1503,7 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
     const LIMIT = 8;
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
+    const t = getMessages(language);
 
     // Current ET hour window
     const nowET = DateTime.now().setZone("America/New_York");
@@ -1532,8 +1537,8 @@ export async function handleShowCurrentHour0DTEMarkets(ctx: Context) {
         const translatedQuestion = translateMarketTitle(market.question, language);
 
         message += `${i + 1}. *${escapeMarkdown(translatedQuestion)}*
-💧 Volume: ${fVol}
-⌛ Time left: ${minutesLeft} minutes
+${t.volumeLabel} ${fVol}
+${t.timeLeftLabel} ${minutesLeft} ${t.minutesShort}
 
 `;
     }

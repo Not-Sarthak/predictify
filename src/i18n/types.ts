@@ -636,4 +636,27 @@ export interface LocaleMessages {
     // Subscription action messages
     subscriptionAdded: string;
     subscriptionRemoved: string;
+
+    // 0DTE and hourly market labels
+    volumeLabel: string;
+    timeLeftLabel: string;
+    endsLabel: string;
+    marketsAvailable: string;
+    minutesShort: string;
+
+    // Error messages for markets
+    noActiveMarketsInEvent: string;
+    noAvailableZeroDteMarkets: string;
+
+    // Watchlist messages
+    watchlistEmpty: string;
+    watchlistEmptyDescription: string;
+    addToWatchlistInstruction: string;
+    yourWatchlist: string;
+    errorFetchingWatchlist: string;
+    watchlistErrorGeneral: string;
+    unableToDisplayMarkets: string;
+    pricesRefreshForLatest: string;
+    unknownMarket: string;
+    unknownEndDate: string;
 }

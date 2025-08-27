@@ -642,4 +642,29 @@ Your wallet's live. Let's degen.`,
     // Subscription action messages
     subscriptionAdded: "📬 You'll Now Receive Alerts for:",
     subscriptionRemoved: "🗑️ Alerts Removed For:",
+
+    // 0DTE and hourly market labels
+    volumeLabel: "💧 Volume:",
+    timeLeftLabel: "⌛ Time left:",
+    endsLabel: "⌛ Ends:",
+    marketsAvailable: "Markets Available",
+    minutesShort: "minutes",
+
+    // Error messages for markets
+    noActiveMarketsInEvent: "❌ No Active Markets Available in This Event.",
+    noAvailableZeroDteMarkets: "⚠️ No Available 0DTE Markets!",
+
+    // Watchlist messages
+    watchlistEmpty: "❤️ Your Watchlist is Empty",
+    watchlistEmptyDescription: "Add markets to your watchlist to track them easily.",
+    addToWatchlistInstruction:
+        "You can add markets by clicking the '❤️ Add to My Watchlist' button when viewing any market.",
+    yourWatchlist: "❤️ Your Watchlist",
+    errorFetchingWatchlist: "❌ Error fetching your watchlist. Please try again later.",
+    watchlistErrorGeneral:
+        "❌ An error occurred while fetching your watchlist. Please try again later.",
+    unableToDisplayMarkets: "Unable to display markets. Please try again later.",
+    pricesRefreshForLatest: "Prices: *Refresh for latest*",
+    unknownMarket: "Unknown Market",
+    unknownEndDate: "Unknown",
 };
