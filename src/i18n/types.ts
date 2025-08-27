@@ -342,6 +342,8 @@ export interface LocaleMessages {
     refreshStats: string;
 
     // More button text
+    hour1: string;
+    hour4: string;
     hour24: string;
     hour48: string;
 
