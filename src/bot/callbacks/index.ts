@@ -25,6 +25,7 @@ import {
     handleShowCurrentHour0DTEMarkets,
     handleViewHourlyMarket,
     handleRefreshHourlyMarket,
+    handleRedeemPagination,
 } from "./trade";
 import { getMarketById } from "../../utils/polymarket/get-markets";
 import { formatOrderBook, escapeMarkdown } from "../utils";
@@ -388,6 +389,11 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("portfolio_page")) {
         const page = data.split(":")[1];
         return handleTradePagination(ctx, page);
+    }
+
+    if (data.startsWith("redeem_page")) {
+        const page = data.split(":")[1];
+        return handleRedeemPagination(ctx, page);
     }
 
     if (data === "trade_markets_dte") {

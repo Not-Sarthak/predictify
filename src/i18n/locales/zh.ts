@@ -103,6 +103,7 @@ export const zh: LocaleMessages = {
     setPriceAlert: "🔔 设置价格提醒",
     takeProfit: "💸 止盈",
     stopLoss: "🛑 止损",
+    redeem: "💵 贖回倉位",
 
     // Messages
     welcome: `欢迎使用Predictify
@@ -525,6 +526,7 @@ export const zh: LocaleMessages = {
     cmdRef: "查看推荐统计并分享您的推荐链接",
     cmdAnalytics: "查看活跃用户分析（仅限管理员）",
     cmdDetailed: "查看详细分析仪表板（仅限管理员）",
+    cmdRedeem: "從已解決的市場部位贖回",
 
     // Hourly Market Specific
     priceToBeat: "目标价格",
@@ -631,6 +633,7 @@ export const zh: LocaleMessages = {
     cancelTakeProfit: "❌ 取消止盈",
     cancelStopLoss: "❌ 取消止损",
     generatePortfolioCard: "⚡ 生成投资组合卡片",
+    redeemableDashboard: "您的可贖回倉位",
 
     // Portfolio refresh messages
     noLinkedWallet: "⚠️ 未关联钱包。",

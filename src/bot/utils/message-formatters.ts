@@ -4,7 +4,7 @@ import { getMarketOrderBook } from "../../utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { decryptPrivateKey } from "../../utils/crypto";
-import { createPaginationKeyboard } from "../ui/messages";
+import { createPaginationKeyboard, createRedeemablePaginationKeyboard } from "../ui/messages";
 import type { SupportedLanguage } from "../../i18n";
 import { getMessages } from "../../i18n";
 import { getMarketCategoryText } from "../../utils/message-formatters";
@@ -242,6 +242,70 @@ ${statusLine}
     `.trim();
 
     const markup = await createPaginationKeyboard(conditionId, index, total, userId, outcomeIndex);
+
+    return { text, markup };
+}
+
+export async function formatSingleRedeemablePositionMessage(
+    userId: string,
+    position: UserPositionResponse,
+    index: number,
+    total: number
+) {
+    const language = await getUserLanguage(parseInt(userId));
+    const {
+        title,
+        cashPnl,
+        percentPnl,
+        conditionId,
+        outcome,
+        size,
+        avgPrice,
+        curPrice,
+        initialValue,
+        currentValue,
+        endDate,
+    } = position;
+
+    const isProfit = cashPnl >= 0;
+    const pnlEmoji = isProfit ? "📈" : "📉";
+    const pnlColor = isProfit ? "🟢" : "🔴";
+    const pnlSign = isProfit ? "+" : "";
+
+    const percentPnlFormatted = `${pnlSign}${percentPnl.toFixed(1)}%`;
+    const cashPnlFormatted = `${pnlSign}${cashPnl.toFixed(2)}`;
+    const avgPriceFormatted = `$${avgPrice.toFixed(4)}`;
+    const curPriceFormatted = `$${curPrice.toFixed(4)}`;
+    const initialValueFormatted = `$${initialValue.toFixed(2)}`;
+    const currentValueFormatted = `$${currentValue.toFixed(2)}`;
+    const expiryDate = new Date(endDate);
+    const isValidDate = !isNaN(expiryDate.getTime());
+    const expiryDateFormatted = isValidDate
+        ? expiryDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
+
+    const statusLine = `${pnlEmoji} *${isProfit ? t("profit", language) : t("loss", language)}:* ${pnlColor} *${cashPnlFormatted}* (${percentPnlFormatted})`;
+
+    const expiredLine = expiryDateFormatted
+        ? `📆 *${t("expired", language)}:* ${expiryDateFormatted}`
+        : "";
+
+    const text = `
+*${t("redeemableDashboard", language)}*
+
+*${index + 1}/${total} - ${title}*
+
+${pnlColor} *${outcome.toUpperCase()}* • ${size.toFixed(2)} ${t("shares", language)} @ ${avgPriceFormatted}
+🎯 *${t("currentPrice", language)}:* ${curPriceFormatted}
+${statusLine}
+💸 *${t("invested", language)}:* ${initialValueFormatted} → *${t("value", language)}:* ${currentValueFormatted}${expiredLine ? "\n" + expiredLine : ""}
+    `.trim();
+
+    const markup = await createRedeemablePaginationKeyboard(conditionId, index, total, userId);
 
     return { text, markup };
 }

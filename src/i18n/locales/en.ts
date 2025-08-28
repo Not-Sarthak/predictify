@@ -43,6 +43,7 @@ export const en: LocaleMessages = {
     setPriceAlert: "🔔 Set Price Alert",
     takeProfit: "💸 Take Profit",
     stopLoss: "🛑 Stop Loss",
+    redeem: "💵 Redeem Position",
 
     // Messages
     welcome: `Welcome to Predictify
@@ -595,6 +596,7 @@ Your wallet's live. Let's degen.`,
     cancelTakeProfit: "❌ Cancel Take Profit",
     cancelStopLoss: "❌ Cancel Stop Loss",
     generatePortfolioCard: "⚡ Generate Portfolio Card",
+    redeemableDashboard: "Your Redeemable Positions",
 
     // Portfolio refresh messages
     noLinkedWallet: "⚠️ No linked wallet.",
@@ -638,6 +640,7 @@ Your wallet's live. Let's degen.`,
     cmdRef: "View referral stats and share your referral link",
     cmdAnalytics: "View active user analytics (Admin only)",
     cmdDetailed: "View detailed analytics dashboard (Admin only)",
+    cmdRedeem: "Redeem from resolved markets positions",
 
     // Subscription action messages
     subscriptionAdded: "📬 You'll Now Receive Alerts for:",

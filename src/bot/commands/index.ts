@@ -67,6 +67,10 @@ export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
         command: "detailed",
         description: t("cmdDetailed", locale as any),
     },
+    {
+        command: "redeem",
+        description: t("cmdRedeem", locale as any),
+    },
 ];
 // Bot Interaction Commands (default Chinese)
 export const botCommands: BotCommand[] = getBotCommands("zh");
