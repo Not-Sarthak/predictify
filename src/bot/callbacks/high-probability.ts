@@ -21,6 +21,8 @@ import {
     disableAlertsForUser,
     getUserAlertSettings,
 } from "../../notifier/high-prob-alerts";
+import { enableAlertsForUserWithTimeframes } from "../../notifier/high-prob-alerts";
+import { getMessages } from "../../i18n";
 
 import { escapeMarkdown } from "../utils";
 import { getUserLanguage } from "../../helpers/user-language";
@@ -71,7 +73,7 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
 
             case "strategy":
                 const strategy = params?.[0] as "degen" | "turtle";
-                const timeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const timeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "48h";
                 return handleStrategySelection(ctx, strategy, timeFilter);
 
             case "market":
@@ -87,7 +89,7 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
 
             case "strategy_alerts":
                 const alertStrategy = params?.[0] as "degen" | "turtle";
-                const alertTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "1h";
+                const alertTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "48h";
                 return handleStrategyAlertsToggle(ctx, alertStrategy, alertTimeFilter);
 
             case "autosplit":
@@ -333,12 +335,16 @@ export async function handleStrategyAlertsToggle(
     try {
         // Toggle alerts
         const alertSettings = await getUserAlertSettings(userId.toString());
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
+
         if (alertSettings.enabled) {
             await disableAlertsForUser(userId.toString());
-            await ctx.answerCbQuery("🔕 Alerts disabled");
+            await ctx.answerCbQuery(`🔕 ${messages.alertsOff || "Alerts disabled"}`);
         } else {
-            await enableAlertsForUser(userId.toString());
-            await ctx.answerCbQuery("🔔 Alerts enabled!");
+            // Enable alerts and default to all timeframes for this user
+            await enableAlertsForUserWithTimeframes(userId.toString(), ["1h", "4h", "24h", "48h"]);
+            await ctx.answerCbQuery(`🔔 ${messages.alertsOn || "Alerts enabled"}`);
         }
 
         // Refresh the strategy view

@@ -12,7 +12,8 @@ export const zh: LocaleMessages = {
     applyFilters: "应用筛选器",
     clearFilters: "清除筛选器",
     noMarketsFound: "未找到市场",
-
+    order: "命令",
+    book: "书",
     // High Probability Command
     conservative: "保守型",
     aggressive: "激进型",
@@ -377,10 +378,11 @@ export const zh: LocaleMessages = {
     // Cryptocurrency names
     bitcoin: "比特币",
     ethereum: "以太坊",
-    solana: "Solana",
+    solana: "索拉纳",
+    polygon: "多边形",
     xrp: "瑞波币",
     dogecoin: "狗狗币",
-    hyperliquid: "Hyperliquid",
+    hyperliquid: "超流动性",
     orderbook: "订单簿",
 
     // Profile toggle
@@ -621,6 +623,12 @@ export const zh: LocaleMessages = {
     editPriceAlertMarketLabel: "<b>市场：</b>",
     editPriceAlertCurrentTrigger: "<b>当前触发价：</b>",
     editPriceAlertPrompt: "请为此提醒发送一个新的价格（介于 0 和 1 之间）。",
+
+    // Set Price Alert flow
+    setPriceAlertTitle: "🔔 <b>为此市场设置价格提醒</b>",
+    setPriceAlertEnterDetails: "请输入以下 <b>价格</b> 和 <b>方向</b>：",
+    setPriceAlertFormat: "格式: <code>价格</code> <code>是/否</code>",
+    setPriceAlertExample: "示例: <code>0.7</code> <code>否</code>",
 
     // Portfolio Command Translations
     noWalletLinked: "⚠️ 您的账户未关联钱包地址！",

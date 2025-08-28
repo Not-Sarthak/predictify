@@ -898,14 +898,16 @@ export async function handleCallbackQuery(ctx: Context) {
 
         setUserInputState(userIdStr, "set_price_alert");
 
-        const message = `🔔 <b>Set Price Alert for this Market</b>\n
-Enter <b>Price</b> & <b>Side</b> details below:\n
-Format: <code>Price</code> <code>Yes/No</code>\n
-Example: <code>0.7</code> <code>No</code>`;
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
 
-        return ctx.reply(message, {
-            parse_mode: "HTML",
-        });
+        const message =
+            `${messages.setPriceAlertTitle}\n\n` +
+            `${messages.setPriceAlertEnterDetails}\n` +
+            `${messages.setPriceAlertFormat}\n` +
+            `${messages.setPriceAlertExample}`;
+
+        return ctx.reply(message, { parse_mode: "HTML" });
     }
 
     if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
