@@ -5,6 +5,8 @@ import { encodeMarketConditionId } from "../../utils/encoding";
 import { redisClient } from "../../lib/redis";
 import { CLOSE_BUTTON } from "../ui/buttons";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getMessages } from "../../i18n";
 
 export async function handleShowManageOrdersMainMenu(ctx: Context) {
     return ctx.reply("⚙️ Manage your orders", {
@@ -68,8 +70,8 @@ export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: nu
     ];
 
     const userId = getUserIdFromCtx(ctx);
-    const language = await (await import("../../helpers/user-language")).getUserLanguage(userId);
-    const messages = (await import("../../i18n/translate")).getMessages(language as any);
+    const language = await await getUserLanguage(userId);
+    const messages = getMessages(language as any);
 
     const bottomButtons = [
         Markup.button.callback(messages.refresh, `refresh_order:${offset}`),
@@ -162,8 +164,8 @@ export async function sendPaginatedTpSlOrder(ctx: Context, orders: any[], offset
         ? `stop_tp:${encodeMarketConditionId(order.marketId)}`
         : `stop_sl:${encodeMarketConditionId(order.marketId)}`;
     const userId2 = getUserIdFromCtx(ctx);
-    const language2 = await (await import("../../helpers/user-language")).getUserLanguage(userId2);
-    const messages2 = (await import("../../i18n/translate")).getMessages(language2 as any);
+    const language2 = await getUserLanguage(userId2);
+    const messages2 = await getMessages(language2 as any);
     const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("❌ Cancel", cancelBtnData)],
         navButtons,

@@ -151,7 +151,7 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
                 message += `   💹 ${t.pricesRefreshForLatest}\n`;
             }
 
-            message += `   💧 Volume: ${volumeStr} | ⏰ Ends: ${endDate}\n\n`;
+            message += `   💧 ${t.volume}: ${volumeStr} | ⏰ Ends: ${endDate}\n\n`;
         });
 
         const marketButtons = validMarkets.map((market, idx) =>

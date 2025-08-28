@@ -76,7 +76,7 @@ ${await t("selectStrategyPrompt", language)}
 export async function handleStrategySelection(
     ctx: Context,
     strategy: "degen" | "turtle",
-    timeFilter: "1h" | "4h" | "24h" | "48h" = "1h"
+    timeFilter: "1h" | "4h" | "24h" | "48h" = "48h"
 ) {
     const msg = await ctx.reply("🔍 Scanning for high-probability markets...");
 

@@ -18,7 +18,7 @@ export async function generateTranslatedWelcomeMessage(
     let balanceSection = `💰 ${t("balances", language)}
 • ${t("totalBalance", language)}: $${usdcBalance}
 • ${t("availableBalance", language)}: $${Number(usdcBalance) - lockedBalance}
-• SOL: ${solBalance} SOL
+    • ${t("sol", language)}: ${solBalance} ${t("sol", language)}
 • ${t("lockedBalance", language)}: $${lockedBalance}`;
 
     if (polBalance !== undefined) {
@@ -40,15 +40,15 @@ ${t("welcome", language)}
 
 ${balanceSection}
 
-🔥 What you can do:
-• Blast YES/NO bets with market or limit orders
-• Copy top wallets instantly
-• Get alerts by category — "Elections", "Crypto", "AI"
-• Track PnL and open positions
-• Fund your wallet with SOL or Polygon USDC — your choice
+🔥 ${t("whatYouCanDo", language)}:
+• ${t("blastYesNoBets", language)}
+• ${t("copyTopWallets", language)}
+• ${t("getAlertsByCategory", language)}
+• ${t("trackPnlPositions", language)}
+• ${t("fundWalletWithSol", language)}
 
-👉 Use /fund to load up and start trading
-No logins. No browser tabs. Just pure prediction market flow. 🫡
+👉 ${t("useFundCommand", language)}
+${t("noLoginsBrowserTabs", language)} 🫡
 `.trim();
 }
 
@@ -68,7 +68,7 @@ export async function generateTranslatedWalletDetailsMessage(
     let balanceSection = `
 <b>💰 ${t("balances", language)}</b>
 <b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
-<b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL`;
+<b>🌟 ${t("sol", language)}:</b> ${solBalance.toFixed(4)} ${t("sol", language)}`;
 
     if (polBalance !== undefined) {
         balanceSection += `\n<b>⛽ POL:</b> ${polBalance.toFixed(4)} POL`;
@@ -86,7 +86,7 @@ export async function generateTranslatedWalletDetailsMessage(
 
 <b>🔗 ${t("addresses", language)}</b>
 <b>EVM:</b> <code>${evmWalletAddress}</code>
-<b>Solana:</b> <code>${solanaWalletAddress || "N/A"}</code>
+<b>${t("solana", language)}:</b> <code>${solanaWalletAddress || "N/A"}</code>
 
 ${balanceSection}
 `.trim();

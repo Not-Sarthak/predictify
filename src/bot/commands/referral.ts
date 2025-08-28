@@ -1,6 +1,8 @@
 import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import { getReferralStats } from "../../utils/referral/referral-tracker";
+import { getMessages } from "../../i18n";
+import { getUserLanguage } from "../../helpers/user-language";
 
 export async function handleRefCommand(ctx: Context) {
     try {
@@ -8,20 +10,15 @@ export async function handleRefCommand(ctx: Context) {
 
         const botInfo = await ctx.telegram.getMe();
         const botUsername = botInfo.username;
-        const language = await (async () => {
-            try {
-                return (
-                    (ctx.from &&
-                        (await import("../../helpers/user-language").then((m) =>
-                            m.getUserLanguage(ctx.from!.id)
-                        ))) ||
-                    "en"
-                );
-            } catch {
-                return "en";
+        let language = "en";
+        try {
+            if (ctx.from) {
+                language = await getUserLanguage(ctx.from.id);
             }
-        })();
-        const messages = (await import("../../i18n/translate")).getMessages(language as any);
+        } catch {
+            language = "en";
+        }
+        const messages = getMessages(language as any);
 
         const stats = await getReferralStats(userId, botUsername);
 
@@ -39,7 +36,12 @@ export async function handleRefCommand(ctx: Context) {
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback(messages.refresh, "referral:refresh")],
+                        [
+                            Markup.button.callback(
+                                messages.refresh || "🔄 Try Again",
+                                "referral:refresh"
+                            ),
+                        ],
                         [Markup.button.callback("🔙 Main Menu", "main_menu")],
                     ]).reply_markup,
                 }
@@ -108,6 +110,16 @@ export async function handleRefCommand(ctx: Context) {
         console.error("Error in ref command:", error);
 
         // Enhanced error message with troubleshooting tips
+        let language = "en";
+        if (ctx.from) {
+            try {
+                language = await getUserLanguage(ctx.from.id);
+            } catch {
+                language = "en";
+            }
+        }
+        const messages = getMessages(language as any);
+
         await ctx.reply(
             "❌ **Error fetching referral stats**\n\n" +
                 "We're having trouble connecting to our database. This might be due to:\n" +
@@ -118,7 +130,12 @@ export async function handleRefCommand(ctx: Context) {
             {
                 parse_mode: "Markdown",
                 reply_markup: Markup.inlineKeyboard([
-                    [Markup.button.callback("🔄 Try Again", "referral:refresh")],
+                    [
+                        Markup.button.callback(
+                            messages.tryAgain || "🔄 Try Again",
+                            "referral:refresh"
+                        ),
+                    ],
                     [Markup.button.callback("🔙 Main Menu", "main_menu")],
                 ]).reply_markup,
             }
@@ -128,16 +145,15 @@ export async function handleRefCommand(ctx: Context) {
 
 export async function handleRefreshReferralStats(ctx: Context) {
     try {
-        const language =
-            (ctx.from &&
-                (await import("../../helpers/user-language").then((m) =>
-                    m.getUserLanguage(ctx.from!.id)
-                ))) ||
-            "en";
-        await ctx.answerCbQuery(
-            (await import("../../i18n/translate")).getMessages(language as any).refresh ||
-                "🔄 Refreshing..."
-        );
+        let language = "en";
+        if (ctx.from) {
+            try {
+                language = await getUserLanguage(ctx.from.id);
+            } catch {
+                language = "en";
+            }
+        }
+        await ctx.answerCbQuery(getMessages(language as any).refresh || "🔄 Refreshing...");
 
         if (ctx.callbackQuery && "message" in ctx.callbackQuery && ctx.callbackQuery.message) {
             await ctx.deleteMessage();
