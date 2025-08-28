@@ -18,7 +18,7 @@ export interface HighProbFilters {
 }
 
 export const defaultFilters: HighProbFilters = {
-    timeFilter: "1h",
+    timeFilter: "48h",
     tradingMode: "normal",
     excludeCrypto: false, // Default to including crypto
 };

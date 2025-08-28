@@ -50,7 +50,9 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
 
         const user = await getUserDetails(Number(userId));
         if (!user || !user.solana_address) {
-            await ctx.reply("❌ Please Set Up Your Solana Wallet First.");
+            const language = await getUserLanguage(Number(userId));
+            const messages = getMessages(language);
+            await ctx.reply(`❌ Please Set Up Your ${messages.solana} Wallet First.`);
             return;
         }
 
@@ -92,16 +94,20 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         return;
     }
 
+    const language = await getUserLanguage(Number(userId));
+
     try {
         const loadingMsg = await ctx.reply("⏳ Fetching Bridge Quote...");
 
         const user = await getUserDetails(Number(userId));
         if (!user || !user.solana_address || !user.wallet_address) {
+            const language = await getUserLanguage(Number(userId));
+            const messages = getMessages(language);
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                "❌ Please set up both your Solana and EVM wallets first."
+                `❌ Please set up both your ${messages.solana} and EVM wallets first.`
             );
             return;
         }
@@ -212,13 +218,14 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
             quoteMessage += `• ${bridgeAmount.toFixed(4)} SOL → ${outputAmount.toFixed(2)} USDC\n\n`;
             quoteMessage += `**Total:** ${totalInputAmount.toFixed(4)} SOL\n`;
         } else {
-            quoteMessage += `**You Send:** ${totalInputAmount.toFixed(4)} SOL (Solana)\n`;
-            quoteMessage += `**You Receive:** ${outputAmount.toFixed(2)} USDC (Polygon)\n\n`;
+            const messages = getMessages(language);
+            quoteMessage += `**You Send:** ${totalInputAmount.toFixed(4)} ${t("sol", language)} (${messages.solana})\n`;
+            quoteMessage += `**You Receive:** ${outputAmount.toFixed(2)} USDC (${t("polygon", language) || "Polygon"})\n\n`;
         }
 
-        quoteMessage += `**Exchange Rate:** 1 SOL ≈ ${(outputAmount / bridgeAmount).toFixed(2)} USDC\n`;
-        quoteMessage += `**Wallet Balance:** ${solBalance.toFixed(4)} SOL\n`;
-        quoteMessage += `**Reserved for Fees:** ${RESERVE_AMOUNT} SOL\n\n`;
+        quoteMessage += `**Exchange Rate:** 1 ${t("sol", language)} ≈ ${(outputAmount / bridgeAmount).toFixed(2)} USDC\n`;
+        quoteMessage += `**Wallet Balance:** ${solBalance.toFixed(4)} ${t("sol", language)}\n`;
+        quoteMessage += `**Reserved for Fees:** ${RESERVE_AMOUNT} ${t("sol", language)}\n\n`;
 
         if (needsPOL && polAllocation > 0) {
             quoteMessage += `✅ This will provide sufficient POL for ~100-200 transactions\n`;
@@ -227,7 +234,7 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         quoteMessage += `⚠️ *This is the Maximum Amount you can Safely Bridge*`;
 
         const confirmButtons = [
-            [Markup.button.callback("✅ Confirm Bridge", `bridge_confirm:${userId}`)],
+            [Markup.button.callback(`✅ ${t("confirm", language)}`, `bridge_confirm:${userId}`)],
             [CLOSE_BUTTON],
         ];
 
@@ -362,8 +369,8 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             successMessage += `[View POL Tx](https://solscan.io/tx/${polTxSignature})\n\n`;
         }
 
-        successMessage += `🔸 **Main Bridge:** ${storedQuote.usdcAllocation?.toFixed(4)} SOL → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC\n`;
-        successMessage += `**Network:** Solana → Polygon\n\n`;
+        successMessage += `🔸 **Main Bridge:** ${storedQuote.usdcAllocation?.toFixed(4)} ${t("sol", language)} → ${parseFloat(storedQuote.estimatedOutput).toFixed(2)} USDC\n`;
+        successMessage += `**Network:** ${t("solana", language)} → ${t("polygon", language) || "Polygon"}\n\n`;
         successMessage += `🔄 **Status:** Processing\n\n`;
         successMessage += `[View USDC Bridge](https://solscan.io/tx/${usdcTxSignature})\n`;
         successMessage += `[Track on DeBridge](https://app.debridge.finance/order?orderId=${bridgeResult.orderId || ""})\n\n`;
@@ -372,7 +379,6 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             successMessage += `✅ Your wallet will have sufficient POL for gas fees once processing completes`;
         }
 
-        const language = await getUserLanguage(Number(userId));
         const statusButtons = [
             [Markup.button.callback(`🏠 ${t("mainMenu", language)}`, "back_to_main_menu")],
         ];

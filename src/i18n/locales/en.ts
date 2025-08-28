@@ -406,10 +406,13 @@ Your wallet's live. Let's degen.`,
     bitcoin: "Bitcoin",
     ethereum: "Ethereum",
     solana: "Solana",
+    polygon: "Polygon",
     xrp: "XRP",
     dogecoin: "Dogecoin",
     hyperliquid: "Hyperliquid",
     orderbook: "Orderbook",
+    order: "order",
+    book: "book",
 
     // Profile toggle
     showUsernameInPnLCards: "✅ Show Username in PnL Cards",
@@ -585,6 +588,12 @@ Your wallet's live. Let's degen.`,
     editPriceAlertMarketLabel: "<b>Market:</b>",
     editPriceAlertCurrentTrigger: "<b>Current Trigger:</b>",
     editPriceAlertPrompt: "Please send a new price for this alert (between 0 and 1).",
+
+    // Set Price Alert flow
+    setPriceAlertTitle: "🔔 <b>Set Price Alert for this Market</b>",
+    setPriceAlertEnterDetails: "Enter <b>Price</b> & <b>Side</b> details below:",
+    setPriceAlertFormat: "Format: <code>Price</code> <code>Yes/No</code>",
+    setPriceAlertExample: "Example: <code>0.7</code> <code>No</code>",
 
     // Portfolio Command Translations
     noWalletLinked: "⚠️ No Associated Wallet Address Found With Your Account!",

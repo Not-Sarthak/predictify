@@ -7,7 +7,8 @@ export interface LocaleMessages {
     refresh: string;
     next: string;
     previous: string;
-
+    order: string;
+    book: string;
     // Main menu
     subscriptions: string;
     trade: string;
@@ -402,6 +403,7 @@ export interface LocaleMessages {
     bitcoin: string;
     ethereum: string;
     solana: string;
+    polygon: string;
     xrp: string;
     dogecoin: string;
     hyperliquid: string;
@@ -577,6 +579,12 @@ export interface LocaleMessages {
     editPriceAlertMarketLabel: string;
     editPriceAlertCurrentTrigger: string;
     editPriceAlertPrompt: string;
+
+    // Set Price Alert flow
+    setPriceAlertTitle: string;
+    setPriceAlertEnterDetails: string;
+    setPriceAlertFormat: string;
+    setPriceAlertExample: string;
 
     // Portfolio Command Translations
     noWalletLinked: string;
