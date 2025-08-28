@@ -407,10 +407,17 @@ Your wallet's live. Let's degen.`,
     bitcoin: "Bitcoin",
     ethereum: "Ethereum",
     solana: "Solana",
+    polygon: "Polygon",
     xrp: "XRP",
     dogecoin: "Dogecoin",
     hyperliquid: "Hyperliquid",
     orderbook: "Orderbook",
+    order: "order",
+    book: "book",
+
+    // Profile toggle
+    showUsernameInPnLCards: "✅ Show Username in PnL Cards",
+    hideUsernameInPnLCards: "❌ Hide Username in PnL Cards",
 
     // Market direction words
     up: "Up",
@@ -577,6 +584,18 @@ Your wallet's live. Let's degen.`,
     editAlert: "✏️ Edit Alert",
     deleteAlert: "🗑️ Delete Alert",
 
+    // Edit Price Alert flow
+    editPriceAlertTitle: "✏️ <b>Edit Price Alert</b>",
+    editPriceAlertMarketLabel: "<b>Market:</b>",
+    editPriceAlertCurrentTrigger: "<b>Current Trigger:</b>",
+    editPriceAlertPrompt: "Please send a new price for this alert (between 0 and 1).",
+
+    // Set Price Alert flow
+    setPriceAlertTitle: "🔔 <b>Set Price Alert for this Market</b>",
+    setPriceAlertEnterDetails: "Enter <b>Price</b> & <b>Side</b> details below:",
+    setPriceAlertFormat: "Format: <code>Price</code> <code>Yes/No</code>",
+    setPriceAlertExample: "Example: <code>0.7</code> <code>No</code>",
+
     // Portfolio Command Translations
     noWalletLinked: "⚠️ No Associated Wallet Address Found With Your Account!",
     generatingPortfolioCard: "⚡ Generating your Portfolio Card...",
@@ -645,4 +664,29 @@ Your wallet's live. Let's degen.`,
     // Subscription action messages
     subscriptionAdded: "📬 You'll Now Receive Alerts for:",
     subscriptionRemoved: "🗑️ Alerts Removed For:",
+
+    // 0DTE and hourly market labels
+    volumeLabel: "💧 Volume:",
+    timeLeftLabel: "⌛ Time left:",
+    endsLabel: "⌛ Ends:",
+    marketsAvailable: "Markets Available",
+    minutesShort: "minutes",
+
+    // Error messages for markets
+    noActiveMarketsInEvent: "❌ No Active Markets Available in This Event.",
+    noAvailableZeroDteMarkets: "⚠️ No Available 0DTE Markets!",
+
+    // Watchlist messages
+    watchlistEmpty: "❤️ Your Watchlist is Empty",
+    watchlistEmptyDescription: "Add markets to your watchlist to track them easily.",
+    addToWatchlistInstruction:
+        "You can add markets by clicking the '❤️ Add to My Watchlist' button when viewing any market.",
+    yourWatchlist: "❤️ Your Watchlist",
+    errorFetchingWatchlist: "❌ Error fetching your watchlist. Please try again later.",
+    watchlistErrorGeneral:
+        "❌ An error occurred while fetching your watchlist. Please try again later.",
+    unableToDisplayMarkets: "Unable to display markets. Please try again later.",
+    pricesRefreshForLatest: "Prices: *Refresh for latest*",
+    unknownMarket: "Unknown Market",
+    unknownEndDate: "Unknown",
 };

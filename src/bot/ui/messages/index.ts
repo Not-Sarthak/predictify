@@ -28,7 +28,7 @@ export const generateWelcomeMessage = async (
     let balanceSection = `💰 ${t("yourBalances", language)}
 • ${t("totalBalance", language)}: $${usdcBalance}
 • ${t("availableBalance", language)}: $${Number(usdcBalance) - lockedBalance}
-• SOL: ${solBalance} SOL
+• ${t("sol", language)}: ${solBalance} ${t("sol", language)}
 • ${t("lockedBalance", language)}: $${lockedBalance}`;
 
     if (polBalance !== undefined) {
@@ -75,7 +75,7 @@ export const generateWalletDetailsMessage = async (
     let balanceSection = `
 <b>💰 ${t("balances", language)}</b>
 <b>💵 USDC:</b> $${usdcBalance.toLocaleString()}
-<b>🌟 SOL:</b> ${solBalance.toFixed(4)} SOL`;
+<b>🌟 ${t("sol", language)}:</b> ${solBalance.toFixed(4)} ${t("sol", language)}`;
 
     if (polBalance !== undefined) {
         balanceSection += `\n<b>⛽ POL:</b> ${polBalance.toFixed(4)} POL`;
@@ -93,7 +93,7 @@ export const generateWalletDetailsMessage = async (
 
 <b>🔗 ${t("addresses", language)}</b>
 <b>EVM:</b> <code>${evmWalletAddress}</code>
-<b>Solana:</b> <code>${solanaWalletAddress || "N/A"}</code>
+<b>${t("solana", language)}:</b> <code>${solanaWalletAddress || "N/A"}</code>
 
 ${balanceSection}
 `.trim();
@@ -349,13 +349,25 @@ export async function generate0DTEMarketCategoryKeyboard(userId?: number) {
         return keyboard;
     }
 
-    // Default English keyboard for backward compatibility
+    // Default English keyboard for backward compatibility - use locale strings so crypto names (e.g. Solana) come from i18n
+    const messagesEn = getMessages("en" as any);
+    const cryptoTranslationsEn: Record<string, string> = {
+        Bitcoin: messagesEn.bitcoin,
+        Ethereum: messagesEn.ethereum,
+        Solana: messagesEn.solana,
+        XRP: messagesEn.xrp,
+        Dogecoin: messagesEn.dogecoin,
+    };
+
     const CATEGORY_BUTTONS = ZERO_DTE_MARKETS_CATEGORY_LIST.map((category) =>
-        Markup.button.callback(category, `zero_dte_category:${category.toLowerCase()}`)
+        Markup.button.callback(
+            cryptoTranslationsEn[category] || category,
+            `zero_dte_category:${category.toLowerCase()}`
+        )
     );
 
     const HOURLY_0DTE_MARKET_BUTTON = Markup.button.callback(
-        "⚡ Hourly Markets",
+        messagesEn.hourlyMarkets,
         "view_hourly_0dte_markets"
     );
 

@@ -18,7 +18,7 @@ const SYMBOL_MAP: Record<string, Symbols> = {
     xrp: "XRPUSDT",
 };
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string, language: SupportedLanguage): string {
     const date = new Date(dateString);
 
     // Check if date is valid
@@ -26,11 +26,8 @@ export function formatDate(dateString: string): string {
         return "N/A";
     }
 
-    const month = date.toLocaleString("en-US", { month: "long" }); // e.g., June
     const day = date.getDate();
     const year = date.getFullYear();
-
-    // Add ordinal suffix to day (st, nd, rd, th)
     const getOrdinal = (n: number) => {
         if (n > 3 && n < 21) return "th";
         switch (n % 10) {
@@ -44,8 +41,35 @@ export function formatDate(dateString: string): string {
                 return "th";
         }
     };
+    // Try to use i18n month names from messages (keys: january..december)
+    try {
+        const messages = getMessages(language as any);
+        const monthKeys = [
+            "january",
+            "february",
+            "march",
+            "april",
+            "may",
+            "june",
+            "july",
+            "august",
+            "september",
+            "october",
+            "november",
+            "december",
+        ];
+        const monthIndex = date.getMonth();
+        const monthKey = monthKeys[monthIndex];
+        const month =
+            (messages && (messages as any)[monthKey]) ||
+            date.toLocaleString("en-US", { month: "long" });
 
-    return `${month} ${day}${getOrdinal(day)}, ${year}`;
+        return `${month} ${day}${getOrdinal(day)}, ${year}`;
+    } catch (e) {
+        const month = date.toLocaleString("en-US", { month: "long" }); // e.g., June
+        return `${month} ${day}${getOrdinal(day)}, ${year}`;
+    }
+    // Add ordinal suffix to day (st, nd, rd, th)
 }
 
 export function formatActiveSubscriptionsMessage(categories: string[]): string {
@@ -61,7 +85,10 @@ export function formatActiveSubscriptionsMessageWithTranslation(
     return `${t.mySubscriptions}:\n• ${translatedCategories.join("\n• ")}`;
 }
 
-export function formatCurrentTradePositionsMessage(userPositions: UserPositionResponse[]) {
+export async function formatCurrentTradePositionsMessage(
+    userPositions: UserPositionResponse[],
+    userId: number
+) {
     const userPositionsMessages: { message: string; marketId: string }[] = [];
 
     for (const position of userPositions) {
@@ -81,12 +108,12 @@ export function formatCurrentTradePositionsMessage(userPositions: UserPositionRe
         const isProfit = cashPnl > 0;
         const pnlEmoji = isProfit ? "📈" : "📉";
         const outcomeEmoji = outcome === "Yes" ? "🟢" : "🔴";
-
+        const language = await getUserLanguage(Number(userId));
         const message = `📊 *${title}*
 ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPrice.toFixed(4)}
 💼 Value: ${currentValue.toFixed(4)} USDC | ${pnlEmoji} PnL: ${cashPnl.toFixed(2)} (${percentPnl.toFixed(1)}%)
 
-📆 Ends: ${formatDate(endDate)}
+📆 Ends: ${formatDate(endDate, language)}
 🔗 [View Market](https://polymarket.com/market/${slug})`;
 
         userPositionsMessages.push({ message, marketId: position.conditionId });
@@ -115,6 +142,7 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             return "⚠️ Unable to Fetch Orderbook Data.";
         }
 
+        const language = await getUserLanguage(Number(userId));
         const { private_key, api_credentials } = userDetails;
         const apiCreds = JSON.parse(api_credentials);
 
@@ -123,8 +151,7 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
             privateKey: decryptPrivateKey(private_key),
             creds: apiCreds,
         });
-
-        let orderBookDisplay = `📈 **Order Book**\n`;
+        let orderBookDisplay = `📈 **${t("orderbook", language)}**\n`;
         orderBookDisplay += `\`\`\`\n`;
         orderBookDisplay += `Price     Size     Total\n`;
         orderBookDisplay += `---------------------------\n`;

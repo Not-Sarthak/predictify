@@ -1,6 +1,8 @@
 import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import { getReferralStats } from "../../utils/referral/referral-tracker";
+import { getMessages } from "../../i18n";
+import { getUserLanguage } from "../../helpers/user-language";
 
 export async function handleRefCommand(ctx: Context) {
     try {
@@ -8,6 +10,15 @@ export async function handleRefCommand(ctx: Context) {
 
         const botInfo = await ctx.telegram.getMe();
         const botUsername = botInfo.username;
+        let language = "en";
+        try {
+            if (ctx.from) {
+                language = await getUserLanguage(ctx.from.id);
+            }
+        } catch {
+            language = "en";
+        }
+        const messages = getMessages(language as any);
 
         const stats = await getReferralStats(userId, botUsername);
 
@@ -25,7 +36,12 @@ export async function handleRefCommand(ctx: Context) {
                 {
                     parse_mode: "Markdown",
                     reply_markup: Markup.inlineKeyboard([
-                        [Markup.button.callback("🔄 Try Again", "referral:refresh")],
+                        [
+                            Markup.button.callback(
+                                messages.refresh || "🔄 Try Again",
+                                "referral:refresh"
+                            ),
+                        ],
                         [Markup.button.callback("🔙 Main Menu", "main_menu")],
                     ]).reply_markup,
                 }
@@ -78,7 +94,10 @@ export async function handleRefCommand(ctx: Context) {
                 ),
             ],
             [
-                Markup.button.callback("🔄 Refresh Stats", "referral:refresh"),
+                Markup.button.callback(
+                    messages.refreshStats || `${messages.refresh} Stats`,
+                    "referral:refresh"
+                ),
                 Markup.button.callback("🔙 Main Menu", "main_menu"),
             ],
         ]);
@@ -91,6 +110,16 @@ export async function handleRefCommand(ctx: Context) {
         console.error("Error in ref command:", error);
 
         // Enhanced error message with troubleshooting tips
+        let language = "en";
+        if (ctx.from) {
+            try {
+                language = await getUserLanguage(ctx.from.id);
+            } catch {
+                language = "en";
+            }
+        }
+        const messages = getMessages(language as any);
+
         await ctx.reply(
             "❌ **Error fetching referral stats**\n\n" +
                 "We're having trouble connecting to our database. This might be due to:\n" +
@@ -101,7 +130,12 @@ export async function handleRefCommand(ctx: Context) {
             {
                 parse_mode: "Markdown",
                 reply_markup: Markup.inlineKeyboard([
-                    [Markup.button.callback("🔄 Try Again", "referral:refresh")],
+                    [
+                        Markup.button.callback(
+                            messages.tryAgain || "🔄 Try Again",
+                            "referral:refresh"
+                        ),
+                    ],
                     [Markup.button.callback("🔙 Main Menu", "main_menu")],
                 ]).reply_markup,
             }
@@ -111,7 +145,15 @@ export async function handleRefCommand(ctx: Context) {
 
 export async function handleRefreshReferralStats(ctx: Context) {
     try {
-        await ctx.answerCbQuery("🔄 Refreshing...");
+        let language = "en";
+        if (ctx.from) {
+            try {
+                language = await getUserLanguage(ctx.from.id);
+            } catch {
+                language = "en";
+            }
+        }
+        await ctx.answerCbQuery(getMessages(language as any).refresh || "🔄 Refreshing...");
 
         if (ctx.callbackQuery && "message" in ctx.callbackQuery && ctx.callbackQuery.message) {
             await ctx.deleteMessage();

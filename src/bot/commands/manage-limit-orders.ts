@@ -5,6 +5,8 @@ import { encodeMarketConditionId } from "../../utils/encoding";
 import { redisClient } from "../../lib/redis";
 import { CLOSE_BUTTON } from "../ui/buttons";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getMessages } from "../../i18n";
 
 export async function handleShowManageOrdersMainMenu(ctx: Context) {
     return ctx.reply("⚙️ Manage your orders", {
@@ -67,8 +69,12 @@ export async function sendPaginatedOrder(ctx: Context, orders: any[], offset: nu
         Markup.button.callback("❌ Cancel Order", `cancel_order:${encodedOrderId}`),
     ];
 
+    const userId = getUserIdFromCtx(ctx);
+    const language = await await getUserLanguage(userId);
+    const messages = getMessages(language as any);
+
     const bottomButtons = [
-        Markup.button.callback("🔄 Refresh", `refresh_order:${offset}`),
+        Markup.button.callback(messages.refresh, `refresh_order:${offset}`),
         CLOSE_BUTTON,
     ];
 
@@ -157,10 +163,13 @@ export async function sendPaginatedTpSlOrder(ctx: Context, orders: any[], offset
     const cancelBtnData = isOrderTp
         ? `stop_tp:${encodeMarketConditionId(order.marketId)}`
         : `stop_sl:${encodeMarketConditionId(order.marketId)}`;
+    const userId2 = getUserIdFromCtx(ctx);
+    const language2 = await getUserLanguage(userId2);
+    const messages2 = await getMessages(language2 as any);
     const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("❌ Cancel", cancelBtnData)],
         navButtons,
-        [Markup.button.callback("🔄 Refresh", `tp_sl:refresh:${offset}`), CLOSE_BUTTON],
+        [Markup.button.callback(messages2.refresh, `tp_sl:refresh:${offset}`), CLOSE_BUTTON],
     ]);
 
     const isPaginatedNavigation = (ctx.callbackQuery as any)?.data?.startsWith("tp_sl:");

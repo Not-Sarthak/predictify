@@ -237,14 +237,16 @@ export async function handleCallbackQuery(ctx: Context) {
 
         await redisClient.hSet(`user:edit_price_alert:${userId}`, shortKey, configStr);
         await setUserInputState(userIdStr, "edit_price_alert");
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
 
-        return ctx.reply(
-            `✏️ <b>Edit Price Alert</b>\n\n` +
-                `<b>Market:</b> ${marketTitle}\n` +
-                `<b>Current Trigger:</b> ${config.price}\n\n` +
-                `Please send a new price for this alert (between 0 and 1).`,
-            { parse_mode: "HTML" }
-        );
+        const reply =
+            `${messages.editPriceAlertTitle}\n\n` +
+            `${messages.editPriceAlertMarketLabel} ${marketTitle}\n` +
+            `${messages.editPriceAlertCurrentTrigger} ${config.price}\n\n` +
+            `${messages.editPriceAlertPrompt}`;
+
+        return ctx.reply(reply, { parse_mode: "HTML" });
     }
 
     if (data.startsWith("close_position:")) {
@@ -852,7 +854,8 @@ export async function handleCallbackQuery(ctx: Context) {
                 parse_mode: "Markdown",
                 reply_markup: markup,
             });
-            await ctx.answerCbQuery("🔄 Refreshed!");
+            const language = await getUserLanguage(userId);
+            await ctx.answerCbQuery(`${getMessages(language).refresh}ed!`);
         } catch (err) {
             console.error("Refresh failed:", err);
             await ctx.answerCbQuery("⚠️ Could not refresh.");
@@ -901,14 +904,16 @@ export async function handleCallbackQuery(ctx: Context) {
 
         setUserInputState(userIdStr, "set_price_alert");
 
-        const message = `🔔 <b>Set Price Alert for this Market</b>\n
-Enter <b>Price</b> & <b>Side</b> details below:\n
-Format: <code>Price</code> <code>Yes/No</code>\n
-Example: <code>0.7</code> <code>No</code>`;
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
 
-        return ctx.reply(message, {
-            parse_mode: "HTML",
-        });
+        const message =
+            `${messages.setPriceAlertTitle}\n\n` +
+            `${messages.setPriceAlertEnterDetails}\n` +
+            `${messages.setPriceAlertFormat}\n` +
+            `${messages.setPriceAlertExample}`;
+
+        return ctx.reply(message, { parse_mode: "HTML" });
     }
 
     if (data.startsWith("take_profit:") || data.startsWith("stop_loss:")) {
@@ -941,13 +946,21 @@ Example: <code>0.7</code> <code>No</code>`;
         const message = isTp ? "💸 Set Take Profit" : "🛑 Set Stop Loss";
         const cbId = isTp ? "tp" : "sl";
 
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
+
         const keyboard = [
             [
                 Markup.button.callback("25%", `${cbId}:25`),
                 Markup.button.callback("50%", `${cbId}:50`),
                 Markup.button.callback("100%", `${cbId}:100`),
             ],
-            [Markup.button.callback("Custom", `${cbId}:custom`)],
+            [
+                Markup.button.callback(
+                    messages.enterCustom.replace("✨ ", "") || messages.enterCustom,
+                    `${cbId}:custom`
+                ),
+            ],
         ];
 
         return ctx.reply(message, {
@@ -999,9 +1012,11 @@ Example: <code>0.7</code> <code>No</code>`;
             return ctx.reply("❌ Internal Server Error. Failed to Update your preferences.");
         }
 
+        const language = await getUserLanguage(userId);
+        const messages = getMessages(language);
         const toggleButtonTitle = toggleTo
-            ? "❌ Hide Username in PnL Cards"
-            : "✅ Show Username in PnL Cards";
+            ? messages.hideUsernameInPnLCards
+            : messages.showUsernameInPnLCards;
 
         const toggleButtonCallbackData = toggleTo
             ? "toggle_show_username:0"

@@ -60,8 +60,8 @@ export async function generateTranslatedViewProfileButtons(
     const language = await getUserLanguage(userId);
 
     const toggleButtonTitle = showUsernameInCards
-        ? "❌ Hide Username in PnL Cards"
-        : "✅ Show Username in PnL Cards";
+        ? t("hideUsernameInPnLCards", language)
+        : t("showUsernameInPnLCards", language);
 
     const toggleButtonCallbackData = showUsernameInCards
         ? "toggle_show_username:0"

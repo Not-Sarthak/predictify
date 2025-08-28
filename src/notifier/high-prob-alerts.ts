@@ -3,6 +3,7 @@ import { bot } from "../bot";
 import { getUserFilters } from "../bot/callbacks/high-probability";
 import { fetchHighProbabilityMarkets } from "../utils/high-prob-trading/market-fetcher";
 import type { HighProbMarket } from "../utils/high-prob-trading/market-filters";
+import { t } from "../i18n";
 
 interface UserAlertSettings {
     enabled: boolean;
@@ -99,7 +100,7 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
         message += `**${index + 1}.** ${market.question}\n`;
         message += `   • Probability: **${probability}%** (${market.bestOutcome.toUpperCase()})\n`;
         message += `   • Time Left: **${hoursLeft}h**\n`;
-        message += `   • Volume: **$${(market.volume || 0).toLocaleString()}**\n\n`;
+        message += `   • ${t("volume")}: **$${(market.volume || 0).toLocaleString()}**\n\n`;
     });
 
     if (count > 3) {
@@ -200,6 +201,29 @@ export async function enableAlertsForUser(userId: string): Promise<void> {
         lastNotificationTime: 0, // Reset cooldown
         notifiedMarkets: new Set(), // Reset notifications
     });
+}
+
+/**
+ * Enable alerts and set default strategy timeframes
+ */
+export async function enableAlertsForUserWithTimeframes(
+    userId: string,
+    timeframes: Array<"1h" | "4h" | "24h" | "48h"> = ["1h", "4h", "24h", "48h"]
+): Promise<void> {
+    await setUserAlertSettings(userId, {
+        enabled: true,
+        lastNotificationTime: 0,
+        notifiedMarkets: new Set(),
+    });
+
+    // Save preferred timeframes for high-prob alerts per user
+    try {
+        await redisClient.hSet(`user:highprob_alert_timeframes:${userId}`, {
+            timeframes: JSON.stringify(timeframes),
+        });
+    } catch (error) {
+        console.error("Error saving user alert timeframes:", error);
+    }
 }
 
 /**
