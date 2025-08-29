@@ -60,10 +60,6 @@ export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
         description: t("cmdRef", locale as any),
     },
     {
-        command: "detailed",
-        description: t("cmdDetailed", locale as any),
-    },
-    {
         command: "redeem",
         description: t("cmdRedeem", locale as any),
     },
