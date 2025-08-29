@@ -30,7 +30,7 @@ export async function getFundMessage(ctx: Context) {
         getPOLBalance(evmWalletAddress),
     ]);
 
-    const message = generateWalletDetailsMessage(
+    const message = await generateWalletDetailsMessage(
         evmWalletAddress,
         solanaWalletAddress,
         usdcBalance,
