@@ -8,7 +8,6 @@ export * from "./trade";
 export * from "./watchlist";
 export * from "./high-probability";
 export * from "./referral";
-export * from "./active-user-analytics";
 export * from "./detailed-analytics";
 export * from "./notify-all";
 export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
@@ -59,10 +58,6 @@ export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
     {
         command: "ref",
         description: t("cmdRef", locale as any),
-    },
-    {
-        command: "analytics",
-        description: t("cmdAnalytics", locale as any),
     },
     {
         command: "detailed",

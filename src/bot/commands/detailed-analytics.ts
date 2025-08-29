@@ -157,31 +157,6 @@ export async function handleDetailedAnalytics(ctx: Context) {
         }
 
         // Performance insights
-        message += `**💡 Key Insights**\n`;
-        if (weeklyTrends.length >= 2) {
-            const recentWeeks = weeklyTrends.slice(-2);
-            const [prevWeek, currentWeek] = recentWeeks;
-            const momentum =
-                currentWeek.active_users > prevWeek.active_users ? "gaining" : "losing";
-            const momentumEmoji = momentum === "gaining" ? "📈" : "📉";
-            message += `${momentumEmoji} User momentum: ${momentum}\n`;
-        }
-
-        if (engagementStats) {
-            const conversionRate =
-                engagementStats.totalUsers > 0
-                    ? (engagementStats.activeUsers / engagementStats.totalUsers) * 100
-                    : 0;
-            const conversionEmoji =
-                conversionRate >= 50 ? "🎯" : conversionRate >= 25 ? "📊" : "⚠️";
-            message += `${conversionEmoji} User activation rate: ${formatNumber(conversionRate, 1)}%\n`;
-
-            if (engagementStats.whaleUsers > 0) {
-                const whaleContribution =
-                    (engagementStats.whaleUsers / engagementStats.totalUsers) * 100;
-                message += `🐋 Whale concentration: ${formatNumber(whaleContribution, 1)}% of users\n`;
-            }
-        }
 
         await ctx.reply(message, { parse_mode: "Markdown" });
     } catch (error) {
