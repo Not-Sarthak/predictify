@@ -1,19 +1,12 @@
 import { Markup } from "telegraf";
-import {
-    BACK_TO_MAIN_MENU_BUTTON,
-    BRIDGE_BUTTON,
-    CLOSE_BUTTON,
-    getBackToMainMenuButton,
-} from "./common";
+import { BRIDGE_BUTTON, CLOSE_BUTTON, getBackToMainMenuButton } from "./common";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t } from "../../../i18n";
+import { t, type SupportedLanguage } from "../../../i18n";
 
 /**
  * Generate main menu buttons with translations
  */
-export async function generateTranslatedMainMenuButtons(userId: number) {
-    const language = await getUserLanguage(userId);
-
+export function generateTranslatedMainMenuButtons(language: SupportedLanguage) {
     return [
         [
             Markup.button.callback(t("subscriptions", language), `start:subscriptions`),

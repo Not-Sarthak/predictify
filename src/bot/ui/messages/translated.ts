@@ -1,5 +1,5 @@
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t, type SupportedLanguage } from "../../../i18n";
+import { t } from "../../../i18n";
 
 /**
  * Generate welcome message with translations

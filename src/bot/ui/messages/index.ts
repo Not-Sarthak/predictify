@@ -6,7 +6,7 @@ import {
     getUserIdFromCtx,
 } from "../../utils";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t } from "../../../i18n";
+import { t, type SupportedLanguage } from "../../../i18n";
 import type { InlineKeyboardMarkup } from "telegraf/types";
 import { encodeMarketConditionId } from "../../../utils/encoding";
 import { ZERO_DTE_MARKETS_CATEGORY_LIST } from "../../../shared/constants";
@@ -14,32 +14,19 @@ import { redisClient } from "../../../lib/redis";
 import { getMarketByConditionId } from "../../../utils/polymarket/get-markets";
 import { getMessages } from "../../../i18n";
 
-export const generateWelcomeMessage = async (
+export const generateWelcomeMessage = (
     evm_address: string,
     solana_address: string,
     usdcBalance: string,
     solBalance: number,
     lockedBalance: number,
-    userId: number,
-    polBalance?: number
-): Promise<string> => {
-    const language = await getUserLanguage(userId);
-
-    let balanceSection = `💰 ${t("yourBalances", language)}
+    language: SupportedLanguage
+): string => {
+    const balanceSection = `💰 ${t("yourBalances", language)}
 • ${t("totalBalance", language)}: $${usdcBalance}
 • ${t("availableBalance", language)}: $${Number(usdcBalance) - lockedBalance}
 • ${t("sol", language)}: ${solBalance} ${t("sol", language)}
 • ${t("lockedBalance", language)}: $${lockedBalance}`;
-
-    if (polBalance !== undefined) {
-        balanceSection += `
-• POL: ${polBalance.toFixed(4)} POL`;
-        if (polBalance < 5) {
-            balanceSection += ` ⚠️ (${t("lowBalance", language)} - ${t("autoAcquisitionEnabled", language)})`;
-        } else {
-            balanceSection += ` ✅`;
-        }
-    }
 
     return `
 ${t("welcome", language)}

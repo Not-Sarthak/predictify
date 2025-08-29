@@ -1,6 +1,5 @@
 import { WALLET_SETTINGS_MENU } from "../ui/buttons";
 import { getUserIdFromCtx } from "../utils";
-import { getFundMessage } from "../utils/get-fund-message";
 import { getUserUSDCBalance } from "../../helpers/get-user-balance";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { db } from "../../lib/supabase";

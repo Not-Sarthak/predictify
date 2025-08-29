@@ -17,7 +17,10 @@ import {
     MIN_POL_BALANCE_THRESHOLD,
     POL_ACQUISITION_AMOUNT,
 } from "../../../shared/constants/polymarket";
+import { getUserWalletAddresses } from "../../../bot/utils/database/get-user-addresses";
+import { clearCache, getOrSetCache } from "../../cache";
 
+const MIN_BALANCE = 0.01; // Need at least 0.01 SOL to cover any fees
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
 const SOL_TOKEN_ADDRESS = "11111111111111111111111111111111";
@@ -39,30 +42,22 @@ interface BridgeQuoteData {
 const bridgeQuotes = new Map<string, BridgeQuoteData>();
 
 export async function handleBridgeFunds(ctx: Context): Promise<void> {
-    const userId = ctx.from?.id.toString();
-    if (!userId) {
-        await ctx.answerCbQuery();
-        await ctx.reply("❌ Unable to identify user.");
-        return;
-    }
+    const userId = getUserIdFromCtx(ctx).toString();
+    const userIdNumber = parseInt(userId);
+
+    const language = await getUserLanguage(userIdNumber);
+
     try {
         await ctx.answerCbQuery();
 
-        const user = await getUserDetails(Number(userId));
-        if (!user || !user.solana_address) {
-            const language = await getUserLanguage(Number(userId));
-            const messages = getMessages(language);
-            await ctx.reply(`❌ Please Set Up Your ${messages.solana} Wallet First.`);
-            return;
-        }
-
-        const solBalance = await getSOLBalance(user.solana_address);
-
-        // Minimum balance needed for any transaction
-        const MIN_BALANCE = 0.01; // Need at least 0.01 SOL to cover any fees
+        const user = await getUserWalletAddresses(userIdNumber);
+        const solBalance = await getOrSetCache(
+            `user:${userId}:sol_balance`,
+            () => getSOLBalance(user!.solana_address),
+            43200
+        );
 
         if (solBalance <= MIN_BALANCE) {
-            const language = await getUserLanguage(Number(userId));
             await ctx.reply(
                 `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedAtLeast", language)} ${MIN_BALANCE.toFixed(4)} ${t("solToBridge", language)}`
             );
@@ -73,7 +68,7 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         const maxBridgeable = Math.max(0, solBalance - 0.03);
 
         if (maxBridgeable <= 0.001) {
-            const language = await getUserLanguage(Number(userId));
+            const language = await getUserLanguage(userIdNumber);
             await ctx.reply(
                 `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedToKeep", language)} 0.03 ${t("solForFees", language)}`
             );
@@ -81,27 +76,24 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         }
 
         // Fetch quote with the safe bridgeable amount
-        await fetchAndShowQuote(ctx, maxBridgeable.toString());
-    } catch (error) {
+        await fetchAndShowQuote(ctx);
+    } catch {
         await ctx.reply("❌ An Error Occurred While Preparing the Bridge. Please Try Again.");
     }
 }
 
-async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
-    const userId = ctx.from?.id.toString();
-    if (!userId) {
-        await ctx.reply("❌ Unable to identify user.");
-        return;
-    }
+async function fetchAndShowQuote(ctx: Context): Promise<void> {
+    const userId = getUserIdFromCtx(ctx).toString();
+    const userIdNumber = parseInt(userId);
 
-    const language = await getUserLanguage(Number(userId));
+    const language = await getUserLanguage(userIdNumber);
 
     try {
         const loadingMsg = await ctx.reply("⏳ Fetching Bridge Quote...");
 
-        const user = await getUserDetails(Number(userId));
-        if (!user || !user.solana_address || !user.wallet_address) {
-            const language = await getUserLanguage(Number(userId));
+        const user = await getUserWalletAddresses(userIdNumber);
+        if (!user) {
+            const language = await getUserLanguage(userIdNumber);
             const messages = getMessages(language);
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
@@ -119,7 +111,6 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
         const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
 
         if (maxBridgeableSOL <= 0.001) {
-            const language = await getUserLanguage(Number(userId));
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
@@ -258,7 +249,9 @@ async function fetchAndShowQuote(ctx: Context, amount: string): Promise<void> {
 
 export async function handleBridgeConfirm(ctx: Context, userId: string): Promise<void> {
     const quoteKey = `bridge_quote_${userId}`;
-    const language = await getUserLanguage(Number(userId));
+    const userIdNumber = parseInt(userId);
+
+    const language = await getUserLanguage(userIdNumber);
 
     try {
         await ctx.answerCbQuery();
@@ -272,7 +265,7 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 
         const processingMsg = await ctx.reply("⏳ Processing Bridge Transaction...");
 
-        const user = await getUserDetails(Number(userId));
+        const user = await getUserDetails(userIdNumber);
 
         if (!user || !user.solana_address) {
             await ctx.telegram.editMessageText(
@@ -383,6 +376,8 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             [Markup.button.callback(`🏠 ${t("mainMenu", language)}`, "back_to_main_menu")],
         ];
 
+        await clearCache(`user:${userId}:sol_balance`);
+
         await ctx.telegram.editMessageText(
             processingMsg.chat.id,
             processingMsg.message_id,
@@ -405,7 +400,7 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 export async function handleBridgeStatus(ctx: Context, userId: string): Promise<void> {
     await ctx.answerCbQuery();
 
-    const language = await getUserLanguage(Number(userId));
+    const language = await getUserLanguage(parseInt(userId));
     await ctx.reply(
         "🔍 **Transaction Status**\n\n⏳ Your bridge transaction is being processed.\n\nPlease check your wallet in a few minutes.",
         {
