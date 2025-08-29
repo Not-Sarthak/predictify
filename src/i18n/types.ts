@@ -42,6 +42,7 @@ export interface LocaleMessages {
     setPriceAlert: string;
     takeProfit: string;
     stopLoss: string;
+    redeem: string;
 
     // Messages
     welcome: string;
@@ -605,6 +606,7 @@ export interface LocaleMessages {
     cancelTakeProfit: string;
     cancelStopLoss: string;
     generatePortfolioCard: string;
+    redeemableDashboard: string;
 
     // Portfolio refresh messages
     noLinkedWallet: string;
@@ -648,6 +650,7 @@ export interface LocaleMessages {
     cmdRef: string;
     cmdAnalytics: string;
     cmdDetailed: string;
+    cmdRedeem: string;
 
     // Subscription action messages
     subscriptionAdded: string;

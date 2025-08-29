@@ -12,6 +12,7 @@ import {
     formatSinglePositionMessage,
     getUsernameFromCtx,
     detectSymbolFromSlug,
+    formatSingleRedeemablePositionMessage,
 } from "../utils";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
 import { getUserDetails } from "../../helpers/get-user-details";
@@ -177,6 +178,35 @@ export async function handleViewTradePositions(ctx: Context) {
     });
 }
 
+export async function handleViewRedeemablePositions(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const userAddress = await getUserAddressFromId(userId);
+
+    if (!userAddress) {
+        return ctx.reply(t("noWalletLinked", language));
+    }
+
+    const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => position.redeemable);
+
+    if (filteredUserPositions.length === 0) {
+        return ctx.reply(t("noOpenPositions", language));
+    }
+
+    const { text, markup } = await formatSingleRedeemablePositionMessage(
+        userId.toString(),
+        filteredUserPositions[0],
+        0,
+        filteredUserPositions.length
+    );
+
+    await ctx.reply(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
+}
+
 export async function handleTradePagination(ctx: Context, page: string) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
@@ -195,6 +225,36 @@ export async function handleTradePagination(ctx: Context, page: string) {
     if (!position) return ctx.answerCbQuery(t("pageNotFound", language));
 
     const { text, markup } = await formatSinglePositionMessage(
+        userId.toString(),
+        position,
+        pageIndex,
+        filteredUserPositions.length
+    );
+
+    return ctx.editMessageText(text, {
+        parse_mode: "Markdown",
+        reply_markup: markup,
+    });
+}
+
+export async function handleRedeemPagination(ctx: Context, page: string) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+    const userAddress = await getUserAddressFromId(userId);
+
+    if (!userAddress) {
+        return ctx.answerCbQuery(t("noWalletLinked", language));
+    }
+
+    const userPositions = await getUserPosition({ user: userAddress });
+    const filteredUserPositions = userPositions.filter((position) => position.redeemable);
+
+    const pageIndex = parseInt(page);
+    const position = filteredUserPositions[pageIndex];
+
+    if (!position) return ctx.answerCbQuery(t("pageNotFound", language));
+
+    const { text, markup } = await formatSingleRedeemablePositionMessage(
         userId.toString(),
         position,
         pageIndex,
@@ -1661,7 +1721,6 @@ export async function handleViewHourlyMarket(ctx: Context, marketId: string) {
     const tokenIds = JSON.parse(market.clobTokenIds);
     const orderBookData = await formatOrderBook(tokenIds, userId.toString());
     message += orderBookData;
-    message += `----------------------------------\n\n`;
 
     const symbol = detectSymbolFromSlug(market.slug);
 

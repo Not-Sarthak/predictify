@@ -1,9 +1,5 @@
 import { Context, Markup } from "telegraf";
-import {
-    AUTO_TRADE_MENU_BUTTONS,
-    CLOSE_BUTTON,
-    generateAutoTradeMenuButtons,
-} from "../../ui/buttons";
+import { CLOSE_BUTTON, generateAutoTradeMenuButtons } from "../../ui/buttons";
 import {
     checkCopyTradeUserStatus,
     checkWalletCopyTradeStatus,
@@ -158,6 +154,39 @@ export const generateAutoTradeMenu = async (
     return { message: statusMessage, replyMarkup: markup };
 };
 
+export async function createRedeemablePaginationKeyboard(
+    conditionId: string,
+    index: number,
+    total: number,
+    userId: string
+) {
+    const language = await getUserLanguage(parseInt(userId));
+    const paginationButtons = [];
+
+    if (index > 0) {
+        paginationButtons.push(
+            Markup.button.callback(`⬅️ ${t("previous", language)}`, `redeem_page:${index - 1}`)
+        );
+    }
+    if (index < total - 1) {
+        paginationButtons.push(
+            Markup.button.callback(`${t("next", language)} ➡️`, `redeem_page:${index + 1}`)
+        );
+    }
+
+    const rows = [
+        [
+            Markup.button.callback(
+                t("redeem", language),
+                `redeem_position_${encodeMarketConditionId(conditionId)}`
+            ),
+        ],
+        paginationButtons,
+        [CLOSE_BUTTON],
+    ];
+
+    return Markup.inlineKeyboard(rows).reply_markup;
+}
 export async function createPaginationKeyboard(
     conditionId: string,
     index: number,

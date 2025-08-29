@@ -1,6 +1,6 @@
 import { Telegraf } from "telegraf";
 import { env } from "../config/env";
-import { botCommands, getBotCommands } from "./commands";
+import { getBotCommands } from "./commands";
 import { message } from "telegraf/filters";
 import { rejectBotSenders, requireId } from "./middlewares";
 import {
@@ -17,7 +17,7 @@ import {
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "./callbacks";
 import { handleUserTradeHistoryCommand } from "./commands/history";
-import { handleViewTradePositions } from "./callbacks/trade";
+import { handleViewRedeemablePositions, handleViewTradePositions } from "./callbacks/trade";
 import { handleShowManageOrdersMainMenu } from "./commands/manage-limit-orders";
 import { handleAutoTradeMenu } from "./ui/messages";
 import { handleViewProfileCallback } from "./callbacks/start";
@@ -77,6 +77,7 @@ bot.command("monitoring", handleMonitoringStats);
 bot.command("statistics", handleBotStatistics);
 bot.command("analytics", handleActiveUserAnalytics);
 bot.command("detailed", handleDetailedAnalytics);
+bot.command("redeem", handleViewRedeemablePositions);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);
