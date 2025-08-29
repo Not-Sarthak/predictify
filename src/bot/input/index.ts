@@ -20,6 +20,7 @@ import {
     handleHighProbAutoSplitAmount,
     handleHighProbManualAmount,
 } from "../input/high-probability";
+import { handleNotificationMessage } from "./notification-message";
 
 export async function handleUserTextMessage(ctx: Context) {
     const textMessage = ctx.text?.trim();
@@ -96,6 +97,9 @@ export async function handleUserTextMessage(ctx: Context) {
             break;
         case "highprob_manual_amount":
             await handleHighProbManualAmount(ctx, textMessage);
+            break;
+        case "notification_message":
+            await handleNotificationMessage(ctx);
             break;
         default:
             return ctx.reply("❌ Unknown input context. Please try again.");
