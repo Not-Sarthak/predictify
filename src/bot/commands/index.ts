@@ -10,6 +10,7 @@ export * from "./high-probability";
 export * from "./referral";
 export * from "./active-user-analytics";
 export * from "./detailed-analytics";
+export * from "./notify-all";
 export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
     {
         command: "start",
