@@ -40,13 +40,7 @@ export const getUserWrappedUSDCBalance = async (address: string): Promise<number
         const rpcProvider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, rpcProvider);
 
-        const balance_usdc = await Promise.race([
-            usdcContract.balanceOf(address),
-            new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("RPC call timeout")), 10000)
-            ),
-        ]);
-
+        const balance_usdc = await usdcContract.balanceOf(address);
         const balance_usdc_real = ethers.formatUnits(balance_usdc, 6);
         return parseFloat(balance_usdc_real);
     } catch (error) {
