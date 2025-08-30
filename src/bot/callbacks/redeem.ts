@@ -1,3 +1,5 @@
+import type { UserPositionResponse } from "../../types/polymarket";
+
 import { Context, Markup } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
@@ -6,6 +8,7 @@ import { getUserPositionByMarket } from "../../utils/polymarket/get-user-positio
 import { decodeMarketId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { redeemPositions } from "../../utils/polymarket/redeem";
+import axios from "axios";
 
 export async function handleRedeemPosition(ctx: Context, conditionId: string) {
     const decodedConditionId = decodeMarketId(conditionId);
@@ -59,7 +62,11 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
     const { message_id } = await ctx.reply("⏳ Processing redemption...");
 
     try {
-        const position = await getUserPositionByMarket(user.wallet_address, decodedConditionId);
+        const userPositions = await axios.get<UserPositionResponse[]>(
+            `https://data-api.polymarket.com/positions?user=${user.wallet_address}`
+        );
+
+        const [position] = userPositions.data.filter((pos) => pos.redeemable && pos.curPrice);
 
         if (!position) {
             await ctx.deleteMessage(message_id);
@@ -69,8 +76,6 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
         const result = await redeemPositions({
             privateKey: decryptPrivateKey(user.private_key),
             conditionId: decodedConditionId,
-            amount: position.size,
-            outcomeIndex: position.outcomeIndex,
         });
 
         await ctx.deleteMessage(message_id);
@@ -78,8 +83,8 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
         if (result.success) {
             return ctx.reply(
                 `✅ **Position Redeemed Successfully!**\n\n` +
-                    `Transaction: \`${result.transactionHash}\`\n\n` +
-                    `Your USDC has been credited to your wallet.`,
+                    `Your USDC has been credited to your wallet.\n\n` +
+                    `[View on Polymarket](https://polygonscan.com/tx/${result.transactionHash})`,
                 { parse_mode: "Markdown" }
             );
         } else {
