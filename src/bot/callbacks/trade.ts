@@ -189,7 +189,7 @@ export async function handleViewRedeemablePositions(ctx: Context) {
 
     const userPositions = await getUserPosition({ user: userAddress });
     const filteredUserPositions = userPositions.filter(
-        (position) => position.redeemable && position.outcomeIndex
+        (position) => position.redeemable && position.curPrice
     );
 
     if (filteredUserPositions.length === 0) {
@@ -250,7 +250,7 @@ export async function handleRedeemPagination(ctx: Context, page: string) {
 
     const userPositions = await getUserPosition({ user: userAddress });
     const filteredUserPositions = userPositions.filter(
-        (position) => position.redeemable && position.outcomeIndex
+        (position) => position.redeemable && position.curPrice
     );
 
     const pageIndex = parseInt(page);

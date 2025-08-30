@@ -170,7 +170,7 @@ export async function handleCallbackQuery(ctx: Context) {
             getLockedBalance(userId),
         ]);
 
-        const message = await generateWelcomeMessage(
+        const message = generateWelcomeMessage(
             user.wallet_address,
             user.solana_address || "N/A",
             balance.toString(),
@@ -179,7 +179,7 @@ export async function handleCallbackQuery(ctx: Context) {
             language
         );
 
-        const translatedButtons = await generateTranslatedMainMenuButtons(language);
+        const translatedButtons = generateTranslatedMainMenuButtons(language);
 
         await ctx.editMessageText(message, {
             parse_mode: "HTML",
