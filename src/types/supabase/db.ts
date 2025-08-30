@@ -172,10 +172,9 @@ export type Database = {
                     referral_code: string | null;
                     referred_code: string | null;
                     show_username_in_cards: boolean;
-                    solana_address: string | null;
-                    solana_private_key: string | null;
+                    solana_address: string;
+                    solana_private_key: string;
                     telegram_username: string;
-                    total_balance: number | null;
                     total_pnl: number;
                     total_volume: number;
                     treasury_wallet_address: string | null;
@@ -199,10 +198,9 @@ export type Database = {
                     referral_code?: string | null;
                     referred_code?: string | null;
                     show_username_in_cards?: boolean;
-                    solana_address?: string | null;
-                    solana_private_key?: string | null;
+                    solana_address?: string;
+                    solana_private_key?: string;
                     telegram_username: string;
-                    total_balance?: number | null;
                     total_pnl?: number;
                     total_volume?: number;
                     treasury_wallet_address?: string | null;
@@ -226,10 +224,9 @@ export type Database = {
                     referral_code?: string | null;
                     referred_code?: string | null;
                     show_username_in_cards?: boolean;
-                    solana_address?: string | null;
-                    solana_private_key?: string | null;
+                    solana_address?: string;
+                    solana_private_key?: string;
                     telegram_username?: string;
-                    total_balance?: number | null;
                     total_pnl?: number;
                     total_volume?: number;
                     treasury_wallet_address?: string | null;

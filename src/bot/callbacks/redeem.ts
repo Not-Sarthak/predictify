@@ -70,7 +70,7 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
             privateKey: decryptPrivateKey(user.private_key),
             conditionId: decodedConditionId,
             amount: position.size,
-            creds: JSON.parse(user.api_credentials),
+            outcomeIndex: position.outcomeIndex,
         });
 
         await ctx.deleteMessage(message_id);

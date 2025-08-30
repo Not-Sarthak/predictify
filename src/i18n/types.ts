@@ -388,6 +388,7 @@ export interface LocaleMessages {
     // Position messages
     noOpenPositions: string;
     noOpenPositionsFound: string;
+    noRedeemablePositionsFound: string;
 
     // Search and Trending
     trendingZeroDteMarkets: string;

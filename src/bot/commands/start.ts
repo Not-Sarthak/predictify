@@ -1,7 +1,6 @@
 import { Markup, type Context } from "telegraf";
 
 import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
-import { getUserByIdFromDb } from "../utils/database/get-user-db";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { generateWelcomeMessage } from "../ui/messages";
 import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
@@ -10,51 +9,51 @@ import { CHAIN_ID, HOST } from "../../shared/constants";
 import { encryptPrivateKey } from "../../utils/crypto";
 import { db } from "../../lib/supabase";
 import { generateRandomString } from "../../utils/encoding";
-import { getUserDetails } from "../../helpers/get-user-details";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { trackReferralRelationship } from "../../utils/referral/referral-tracker";
+import { getUserLanguage } from "../../helpers/user-language";
+import { getUserWalletAddresses } from "../utils/database/get-user-addresses";
+import { getOrSetCache } from "../../utils";
 
 export async function handleStartCommand(ctx: Context) {
-    const iMsg1 = await ctx.reply("⚡ Looking for your profile...");
+    const iMsg1 = await ctx.reply("⚡ Fetching your profile data...");
 
     const userId = getUserIdFromCtx(ctx);
     const referrerUsername =
         ctx.message && "text" in ctx.message ? ctx.message.text.split(" ")[1] : undefined;
 
-    const { data: existingUser, error: dbError } = await getUserByIdFromDb(userId);
-    await ctx.deleteMessage(iMsg1.message_id);
+    const [existingUser, language] = await Promise.all([
+        getOrSetCache(`user:${userId}:addresses`, () => getUserWalletAddresses(userId), 43200), // Cache Addresses for 12 Hours
+        getUserLanguage(userId),
+    ]);
 
-    if (dbError) {
-        console.error(`[START] Database error for user ${userId}:`, dbError);
-        return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
-    }
+    const translatedButtons = generateTranslatedMainMenuButtons(language);
+    const keyboard = Markup.inlineKeyboard(translatedButtons);
 
     if (existingUser) {
-        const iMsg2 = await ctx.reply("⚡ Fetching your profile data...");
-
-        const [balance, user, solBalance, lockedBalance] = await Promise.all([
-            getUserWrappedUSDCBalance(existingUser.wallet_address),
-            getUserDetails(userId),
-            getSOLBalance(existingUser.solana_address!),
-            getLockedBalance(userId),
+        const [balance, solBalance, lockedBalance] = await Promise.all([
+            getOrSetCache(
+                `user:${userId}:usdc_balance`,
+                () => getUserWrappedUSDCBalance(existingUser.wallet_address),
+                60
+            ),
+            getOrSetCache(
+                `user:${userId}:sol_balance`,
+                () => getSOLBalance(existingUser.solana_address),
+                43200 // Higher TTL than USDC Balance as it's not used as often
+            ),
+            getOrSetCache(`user:${userId}:locked_balance`, () => getLockedBalance(userId), 60),
+            ctx.deleteMessage(iMsg1.message_id),
         ]);
 
-        await ctx.deleteMessage(iMsg2.message_id);
-
-        if (!user) {
-            return ctx.reply("❌ Internal Server Error");
-        }
-
-        const message = await generateWelcomeMessage(
+        const message = generateWelcomeMessage(
             existingUser.wallet_address,
-            existingUser.solana_address || "N/A",
+            existingUser.solana_address,
             balance.toString(),
             solBalance,
             lockedBalance,
-            userId
+            language
         );
-        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
-        const keyboard = Markup.inlineKeyboard(translatedButtons);
 
         return ctx.reply(message, {
             parse_mode: "HTML",
@@ -62,7 +61,7 @@ export async function handleStartCommand(ctx: Context) {
         });
     }
 
-    const iMsg3 = await ctx.reply("⚡ Creating your account...");
+    const iMsg2 = await ctx.reply("⚡ Creating your account...");
 
     // Create new user
     try {
@@ -104,45 +103,22 @@ export async function handleStartCommand(ctx: Context) {
             },
         ]);
 
-        await ctx.deleteMessage(iMsg3.message_id);
+        await ctx.deleteMessage(iMsg2.message_id);
 
         if (insertError) {
             console.error(`[START] Error creating user ${userId}:`, insertError);
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }
 
-        const iMsg4 = await ctx.reply("⚡ Fetching your profile data...");
-
-        const [balance, user, solBalance, lockedBalance] = await Promise.all([
-            getUserWrappedUSDCBalance(address),
-            getUserDetails(userId),
-            getSOLBalance(solanaAddress),
-            getLockedBalance(userId),
-        ]);
-
-        await ctx.deleteMessage(iMsg4.message_id);
-
-        if (!user) {
-            return ctx.reply("❌ Internal Server Error");
-        }
-
-        let message = await generateWelcomeMessage(
-            address,
-            solanaAddress || "N/A",
-            balance.toString(),
-            solBalance,
-            lockedBalance,
-            userId
-        );
+        // Optimistic Approach to save time by not fetching balances (EVM, Solana and Locked)
+        // after account creation because they won't have any
+        let message = generateWelcomeMessage(address, solanaAddress || "N/A", "0", 0, 0, language);
 
         // Add referral success message if applicable
         if (referredCode !== "OPEN") {
             message += `\n\n🎉 **Welcome!** You've been referred by @${referrerUsername}!\n`;
             message += `Both you and your referrer will earn from your trading activity! 💰`;
         }
-
-        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
-        const keyboard = Markup.inlineKeyboard(translatedButtons);
 
         return ctx.reply(message, {
             parse_mode: "HTML",

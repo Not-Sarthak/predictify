@@ -11,7 +11,6 @@ import {
     handleWatchlistCommand,
     handleHighProbabilityCommand,
     handleRefCommand,
-    handleActiveUserAnalytics,
     handleDetailedAnalytics,
     handleNotifyAllCommand,
 } from "./commands";
@@ -76,8 +75,7 @@ bot.command("highprob", handleHighProbabilityCommand);
 bot.command("ref", handleRefCommand);
 bot.command("monitoring", handleMonitoringStats);
 bot.command("statistics", handleBotStatistics);
-bot.command("analytics", handleActiveUserAnalytics);
-bot.command("detailed", handleDetailedAnalytics);
+bot.command("predict", handleDetailedAnalytics);
 bot.command("redeem", handleViewRedeemablePositions);
 bot.command("notify", handleNotifyAllCommand);
 

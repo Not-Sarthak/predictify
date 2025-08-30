@@ -1,52 +1,26 @@
-// TODO:FIX - Apply Caching methods where needed
-
 import { redisClient } from "../lib/redis";
 
-type CacheType = "str" | "json";
-
-class Cache {
-    // Default TTL in Seconds
-    private defaultTTL: number = 3600;
-
-    constructor() {}
-
-    async has(key: string) {
-        return (await redisClient.exists(key)) === 1;
+export async function getOrSetCache<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    ttlSeconds: number = 60
+): Promise<T> {
+    const cached = await redisClient.get(key);
+    if (cached) {
+        return JSON.parse(cached) as T;
     }
 
-    // ---- Method Overloads ----
-    async get<T = any>(key: string, type: "json"): Promise<T | null>;
-    async get(key: string, type?: "str"): Promise<string | null>;
-
-    // --- Implementation ---
-    async get<T = any>(key: string, type: CacheType = "str"): Promise<T | string | null> {
-        const value = await redisClient.get(key);
-        if (value === null) return null;
-
-        if (type === "json") {
-            try {
-                return JSON.parse(value) as T;
-            } catch {
-                return null;
-            }
-        }
-
-        return value;
-    }
-
-    async put(key: string, value: any, type: CacheType = "str", ttl?: number): Promise<void> {
-        const stringifiedValue = type === "json" ? JSON.stringify(value) : String(value);
-        const expiry = ttl ?? this.defaultTTL;
-
-        await redisClient.set(key, stringifiedValue, {
-            expiration: {
-                type: "EX",
-                value: expiry,
-            },
-        });
-    }
+    const fresh = await fetchFn();
+    await redisClient.setEx(key, ttlSeconds, JSON.stringify(fresh));
+    return fresh;
 }
 
-const cache = new Cache();
-
-export { cache };
+export async function clearCache(key: string): Promise<boolean> {
+    try {
+        const result = await redisClient.del(key);
+        return result > 0; // true if a key was deleted
+    } catch (err) {
+        console.error(`[Redis] Failed to clear cache for key ${key}:`, err);
+        return false;
+    }
+}

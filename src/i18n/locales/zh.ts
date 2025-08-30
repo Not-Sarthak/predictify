@@ -364,6 +364,7 @@ export const zh: LocaleMessages = {
     // Position messages
     noOpenPositions: "⚠️ 您的账户没有持仓！",
     noOpenPositionsFound: "✅ 未找到持仓。",
+    noRedeemablePositionsFound: "⚠️ 無可贖回倉位",
 
     // Search and Trending
     trendingZeroDteMarkets: "⚡ 热门当日到期市场：",

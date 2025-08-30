@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
-import { db } from "../../lib/supabase";
+import { redisClient } from "../../lib/redis";
 import { clearUserInputState } from "./state";
-import { bot } from "../index";
+import { Markup } from "telegraf";
 
 export async function handleNotificationMessage(ctx: Context) {
     const message = ctx.text;
@@ -10,36 +10,14 @@ export async function handleNotificationMessage(ctx: Context) {
     const userId = ctx.from?.id;
     if (!userId) return;
 
+    await redisClient.set(`notification:message:${userId}`, message, { EX: 300 });
     await clearUserInputState(userId.toString());
 
-    try {
-        const { data: users, error } = await db("Users").select("id");
-
-        if (error || !users) {
-            return ctx.reply("❌ Failed To Fetch Users");
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-
-        await ctx.reply(`📤 Sending Notification To ${users.length} Users...`);
-
-        for (const user of users) {
-            try {
-                await bot.telegram.sendMessage(user.id, message, { parse_mode: "Markdown" });
-                successCount++;
-            } catch (error) {
-                failCount++;
-            }
-        }
-
-        await ctx.reply(
-            `✅ Notification Sent!\n\n` +
-                `📈 Delivered: ${successCount}\n` +
-                `❌ Failed: ${failCount}`
-        );
-    } catch (error) {
-        console.error("Error Sending Notification:", error);
-        await ctx.reply("❌ Failed To Send Notification");
-    }
+    await ctx.reply(`📋 *Notification Preview:*\n\n${message}\n\nSend this to all users?`, {
+        parse_mode: "Markdown",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("✅ Send", `confirm_notification:${userId}`)],
+            [Markup.button.callback("❌ Cancel", `cancel_notification:${userId}`)],
+        ]),
+    });
 }
