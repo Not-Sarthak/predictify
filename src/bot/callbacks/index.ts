@@ -157,6 +157,7 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data === "main_menu") {
         // Handle main menu callback (used by referral dashboard)
         const userId = getUserIdFromCtx(ctx);
+        const language = await getUserLanguage(userId);
         const { data: user } = await getUserByIdFromDb(userId);
 
         if (!user) {
@@ -175,10 +176,10 @@ export async function handleCallbackQuery(ctx: Context) {
             balance.toString(),
             solBalance,
             lockedBalance,
-            userId
+            language
         );
 
-        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+        const translatedButtons = await generateTranslatedMainMenuButtons(language);
 
         await ctx.editMessageText(message, {
             parse_mode: "HTML",
@@ -726,6 +727,8 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Something Went Wrong. Please Try Again Later.");
         }
 
+        const language = await getUserLanguage(userId);
+
         const [balance, user, solBalance, lockedBalance] = await Promise.all([
             getUserWrappedUSDCBalance(existingUser.wallet_address),
             getUserDetails(userId),
@@ -737,16 +740,16 @@ export async function handleCallbackQuery(ctx: Context) {
             return ctx.reply("❌ Internal Server Error");
         }
 
-        const message = await generateWelcomeMessage(
+        const message = generateWelcomeMessage(
             existingUser.wallet_address,
             existingUser.solana_address || "N/A",
             balance.toString(),
             solBalance,
             lockedBalance,
-            userId
+            language
         );
 
-        const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+        const translatedButtons = await generateTranslatedMainMenuButtons(language);
 
         return ctx.editMessageText(message, {
             parse_mode: "HTML",

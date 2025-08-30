@@ -188,7 +188,9 @@ export async function handleViewRedeemablePositions(ctx: Context) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
-    const filteredUserPositions = userPositions.filter((position) => position.redeemable);
+    const filteredUserPositions = userPositions.filter(
+        (position) => position.redeemable && position.outcomeIndex
+    );
 
     if (filteredUserPositions.length === 0) {
         return ctx.reply(t("noOpenPositions", language));
@@ -247,7 +249,9 @@ export async function handleRedeemPagination(ctx: Context, page: string) {
     }
 
     const userPositions = await getUserPosition({ user: userAddress });
-    const filteredUserPositions = userPositions.filter((position) => position.redeemable);
+    const filteredUserPositions = userPositions.filter(
+        (position) => position.redeemable && position.outcomeIndex
+    );
 
     const pageIndex = parseInt(page);
     const position = filteredUserPositions[pageIndex];
@@ -314,7 +318,6 @@ export async function handleViewTopMarketsByCategory(
 
     for (let i = 0; i < filteredMarkets.length; i++) {
         const market = filteredMarkets[i];
-        const fDate = formatDate(market.endDate, language);
         const fVolumne = formatDollarVolume(market.volume1mo || 0);
 
         // Translate market title based on user's language

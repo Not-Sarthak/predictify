@@ -32,13 +32,17 @@ const CTF_EXCHANGE_ABI = [
 const CTF_EXCHANGE_ADDRESS = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045";
 const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
 
-export async function isMarketResolved(conditionId: string, privateKey: string): Promise<boolean> {
+export async function isMarketResolved(
+    conditionId: string,
+    privateKey: string,
+    outcomeIndex: number
+): Promise<boolean> {
     try {
-        const provider = new ethers.JsonRpcProvider(env.POLYGON_RPC_URL);
+        const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const wallet = new ethers.Wallet(privateKey, provider);
         const ctfContract = new Contract(CTF_EXCHANGE_ADDRESS, CTF_EXCHANGE_ABI, wallet);
 
-        const payoutNumerators = await ctfContract.payoutNumerators(conditionId, 0);
+        const payoutNumerators = await ctfContract.payoutNumerators(conditionId, outcomeIndex);
         return payoutNumerators > 0n;
     } catch (error) {
         console.error("Error checking market resolution:", error);
@@ -50,19 +54,19 @@ export async function redeemPositions({
     privateKey,
     conditionId,
     amount,
-    creds,
+    outcomeIndex,
 }: {
     privateKey: string;
     conditionId: string;
     amount: number;
-    creds: ApiKeyCreds;
+    outcomeIndex: number;
 }): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     try {
-        const provider = new ethers.JsonRpcProvider(env.POLYGON_RPC_URL);
+        const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const wallet = new ethers.Wallet(privateKey, provider);
         const ctfContract = new Contract(CTF_EXCHANGE_ADDRESS, CTF_EXCHANGE_ABI, wallet);
 
-        const isResolved = await isMarketResolved(conditionId, privateKey);
+        const isResolved = await isMarketResolved(conditionId, privateKey, outcomeIndex);
         if (!isResolved) {
             return { success: false, error: "Market not resolved yet" };
         }

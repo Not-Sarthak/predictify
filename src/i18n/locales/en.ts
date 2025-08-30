@@ -361,8 +361,9 @@ Your wallet's live. Let's degen.`,
     selectStrategyPrompt: "Select a strategy to get started:",
 
     // Position messages
-    noOpenPositions: "No Open Positions",
-    noOpenPositionsFound: "No open positions found",
+    noOpenPositions: "⚠️ No Open Positions",
+    noOpenPositionsFound: "✅ No open positions found",
+    noRedeemablePositionsFound: "⚠️ No Redeemable Positions",
 
     // High Probability Market Data
     foundMarkets: "Found Markets",
