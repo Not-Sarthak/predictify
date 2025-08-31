@@ -137,8 +137,44 @@ export async function checkAndSendAlerts(): Promise<void> {
             // Get user's filter preferences
             const userFilters = await getUserFilters(parseInt(userId));
 
-            // Fetch markets based on user's preferences
-            const markets = await fetchHighProbabilityMarkets(userFilters);
+            // Determine which timeframes to check for this user.
+            // First try per-user saved timeframes, fall back to the user's current timeFilter.
+            let timeframes: Array<"1h" | "4h" | "24h" | "48h"> = [userFilters.timeFilter];
+            try {
+                const tfRaw = await redisClient.hGet(
+                    `user:highprob_alert_timeframes:${userId}`,
+                    "timeframes"
+                );
+                if (tfRaw) {
+                    const parsed = JSON.parse(tfRaw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        // Sanitize values to allowed set
+                        const allowed = new Set(["1h", "4h", "24h", "48h"]);
+                        timeframes = parsed.filter((t: any) => allowed.has(t));
+                        if (timeframes.length === 0) timeframes = [userFilters.timeFilter];
+                    }
+                }
+            } catch (e) {
+                console.warn(
+                    "Could not parse user timeframes, falling back to single timeframe",
+                    e
+                );
+                timeframes = [userFilters.timeFilter];
+            }
+
+            // Fetch markets for each timeframe (in parallel) and combine unique results
+            const fetchPromises = timeframes.map((tf) => {
+                const filtersForTf = { ...userFilters, timeFilter: tf };
+                return fetchHighProbabilityMarkets(filtersForTf);
+            });
+            const marketsByTf = await Promise.all(fetchPromises);
+            const combinedMarkets = marketsByTf.flat();
+            // Deduplicate by market id
+            const marketsMap = new Map<string, (typeof combinedMarkets)[0]>();
+            combinedMarkets.forEach((m) => {
+                if (!marketsMap.has(m.id)) marketsMap.set(m.id, m);
+            });
+            const markets = Array.from(marketsMap.values());
 
             // Filter out markets we've already notified about
             const newMarkets = markets.filter(
