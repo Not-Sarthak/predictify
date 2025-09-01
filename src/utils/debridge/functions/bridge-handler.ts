@@ -251,8 +251,6 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
             quoteMessage += `✅ This will provide sufficient POL for ~100-200 transactions\n`;
         }
 
-        quoteMessage += `⚠️ *This is the Maximum Amount you can Safely Bridge*`;
-
         const confirmButtons = [
             [Markup.button.callback(`✅ ${t("confirm", language)}`, `bridge_confirm:${userId}`)],
             [CLOSE_BUTTON],
