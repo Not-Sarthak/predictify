@@ -7,7 +7,8 @@ import { getSOLPriceUSD } from "../../crypto-prices";
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
 const SOL_TOKEN_ADDRESS = "11111111111111111111111111111111";
-const POL_TOKEN_ADDRESS = "0x0000000000000000000000000000000000001010"; // POL on Polygon
+// Using wrapped MATIC/POL token address instead of native POL
+const POL_TOKEN_ADDRESS = "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0"; // POL (MATIC) ERC-20 token
 const SLIPPAGE_TOLERANCE = 0.5;
 
 /**
@@ -19,19 +20,24 @@ export async function getPOLBridgeQuote(params: {
     solAmount: string; // Amount in lamports
     recipientAddress: string;
     senderAddress: string;
-}): Promise<deBridgeOrderResponse> {
-    const bridgeParams: deBridgeOrderInput = {
-        srcChainId: SOLANA_CHAIN_ID,
-        srcChainTokenIn: SOL_TOKEN_ADDRESS,
-        srcChainTokenInAmount: params.solAmount,
-        dstChainId: POLYGON_CHAIN_ID,
-        dstChainTokenOut: POL_TOKEN_ADDRESS,
-        dstChainTokenOutRecipient: params.recipientAddress,
-        account: params.senderAddress,
-        slippage: SLIPPAGE_TOLERANCE,
-    };
+}): Promise<deBridgeOrderResponse | null> {
+    try {
+        const bridgeParams: deBridgeOrderInput = {
+            srcChainId: SOLANA_CHAIN_ID,
+            srcChainTokenIn: SOL_TOKEN_ADDRESS,
+            srcChainTokenInAmount: params.solAmount,
+            dstChainId: POLYGON_CHAIN_ID,
+            dstChainTokenOut: POL_TOKEN_ADDRESS,
+            dstChainTokenOutRecipient: params.recipientAddress,
+            account: params.senderAddress,
+            slippage: SLIPPAGE_TOLERANCE,
+        };
 
-    return await getBridgeQuote(bridgeParams);
+        return await getBridgeQuote(bridgeParams);
+    } catch (error) {
+        console.warn("POL bridge quote failed:", error);
+        return null;
+    }
 }
 
 /**
@@ -44,18 +50,24 @@ export async function createPOLBridgeOrder(params: {
     recipientAddress: string;
     senderAddress: string;
 }): Promise<deBridgeOrderResponse | null> {
-    const bridgeParams: deBridgeOrderInput = {
-        srcChainId: SOLANA_CHAIN_ID,
-        srcChainTokenIn: SOL_TOKEN_ADDRESS,
-        srcChainTokenInAmount: params.solAmount,
-        dstChainId: POLYGON_CHAIN_ID,
-        dstChainTokenOut: POL_TOKEN_ADDRESS,
-        dstChainTokenOutRecipient: params.recipientAddress,
-        account: params.senderAddress,
-        slippage: SLIPPAGE_TOLERANCE,
-    };
+    try {
+        const bridgeParams: deBridgeOrderInput = {
+            srcChainId: SOLANA_CHAIN_ID,
+            srcChainTokenIn: SOL_TOKEN_ADDRESS,
+            srcChainTokenInAmount: params.solAmount,
+            dstChainId: POLYGON_CHAIN_ID,
+            dstChainTokenOut: POL_TOKEN_ADDRESS,
+            dstChainTokenOutRecipient: params.recipientAddress,
+            account: params.senderAddress,
+            slippage: SLIPPAGE_TOLERANCE,
+        };
 
-    return await createDebridgeBridgeOrder(bridgeParams);
+        return await createDebridgeBridgeOrder(bridgeParams);
+    } catch (error) {
+        console.warn("POL bridge order failed:", error);
+        // Return null to fallback to USDC-only bridge
+        return null;
+    }
 }
 
 /**

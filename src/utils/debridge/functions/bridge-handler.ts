@@ -20,7 +20,8 @@ import {
 import { getUserWalletAddresses } from "../../../bot/utils/database/get-user-addresses";
 import { clearCache, getOrSetCache } from "../../cache";
 
-const MIN_BALANCE = 0.01; // Need at least 0.01 SOL to cover any fees
+const MIN_BALANCE = 0.015;
+const MIN_BRIDGE_AMOUNT = 0.01; // Realistic minimum for DeBridge
 const SOLANA_CHAIN_ID = ChainId.Solana;
 const POLYGON_CHAIN_ID = ChainId.Polygon;
 const SOL_TOKEN_ADDRESS = "11111111111111111111111111111111";
@@ -51,12 +52,11 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         await ctx.answerCbQuery();
 
         const user = await getUserWalletAddresses(userIdNumber);
-        const solBalance = await getOrSetCache(
-            `user:${userId}:sol_balance`,
-            () => getSOLBalance(user!.solana_address),
-            43200
-        );
 
+        // Clear cache and fetch fresh SOL balance
+        await clearCache(`user:${userId}:sol_balance`);
+        const solBalance = await getSOLBalance(user!.solana_address);
+        console.log("User SOL Balance:", solBalance);
         if (solBalance <= MIN_BALANCE) {
             await ctx.reply(
                 `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedAtLeast", language)} ${MIN_BALANCE.toFixed(4)} ${t("solToBridge", language)}`
@@ -64,13 +64,24 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
             return;
         }
 
-        // Calculate max bridgeable amount (balance - 0.03 SOL)
-        const maxBridgeable = Math.max(0, solBalance - 0.03);
+        // Calculate max bridgeable amount (balance - 0.001 SOL for rent + fees)
+        const RESERVE_AMOUNT = 0.0001;
+        const maxBridgeable = Math.max(0, solBalance - RESERVE_AMOUNT);
+        console.log("Max Bridgeable Amount:", maxBridgeable);
 
-        if (maxBridgeable <= 0.001) {
+        if (maxBridgeable < MIN_BRIDGE_AMOUNT) {
             const language = await getUserLanguage(userIdNumber);
+            const totalNeeded = MIN_BRIDGE_AMOUNT + RESERVE_AMOUNT; // Bridge amount + fees
             await ctx.reply(
-                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedToKeep", language)} 0.03 ${t("solForFees", language)}`
+                `❌ **Insufficient SOL for Bridge**\n\n` +
+                    `📊 **Current Balance:** ${solBalance.toFixed(4)} SOL\n` +
+                    `💰 **Available to Bridge:** ${maxBridgeable.toFixed(4)} SOL\n` +
+                    `🚫 **Minimum Required:** ${MIN_BRIDGE_AMOUNT.toFixed(3)} SOL\n\n` +
+                    `**You need at least ${totalNeeded.toFixed(3)} SOL total:**\n` +
+                    `• ${MIN_BRIDGE_AMOUNT.toFixed(3)} SOL to bridge\n` +
+                    `• ${RESERVE_AMOUNT.toFixed(3)} SOL for transaction fees\n\n` +
+                    `💡 **Get more SOL first, then try bridging again.**`,
+                { parse_mode: "Markdown" }
             );
             return;
         }
@@ -104,18 +115,29 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
             return;
         }
 
+        // Clear cache and fetch fresh SOL balance to avoid stale data
+        await clearCache(`user:${userId}:sol_balance`);
         const solBalance = await getSOLBalance(user.solana_address);
 
-        // Deduct 0.03 SOL from balance to ensure transaction success
-        const RESERVE_AMOUNT = 0.03;
+        // Deduct 0.01 SOL from balance to ensure transaction success
+        const RESERVE_AMOUNT = 0.001;
         const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
 
-        if (maxBridgeableSOL <= 0.001) {
+        if (maxBridgeableSOL < MIN_BRIDGE_AMOUNT) {
+            const totalNeeded = MIN_BRIDGE_AMOUNT + RESERVE_AMOUNT;
             await ctx.telegram.editMessageText(
                 loadingMsg.chat.id,
                 loadingMsg.message_id,
                 undefined,
-                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedToKeep", language)} ${RESERVE_AMOUNT} ${t("solForFees", language)} ${t("notEnoughLeftToBridge", language)}`
+                `❌ **Bridge Amount Too Small**\n\n` +
+                    `📊 **Current Balance:** ${solBalance.toFixed(4)} SOL\n` +
+                    `💰 **Available to Bridge:** ${maxBridgeableSOL.toFixed(4)} SOL\n` +
+                    `🚫 **Minimum Required:** ${MIN_BRIDGE_AMOUNT.toFixed(3)} SOL\n\n` +
+                    `**You need at least ${totalNeeded.toFixed(3)} SOL total:**\n` +
+                    `• ${MIN_BRIDGE_AMOUNT.toFixed(3)} SOL to bridge\n` +
+                    `• ${RESERVE_AMOUNT.toFixed(3)} SOL for fees\n\n` +
+                    `💡 **Get more SOL first, then try bridging again.**`,
+                { parse_mode: "Markdown" }
             );
             return;
         }
@@ -128,25 +150,32 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
         let polBridgeData = null;
 
         if (needsPOL) {
-            // Calculate allocation for POL and USDC
-            const allocation = await calculateBridgeAllocation(
-                maxBridgeableSOL,
-                0, // Already reserved above
-                POL_ACQUISITION_AMOUNT
-            );
-
-            polAllocation = allocation.polAllocation;
-            usdcAllocation = allocation.usdcAllocation;
-
-            // Get POL bridge quote
             try {
+                // Calculate allocation for POL and USDC
+                const allocation = await calculateBridgeAllocation(
+                    maxBridgeableSOL,
+                    0, // Already reserved above
+                    POL_ACQUISITION_AMOUNT
+                );
+
+                polAllocation = allocation.polAllocation;
+                usdcAllocation = allocation.usdcAllocation;
+
+                // Get POL bridge quote
                 polBridgeData = await createPOLBridgeOrder({
                     solAmount: allocation.polAllocationLamports,
                     recipientAddress: user.wallet_address,
                     senderAddress: user.solana_address,
                 });
+
+                // If POL bridge fails, fall back to USDC-only bridge
+                if (!polBridgeData) {
+                    console.warn("POL bridge not available, falling back to USDC-only");
+                    polAllocation = 0;
+                    usdcAllocation = maxBridgeableSOL;
+                }
             } catch (error) {
-                console.warn("Failed to get POL bridge quote:", error);
+                console.warn("POL bridge setup failed, falling back to USDC-only:", error);
                 // Fall back to USDC-only bridge
                 polAllocation = 0;
                 usdcAllocation = maxBridgeableSOL;
@@ -168,7 +197,7 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
         };
 
         const quote = await getBridgeQuote(bridgeParams);
-
+        console.log(quote);
         // Validate quote response
         if (
             !quote.estimation?.dstChainTokenOut?.amount ||
@@ -241,9 +270,28 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
         );
     } catch (error) {
         console.error("Error Fetching Bridge Quote:", error);
-        await ctx.reply(
-            `❌ Failed to Fetch Bridge Quote: ${error instanceof Error ? error.message : "Unknown error"}`
-        );
+
+        let errorMessage = "❌ **Failed to Fetch Bridge Quote**\n\n";
+
+        if (error instanceof Error) {
+            if (
+                error.message.includes("ERROR_LOW_GIVE_AMOUNT") ||
+                error.message.includes("too small to cover operational costs")
+            ) {
+                errorMessage += `🚫 **Bridge Amount Too Small**\n\n`;
+                errorMessage += `The amount you're trying to bridge is below DeBridge's minimum threshold.\n\n`;
+                errorMessage += `**Required:** At least 0.035 SOL total\n`;
+                errorMessage += `• 0.02 SOL minimum to bridge\n`;
+                errorMessage += `• 0.015 SOL for transaction fees\n\n`;
+                errorMessage += `💡 **Solution:** Get more SOL in your wallet first, then try again.`;
+            } else {
+                errorMessage += `**Error:** ${error.message}`;
+            }
+        } else {
+            errorMessage += "**Error:** Unknown error occurred";
+        }
+
+        await ctx.reply(errorMessage, { parse_mode: "Markdown" });
     }
 }
 
@@ -343,11 +391,26 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
                 bridgeResult.tx.data
             );
         } catch (error) {
+            let errorMessage = `❌ Failed to execute USDC bridge transaction: `;
+
+            if (error instanceof Error) {
+                if (
+                    error.message.includes("insufficient funds for rent") ||
+                    error.message.includes("insufficient lamports")
+                ) {
+                    errorMessage += `Insufficient SOL for transaction fees and rent. Please ensure you have at least 0.1 SOL in your wallet and try again.`;
+                } else {
+                    errorMessage += error.message;
+                }
+            } else {
+                errorMessage += "Unknown error";
+            }
+
             await ctx.telegram.editMessageText(
                 processingMsg.chat.id,
                 processingMsg.message_id,
                 undefined,
-                `❌ Failed to execute USDC bridge transaction: ${error instanceof Error ? error.message : "Unknown error"}`
+                errorMessage
             );
             return;
         }
