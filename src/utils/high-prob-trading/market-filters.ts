@@ -172,15 +172,15 @@ export function calculateHoursUntilExpiry(endDate: string): number {
     const hours = Math.max(0, diffMs / (1000 * 60 * 60));
 
     // Log for debugging time calculations
-    if (hours <= 1) {
-        console.log(`⏰ [HIGH-PROB] Time calculation:`, {
-            endDate,
-            now: now.toISOString(),
-            expiry: expiry.toISOString(),
-            diffMs,
-            hours,
-        });
-    }
+    // if (hours <= 1) {
+    //     console.log(`⏰ [HIGH-PROB] Time calculation:`, {
+    //         endDate,
+    //         now: now.toISOString(),
+    //         expiry: expiry.toISOString(),
+    //         diffMs,
+    //         hours,
+    //     });
+    // }
 
     return hours;
 }
@@ -239,7 +239,7 @@ export function convertToHighProbMarket(market: Market): HighProbMarket {
                 priceSource = "outcomePrices";
             }
         } catch (error) {
-            console.warn("❌ [HIGH-PROB] Error parsing outcomePrices:", error);
+            console.error("❌ [HIGH-PROB] Error parsing outcomePrices:", error);
         }
     } else if ((market as any).outcomes && Array.isArray((market as any).outcomes)) {
         // Alternative structure from events API
@@ -263,20 +263,20 @@ export function convertToHighProbMarket(market: Market): HighProbMarket {
     const hoursUntilExpiry = calculateHoursUntilExpiry(market.endDate);
 
     // Log sample conversions for debugging
-    if (probability >= 0.98 || hoursUntilExpiry <= 1) {
-        // console.log(`🔄 [HIGH-PROB] Converting problematic market:`, {
-        //     question: market.question?.substring(0, 50),
-        //     priceSource,
-        //     yesPrice,
-        //     noPrice,
-        //     bestOutcome,
-        //     bestPrice,
-        //     probability,
-        //     probabilityPercent: `${(probability * 100).toFixed(1)}%`,
-        //     hoursUntilExpiry: hoursUntilExpiry.toFixed(1),
-        //     endDate: market.endDate
-        // });
-    }
+    // if (probability >= 0.98 || hoursUntilExpiry <= 1) {
+    //     // console.log(`🔄 [HIGH-PROB] Converting problematic market:`, {
+    //     //     question: market.question?.substring(0, 50),
+    //     //     priceSource,
+    //     //     yesPrice,
+    //     //     noPrice,
+    //     //     bestOutcome,
+    //     //     bestPrice,
+    //     //     probability,
+    //     //     probabilityPercent: `${(probability * 100).toFixed(1)}%`,
+    //     //     hoursUntilExpiry: hoursUntilExpiry.toFixed(1),
+    //     //     endDate: market.endDate
+    //     // });
+    // }
 
     return {
         ...market,
@@ -339,7 +339,7 @@ export function filterHighProbabilityMarkets(
         .map(convertToHighProbMarket)
         .filter((market) => {
             // Add more detailed debugging for problematic markets
-            const shouldLog = market.probability >= 0.98 || market.hoursUntilExpiry <= 1;
+            // const shouldLog = market.probability >= 0.98 || market.hoursUntilExpiry <= 1;
 
             // if (shouldLog) {
             //     // console.log(
@@ -430,22 +430,22 @@ export function filterHighProbabilityMarkets(
         });
 
     // Log filtering statistics for debugging
-    console.log("🔍 [HIGH-PROB] Market Filtering Results:", {
-        total: markets.length,
-        filtered: {
-            timeFilter: filteredCount.timeFilter,
-            inactive: filteredCount.inactive,
-            probability: filteredCount.probability,
-            crypto: filteredCount.crypto,
-            sports: filteredCount.sports,
-            resolved: filteredCount.resolved,
-            zerodte: filteredCount.zerodte,
-            invalidDate: filteredCount.invalidDate,
-            longTerm: filteredCount.longTerm,
-        },
-        passed: filteredCount.passed,
-        finalCount: highProbMarkets.length,
-    });
+    // console.log("🔍 [HIGH-PROB] Market Filtering Results:", {
+    //     total: markets.length,
+    //     filtered: {
+    //         timeFilter: filteredCount.timeFilter,
+    //         inactive: filteredCount.inactive,
+    //         probability: filteredCount.probability,
+    //         crypto: filteredCount.crypto,
+    //         sports: filteredCount.sports,
+    //         resolved: filteredCount.resolved,
+    //         zerodte: filteredCount.zerodte,
+    //         invalidDate: filteredCount.invalidDate,
+    //         longTerm: filteredCount.longTerm,
+    //     },
+    //     passed: filteredCount.passed,
+    //     finalCount: highProbMarkets.length,
+    // });
 
     return highProbMarkets;
 }
