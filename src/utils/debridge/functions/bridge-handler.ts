@@ -64,8 +64,8 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
             return;
         }
 
-        // Calculate max bridgeable amount (balance - 0.001 SOL for rent + fees)
-        const RESERVE_AMOUNT = 0.0001;
+        // Calculate max bridgeable amount (balance - 0.01 SOL for rent + fees)
+        const RESERVE_AMOUNT = 0.01;
         const maxBridgeable = Math.max(0, solBalance - RESERVE_AMOUNT);
         console.log("Max Bridgeable Amount:", maxBridgeable);
 
@@ -120,7 +120,7 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
         const solBalance = await getSOLBalance(user.solana_address);
 
         // Deduct 0.01 SOL from balance to ensure transaction success
-        const RESERVE_AMOUNT = 0.001;
+        const RESERVE_AMOUNT = 0.01;
         const maxBridgeableSOL = Math.max(0, solBalance - RESERVE_AMOUNT);
 
         if (maxBridgeableSOL < MIN_BRIDGE_AMOUNT) {
