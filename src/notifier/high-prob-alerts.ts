@@ -85,12 +85,18 @@ function isOnCooldown(lastNotificationTime: number): boolean {
 /**
  * Generate alert message for new high-probability markets
  */
-function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" | "degen"): string {
+function generateAlertMessage(
+    markets: HighProbMarket[],
+    tradingMode: "normal" | "degen",
+    timeFilter: string
+): { text: string; reply_markup: any } {
     const modeText = tradingMode === "normal" ? "Normal (≥95%)" : "Degen (≥85%)";
     const count = markets.length;
 
     let message = `🚨 **High-Probability Market Alert** 🚨\n\n`;
     message += `Found **${count}** new market${count > 1 ? "s" : ""} matching your **${modeText}** criteria:\n\n`;
+
+    const inlineKeyboard: any[] = [];
 
     markets.slice(0, 3).forEach((market, index) => {
         const probability = Math.round(market.probability * 100);
@@ -101,6 +107,14 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
         message += `   • Probability: **${probability}%** (${market.bestOutcome.toUpperCase()})\n`;
         message += `   • Time Left: **${hoursLeft}h**\n`;
         message += `   • ${t("volume")}: **$${(market.volume || 0).toLocaleString()}**\n\n`;
+
+        // Add a button for this market
+        inlineKeyboard.push([
+            {
+                text: `💰 Trade Market #${index + 1}`,
+                callback_data: `highprob:market:${market.id}:${tradingMode === "normal" ? "turtle" : "degen"}:${timeFilter}`,
+            },
+        ]);
     });
 
     if (count > 3) {
@@ -109,7 +123,12 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
 
     message += `Use /highprob to view all markets and start trading! 📈`;
 
-    return message;
+    return {
+        text: message,
+        reply_markup: {
+            inline_keyboard: inlineKeyboard,
+        },
+    };
 }
 
 /**
@@ -187,9 +206,14 @@ export async function checkAndSendAlerts(): Promise<void> {
 
             // Send alert
             try {
-                const alertMessage = generateAlertMessage(newMarkets, userFilters.tradingMode);
-                await bot.telegram.sendMessage(userId, alertMessage, {
+                const alertMessage = generateAlertMessage(
+                    newMarkets,
+                    userFilters.tradingMode,
+                    userFilters.timeFilter
+                );
+                await bot.telegram.sendMessage(userId, alertMessage.text, {
                     parse_mode: "Markdown",
+                    ...alertMessage.reply_markup,
                 });
 
                 // Update notification tracking

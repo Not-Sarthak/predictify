@@ -307,7 +307,7 @@ Your wallet's live. Let's degen.`,
 
     // High Probability Strategy Buttons
     degenStrategy: "🔥 Degen Strategy (70-85%)",
-    turtleStrategy: "🐢 Turtle Strategy (85.5-95%)",
+    turtleStrategy: "🐢 Turtle Strategy (85.5-97.5%)",
     addToWatchlist: "❤️ Add to My Watchlist",
     marketYes: "⚡ Market Yes",
     marketNo: "⚡ Market No",
@@ -382,7 +382,7 @@ Your wallet's live. Let's degen.`,
 
     // Strategy button texts
     degenStrategyButton: "🔥 Degen Strategy (70-85%)",
-    turtleStrategyButton: "🐢 Turtle Strategy (85.5-95%)",
+    turtleStrategyButton: "🐢 Turtle Strategy (85.5-97.5%)",
 
     // Profile page texts
     yourPolymarketProfile: "Your Polymarket Profile",

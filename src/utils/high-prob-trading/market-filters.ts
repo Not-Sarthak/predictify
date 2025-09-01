@@ -311,7 +311,7 @@ export function filterHighProbabilityMarkets(
 
     // Dynamic probability range based on trading mode
     const minProbability = filters.tradingMode === "normal" ? 0.7 : 0.855; // Degen: 70%, Turtle: 85.5%
-    const maxProbability = filters.tradingMode === "normal" ? 0.85 : 0.95; // Degen: 85%, Turtle: 95%
+    const maxProbability = filters.tradingMode === "normal" ? 0.85 : 0.975; // Degen: 85%, Turtle: 97.5%
 
     // console.log(`📊 [HIGH-PROB] Filter criteria:`, {
     //     timeFilterHours,
