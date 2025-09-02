@@ -35,7 +35,7 @@ import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketConditionId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { getUserLanguage } from "../../helpers/user-language";
-import { getMessages } from "../../i18n/translate";
+import { getMessages, type SupportedLanguage } from "../../i18n/translate";
 import {
     formatMarketMessage,
     getMarketCategoryText,
@@ -58,6 +58,8 @@ import {
 import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 import { translateMarketTitle } from "../../utils/market-translation";
+import { getUserWalletAddresses } from "../utils/database/get-user-addresses";
+import { getOrSetCache } from "../../utils";
 
 export async function handleTradeMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
@@ -77,10 +79,7 @@ export async function handleTradeCallbacks(ctx: Context, action: string, marketI
     return ctx.answerCbQuery();
 }
 
-export async function handleViewTopMarketsCallback(ctx: Context) {
-    const userId = getUserIdFromCtx(ctx);
-    const language = await getUserLanguage(userId);
-
+export function handleViewTopMarketsCallback(ctx: Context, language: SupportedLanguage) {
     const tradeCategoriesButtons = CATEGORY_LIST.map((cat) => {
         const translatedCategory = getMarketCategoryText(cat, language);
         return Markup.button.callback(translatedCategory, `view_top_markets:${cat}`);
@@ -100,19 +99,24 @@ export async function handleViewTopMarketsCallback(ctx: Context) {
 
 export async function handleCloseTradePositions(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    const userAddress = await getUserAddressFromId(userId);
+    const language = await getUserLanguage(userId);
 
-    if (!userAddress) {
+    const userAddresses = await getOrSetCache(
+        `user:${userId}:addresses`,
+        () => getUserWalletAddresses(userId),
+        43200
+    );
+
+    if (!userAddresses?.wallet_address) {
         return ctx.reply("⚠️ No Associated Wallet Address Found With Your Account!");
     }
 
-    const userPositions = await getUserPosition({ user: userAddress });
+    const userPositions = await getUserPosition({ user: userAddresses?.wallet_address });
 
     if (userPositions.length === 0) {
         if (ctx.callbackQuery) {
             await ctx.answerCbQuery();
         }
-        const language = await getUserLanguage(userId);
         return ctx.reply(t("noOpenPositions", language));
     }
 
@@ -133,9 +137,9 @@ export async function handleCloseTradePositions(ctx: Context) {
         return ctx.reply("⚠️ No Open Markets Found in Your Positions.");
     }
 
-    const formattedUserPositionsMessages = await formatCurrentTradePositionsMessage(
+    const formattedUserPositionsMessages = formatCurrentTradePositionsMessage(
         userPositions,
-        userId
+        language
     );
     const replyPromises = formattedUserPositionsMessages.map((data) =>
         ctx.reply(data.message, {
@@ -294,11 +298,10 @@ export async function handleViewTopMarketsByCategory(
     ctx: Context,
     marketCategory: string,
     filter: string = "volume",
-    offset: number = 0
+    offset: number = 0,
+    language: SupportedLanguage
 ) {
     const LIMIT = 8;
-    const userId = getUserIdFromCtx(ctx);
-    const language = await getUserLanguage(userId);
 
     const translatedCategory = getMarketCategoryText(marketCategory, language);
     // Resolve translated filter label if possible (MARKET_FILTERS contains emoji + label)
@@ -308,7 +311,7 @@ export async function handleViewTopMarketsByCategory(
         : capitalize(filter);
 
     let message = `🔥 ${t("topMarkets", language)} *${translatedCategory}* — _${translatedFilterLabel}_\n\n`;
-    const markets = await fetchMarkets(marketCategory, filter, offset);
+    const markets = await fetchMarkets(marketCategory, filter, offset, true);
     const filteredMarkets =
         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
 
@@ -326,11 +329,7 @@ export async function handleViewTopMarketsByCategory(
         // Format date with translation support for month names
         const formattedDate = formatDate(market.endDate, language);
 
-        message += `${i + 1}. *${escapeMarkdown(translatedTitle)}*
-    💧 ${t("volume", language)} : ${fVolumne}
-    ⌛ ${t("ends", language)}: ${formattedDate}
-
-    `;
+        message += ` ${i + 1}. *${escapeMarkdown(translatedTitle)}*\n💧 ${t("volume", language)} : ${fVolumne}\n⌛ ${t("ends", language)}: ${formattedDate}\n\n`;
     }
 
     const filterButtons = MARKET_FILTERS.map((marketFilter) => {
@@ -385,7 +384,7 @@ export async function handleViewTopMarketsByCategory(
 
     if (ctx.updateType === "callback_query") {
         try {
-            await ctx.editMessageText(message, {
+            ctx.editMessageText(message, {
                 parse_mode: "Markdown",
                 reply_markup: keyboard.reply_markup,
             });
@@ -394,10 +393,10 @@ export async function handleViewTopMarketsByCategory(
                 error?.response?.error_code === 400 &&
                 error?.response?.description?.includes("message is not modified")
             ) {
-                await ctx.answerCbQuery();
+                ctx.answerCbQuery();
             } else {
                 console.error("❌ editMessageText Failed:", error);
-                await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
+                ctx.answerCbQuery("⚠️ Failed to Update the Message.");
             }
         }
 
@@ -426,7 +425,7 @@ export async function handleShowZeroDTEMarketsByCategory(
 
     let message = `${t.topZeroDteMarketsFor} **${displayCategory}**\n\n`;
 
-    const markets = await fetchMarkets(category, filter, offset);
+    const markets = await fetchMarkets(category, filter, offset, true);
 
     const filteredMarkets = markets.filter((m) => m.volume24hr && m.volume24hr > 0);
 
@@ -503,102 +502,6 @@ ${t.endsLabel} ${fDate}
 
     return;
 }
-
-// export async function handleShowZeroDTEMarkets(ctx: Context, offset: number = 0) {
-//     const LIMIT = 8;
-//     let message = `🔥 Top Markets for **${marketCategory.charAt(0).toUpperCase() + marketCategory.slice(1)}** — _${capitalize(filter)}_\n\n`;
-
-//     const markets = await fetchMarkets(marketCategory, filter, offset);
-
-//     const filteredMarkets =
-//         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
-
-//     if (filteredMarkets.length === 0) {
-//         return ctx.reply("⚠️ No Available Markets!");
-//     }
-
-//     for (let i = 0; i < filteredMarkets.length; i++) {
-//         const market = filteredMarkets[i];
-//         const fDate = formatDate(market.endDate);
-//         const fVolumne = formatDollarVolume(market.volume1mo || 0);
-
-//         message += `${i + 1}. **${market.title}**
-// 💧 Volume : ${fVolumne}
-// ⌛ Ends: ${fDate}
-
-// `;
-//     }
-
-//     const paginationButtons = [];
-
-//     if (offset > 0) {
-//         paginationButtons.push(
-//             Markup.button.callback(
-//                 "⏮️ Prev",
-//                 `filter_top_market:${marketCategory}:${filter}:${offset - LIMIT}`
-//             )
-//         );
-//     }
-
-//     if (filteredMarkets.length === LIMIT) {
-//         paginationButtons.push(
-//             Markup.button.callback(
-//                 "Next ⏭️",
-//                 `filter_top_market:${marketCategory}:${filter}:${offset + LIMIT}`
-//             )
-//         );
-//     }
-
-//     const marketButtons = filteredMarkets.map((market, idx) =>
-//         Markup.button.callback(`#${idx + 1}`, `view_markets:${market.id}`)
-//     );
-
-//     const marketButtonsLayout = layoutButtons(marketButtons);
-
-//     const keyboard = Markup.inlineKeyboard([
-//         ...marketButtonsLayout,
-//         paginationButtons,
-//         [
-//             Markup.button.callback(
-//                 "🔄 Refresh",
-//                 `refresh_top_markets:${marketCategory}:${filter}:${offset}`
-//             ),
-//             Markup.button.callback("❌ Close", "close_message"),
-//         ],
-//     ]);
-
-//     if (ctx.updateType === "callback_query") {
-//         try {
-//             await ctx.editMessageText(message, {
-//                 parse_mode: "Markdown",
-//                 reply_markup: keyboard.reply_markup,
-//             });
-//         } catch (error: any) {
-//             if (
-//                 error?.response?.error_code === 400 &&
-//                 error?.response?.description?.includes("message is not modified")
-//             ) {
-//                 await ctx.answerCbQuery();
-//             } else {
-//                 console.error("❌ editMessageText Failed:", error);
-//                 await ctx.answerCbQuery("⚠️ Failed to Update the Message.");
-//             }
-//         }
-
-//         return;
-//     }
-
-//     return ctx.reply(message, {
-//         parse_mode: "Markdown",
-//         reply_markup: keyboard.reply_markup,
-//     });
-// }
-
-// case "0dte":
-//             params.set("end_date_min", now.toISOString());
-//             params.set("end_date_max", tomorrowEnd.toISOString());
-//             params.set("order", "endDate");
-//             break;
 
 export async function handleShowMarkets(ctx: Context, eventId: number) {
     const userId = getUserIdFromCtx(ctx);
@@ -1440,9 +1343,14 @@ export async function handleRefreshTopMarkets(
     const language = await getUserLanguage(userId);
 
     const translatedCategory = getMarketCategoryText(marketCategory, language);
-    let message = `🔥 ${t("topMarkets", language)} **${translatedCategory}** — _${capitalize(filter)}_\n\n`;
+    const rawFilterEntry = MARKET_FILTERS.find((mf) => mf.split(" ")[1].toLowerCase() === filter);
+    const translatedFilterLabel = rawFilterEntry
+        ? getMarketFilterText(rawFilterEntry, language)
+        : capitalize(filter);
 
-    const markets = await fetchMarkets(marketCategory, filter, Number(offset) || 0);
+    let message = `🔥 ${t("topMarkets", language)} **${translatedCategory}** — _${translatedFilterLabel}_\n\n`;
+
+    const markets = await fetchMarkets(marketCategory, filter, Number(offset) || 0, false);
 
     const filteredMarkets =
         filter === "volume" ? markets.filter((m) => m.volume24hr && m.volume24hr > 0) : markets;
@@ -1459,11 +1367,7 @@ export async function handleRefreshTopMarkets(
         // Translate market title based on user's language
         const translatedTitle = translateMarketTitle(market.title, language);
 
-        message += `${i + 1}. **${translatedTitle}**
-💧 ${t("volume", language)} : ${fVolumne}
-⏰ ${t("ends", language)}: ${fDate}
-
-`;
+        message += ` ${i + 1}. *${escapeMarkdown(translatedTitle)}*\n💧 ${t("volume", language)} : ${fVolumne}\n⌛ ${t("ends", language)}: ${fDate}\n\n`;
     }
 
     const filterButtons = MARKET_FILTERS.map((marketFilter) => {

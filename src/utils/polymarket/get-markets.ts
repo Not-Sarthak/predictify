@@ -1,7 +1,8 @@
 import { ClobClient, type ApiKeyCreds } from "@polymarket/clob-client";
 import axios from "axios";
-import { createLegacyWallet } from "../../utils";
+import { clearCache, createLegacyWallet, getOrSetCache } from "../../utils";
 import { ethers } from "ethers";
+import { redisClient } from "../../lib/redis";
 
 export interface Market {
     id: string;
@@ -38,6 +39,7 @@ export interface Market {
     negRisk?: boolean;
     negRiskMarketID?: string;
     commentCount: number;
+    markets: any[];
     events: any[];
     series?: any[];
     tags: any[];
@@ -57,19 +59,21 @@ export interface Market {
     clobTokenIds: string; // JSON string array of token IDs
 }
 
+type SlimMarket = Omit<Market, "markets" | "series" | "tags">;
+
 // Get All Markets
 export async function fetchMarkets(
     category: string,
     filter: string,
-    offset: number
-): Promise<Market[]> {
+    offset: number,
+    useCache: boolean = true
+): Promise<SlimMarket[]> {
     const BASE_URL = "https://gamma-api.polymarket.com/events/pagination";
     const LIMIT = 8;
     const OFFSET = offset;
 
     if (category === "geo-politics") category = "geopolitics";
 
-    let url = "";
     const params = new URLSearchParams({
         limit: LIMIT.toString(),
         offset: OFFSET.toString(),
@@ -107,20 +111,38 @@ export async function fetchMarkets(
             params.set("end_date_max", endOfWindow.toISOString());
             params.set("order", "volume24hr");
             break;
+
         default:
             params.set("order", "volume1mo");
     }
 
-    url = `${BASE_URL}?${params.toString()}`;
-    const res = await axios.get(url);
+    const url = `${BASE_URL}?${params.toString()}`;
+    const cacheKey = `markets:${category}:${filter}:${OFFSET}`;
 
-    const markets: Market[] = res.data.data;
+    const fetchFn = async (): Promise<SlimMarket[]> => {
+        const res = await axios.get(url);
+        const markets: Market[] = res.data.data;
 
-    if (manualSortFn) {
-        markets.sort(manualSortFn);
+        if (manualSortFn) {
+            markets.sort(manualSortFn);
+        }
+
+        // Remove heavy keys before caching
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const slimmed = markets.map(({ markets, series, tags, ...rest }) => rest);
+        return slimmed;
+    };
+
+    const CACHE_TIME = 300;
+
+    if (useCache) {
+        return await getOrSetCache(cacheKey, fetchFn, CACHE_TIME);
+    } else {
+        await clearCache(cacheKey);
+        const fresh = await fetchFn();
+        await redisClient.setEx(cacheKey, CACHE_TIME, JSON.stringify(fresh));
+        return fresh;
     }
-
-    return markets;
 }
 
 // Get Event by Slug
