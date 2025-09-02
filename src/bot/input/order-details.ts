@@ -1,6 +1,7 @@
 import { Markup, type Context } from "telegraf";
 import { redisClient } from "../../lib/redis";
 import { db } from "../../lib/supabase";
+import { sendOrderToSQS, type OrderMessage } from "../../lib/sqs";
 import { getTokenId } from "../../helpers/get-token-id";
 import { getUserDetails } from "../../helpers/get-user-details";
 import type { ApiKeyCreds } from "../../types/polymarket/api-key";
@@ -328,6 +329,39 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                       `<b>${t("amount", language)}:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;
 
+            // Send order data to SQS queue
+            try {
+                const orderData: OrderMessage = {
+                    userId: userId.toString(),
+                    username,
+                    orderId: orderId || "",
+                    orderType,
+                    side: orderType === "fok_sell" ? position?.outcome : side,
+                    marketId,
+                    marketQuestion: market.question,
+                    amount: orderPlaceAmountToShow,
+                    shares:
+                        orderType === "gtc"
+                            ? shares
+                            : orderType === "fok_sell"
+                              ? orderPlaceAmountToShow
+                              : Math.floor(orderPlaceAmountToShow / executionPrice),
+                    executionPrice: executionPrice || 0,
+                    txHash: txHash || undefined,
+                    timestamp: new Date().toISOString(),
+                    status:
+                        orderType === "gtc" && orderResponse.response.status !== "matched"
+                            ? "pending"
+                            : "matched",
+                    outcome: orderType === "fok_sell" ? position?.outcome : side,
+                };
+
+                await sendOrderToSQS(orderData);
+            } catch (error) {
+                console.error("Failed to send order to SQS:", error);
+                // Don't fail the order if SQS fails
+            }
+
             const button_callback_data =
                 orderType === "gtc"
                     ? orderResponse.response.status === "matched"
@@ -418,7 +452,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             if (orderType === "gtc") {
                 await db("Users")
                     .update({
-                        total_balance: userBalance - amount,
+                        // Remove total_balance field as it doesn't exist in the schema
                     })
                     .eq("id", userId);
             }

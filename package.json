@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "set:wh": "bun run scripts/set-telegram-webhook.ts",
+    "test:sqs": "bun run scripts/test-sqs.ts",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@solana/web3.js": "^1.98.2",
     "@supabase/supabase-js": "^2.50.0",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.10.0",
     "bs58": "^6.0.0",
     "cron": "^4.3.2",

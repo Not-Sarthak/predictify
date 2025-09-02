@@ -34,7 +34,6 @@ export const envSchema = z.object({
     DEBRIDGE_API_URL: z.string().url().default("https://dln.debridge.finance/v1.0"),
 
     DEBRIDGE_API_KEY: z.string().default("-"),
-
     TREASURY_ADDRESS: z
         .string()
         .regex(/^0x[a-fA-F0-9]{40}$/, "TREASURY_ADDRESS must be a valid address"),
@@ -46,4 +45,10 @@ export const envSchema = z.object({
     // Database connection settings for regions with connectivity issues
     DB_RETRY_COUNT: z.coerce.number().min(1).max(10).default(3),
     DB_TIMEOUT_MS: z.coerce.number().min(5000).max(60000).default(30000),
+
+    // AWS SQS Configuration
+    AWS_REGION: z.string().min(1, "AWS_REGION is required").optional(),
+    AWS_ACCESS_KEY_ID: z.string().min(1, "AWS_ACCESS_KEY_ID is required").optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1, "AWS_SECRET_ACCESS_KEY is required").optional(),
+    SQS_QUEUE_URL: z.string().url("SQS_QUEUE_URL must be a valid URL").optional(),
 });
