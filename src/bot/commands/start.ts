@@ -61,6 +61,7 @@ export async function handleStartCommand(ctx: Context) {
         });
     }
 
+    ctx.deleteMessage(iMsg1.message_id);
     const iMsg2 = await ctx.reply("⚡ Creating your account...");
 
     // Create new user
@@ -105,7 +106,7 @@ export async function handleStartCommand(ctx: Context) {
 
         await ctx.deleteMessage(iMsg2.message_id);
 
-        if (insertError) {
+        if (insertError && insertError.code !== "23505") {
             console.error(`[START] Error creating user ${userId}:`, insertError);
             return ctx.reply("❌ Error creating your account. Please try again later.");
         }

@@ -7,7 +7,7 @@ import { t } from "../../i18n";
 export async function handleTradeCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
-    const keyboard = Markup.inlineKeyboard(await generateTradeMenuButtons(userId));
+    const keyboard = Markup.inlineKeyboard(generateTradeMenuButtons(language));
 
     return ctx.reply(t("chooseTradingOption", language), keyboard);
 }

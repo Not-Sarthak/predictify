@@ -65,7 +65,7 @@ export function formatDate(dateString: string, language: SupportedLanguage): str
             date.toLocaleString("en-US", { month: "long" });
 
         return `${month} ${day}${getOrdinal(day)}, ${year}`;
-    } catch (e) {
+    } catch {
         const month = date.toLocaleString("en-US", { month: "long" }); // e.g., June
         return `${month} ${day}${getOrdinal(day)}, ${year}`;
     }
@@ -85,9 +85,9 @@ export function formatActiveSubscriptionsMessageWithTranslation(
     return `${t.mySubscriptions}:\n• ${translatedCategories.join("\n• ")}`;
 }
 
-export async function formatCurrentTradePositionsMessage(
+export function formatCurrentTradePositionsMessage(
     userPositions: UserPositionResponse[],
-    userId: number
+    language: SupportedLanguage
 ) {
     const userPositionsMessages: { message: string; marketId: string }[] = [];
 
@@ -108,7 +108,6 @@ export async function formatCurrentTradePositionsMessage(
         const isProfit = cashPnl > 0;
         const pnlEmoji = isProfit ? "📈" : "📉";
         const outcomeEmoji = outcome === "Yes" ? "🟢" : "🔴";
-        const language = await getUserLanguage(Number(userId));
         const message = `📊 *${title}*
 ${outcomeEmoji} ${outcome} | ${size} shares @ ${avgPrice.toFixed(4)} → ${curPrice.toFixed(4)}
 💼 Value: ${currentValue.toFixed(4)} USDC | ${pnlEmoji} PnL: ${cashPnl.toFixed(2)} (${percentPnl.toFixed(1)}%)

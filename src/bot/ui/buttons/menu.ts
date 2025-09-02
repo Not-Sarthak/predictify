@@ -3,12 +3,11 @@ import {
     BRIDGE_BUTTON,
     CLOSE_BUTTON,
     getBackToMainMenuButton,
-    getBridgeButton,
     getCloseButton,
 } from "../../ui/buttons/common";
 import { Markup } from "telegraf";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { getMessages, t } from "../../../i18n";
+import { getMessages, t, type SupportedLanguage } from "../../../i18n";
 
 export const MAIN_MENU_BUTTONS = [
     [
@@ -26,8 +25,7 @@ export const MAIN_MENU_BUTTONS = [
 ];
 
 // Translated menu generators
-export async function generateTranslatedSubscriptionMenuButtons(userId: number) {
-    const language = await getUserLanguage(userId);
+export function generateTranslatedSubscriptionMenuButtons(language: SupportedLanguage) {
     const t = getMessages(language);
 
     return [
@@ -57,7 +55,7 @@ export async function generateTranslatedSubscriptionMenuButtons(userId: number) 
                 "edit_price_alerts"
             ),
         ],
-        [await getBackToMainMenuButton(userId)],
+        [getBackToMainMenuButton(language)],
     ];
 }
 export async function generateMainMenuButtons(userId: number) {
@@ -78,24 +76,7 @@ export async function generateMainMenuButtons(userId: number) {
     ];
 }
 
-export async function generateSubscriptionsMenuButtons(userId: number) {
-    const language = await getUserLanguage(userId);
-    return [
-        [
-            Markup.button.callback(t("subscribeAction", language), "subscriptions:subscribe"),
-            Markup.button.callback(t("unsubscribeAction", language), "subscriptions:unsubscribe"),
-        ],
-        [
-            Markup.button.callback(t("mySubscriptions", language), "subscriptions:view"),
-            Markup.button.callback(t("enterCustom", language), "subscriptions:custom"),
-        ],
-        [Markup.button.callback(t("managePriceAlerts", language), "edit_price_alerts")],
-        [await getBackToMainMenuButton(userId)],
-    ];
-}
-
-export async function generateTradeMenuButtons(userId: number) {
-    const language = await getUserLanguage(userId);
+export function generateTradeMenuButtons(language: SupportedLanguage) {
     return [
         [
             Markup.button.callback(t("topMarkets", language), "trade_top_markets_view"),
@@ -106,7 +87,7 @@ export async function generateTradeMenuButtons(userId: number) {
             Markup.button.callback(t("closePositionBtn", language), "trade_position_close"),
         ],
         [Markup.button.callback(t("highProbabilityMarkets", language), "strategies:highprob")],
-        [await getBackToMainMenuButton(userId)],
+        [getBackToMainMenuButton(language)],
     ];
 }
 

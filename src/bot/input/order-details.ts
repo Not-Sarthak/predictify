@@ -415,14 +415,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 await ctx.replyWithPhoto({ source: imgBuffer });
             }
 
-            if (orderType === "gtc") {
-                await db("Users")
-                    .update({
-                        total_balance: userBalance - amount,
-                    })
-                    .eq("id", userId);
-            }
-
             if (orderType !== "fok_sell") {
                 await transferFeeToTreasury({
                     userWallet: new ethers.Wallet(decryptedPrivateKey),

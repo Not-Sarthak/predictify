@@ -7,7 +7,6 @@ import { handleTradeMenu } from "../callbacks/trade";
 import { handleStrategiesMenu } from "../callbacks/strategies";
 import { getUserByIdFromDb, getUserIdFromCtx } from "../utils";
 import { getUserPositionsFromPolymarket } from "../utils/get-user-positions";
-import { CLOSE_BUTTON } from "../ui/buttons";
 import { generateTranslatedViewProfileButtons } from "../ui/buttons/translated";
 import { getUserTotalHoldings, getUserTotalPnL } from "../utils/get-user-polymarket-data";
 import { getUserLanguage } from "../../helpers/user-language";

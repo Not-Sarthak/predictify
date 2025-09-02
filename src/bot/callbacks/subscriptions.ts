@@ -1,16 +1,10 @@
 import { setUserInputState } from "../input/state";
 import {
     CLOSE_BUTTON,
-    generateSubscriptionButtons,
     generateTranslatedSubscriptionButtons,
-    SUBSCRIPTIONS_MENU_BUTTONS,
     generateTranslatedSubscriptionMenuButtons,
 } from "../ui/buttons";
-import {
-    formatActiveSubscriptionsMessage,
-    formatActiveSubscriptionsMessageWithTranslation,
-    getUserIdFromCtx,
-} from "../utils";
+import { formatActiveSubscriptionsMessageWithTranslation, getUserIdFromCtx } from "../utils";
 import { redisClient } from "../../lib/redis";
 import { getMarketQuestion } from "../../notifier/utils";
 import { CATEGORY_LIST } from "../../shared/constants";
@@ -22,7 +16,9 @@ import { getMessages, t } from "../../i18n";
 
 export async function handleSubscriptionsMenu(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
-    const translatedButtons = await generateTranslatedSubscriptionMenuButtons(userId);
+    const language = await getUserLanguage(userId);
+
+    const translatedButtons = generateTranslatedSubscriptionMenuButtons(language);
 
     return ctx.editMessageReplyMarkup(Markup.inlineKeyboard(translatedButtons).reply_markup);
 }

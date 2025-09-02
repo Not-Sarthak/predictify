@@ -59,9 +59,9 @@ async function fetchMarketsLikeTrade(
             }
         }
 
-        console.log(
-            `📊 [HIGH-PROB] Extracted ${markets.length} individual markets from ${events.length} events for category: ${category}`
-        );
+        // console.log(
+        //     `📊 [HIGH-PROB] Extracted ${markets.length} individual markets from ${events.length} events for category: ${category}`
+        // );
         return markets;
     } catch (error) {
         console.error(`❌ [HIGH-PROB] Error fetching markets for category ${category}:`, error);
@@ -79,12 +79,12 @@ export async function fetchHighProbabilityMarkets(
     language: SupportedLanguage = "en"
 ): Promise<HighProbMarket[]> {
     try {
-        console.log(`🚀 [HIGH-PROB] Starting market fetch with filters:`, {
-            timeFilter: filters.timeFilter,
-            tradingMode: filters.tradingMode,
-            excludeCrypto: filters.excludeCrypto,
-            language,
-        });
+        // console.log(`🚀 [HIGH-PROB] Starting market fetch with filters:`, {
+        //     timeFilter: filters.timeFilter,
+        //     tradingMode: filters.tradingMode,
+        //     excludeCrypto: filters.excludeCrypto,
+        //     language,
+        // });
 
         // Get NON-SPORTS and NON-CRYPTO categories like before
         const targetCategories = [...CATEGORY_LIST].filter(
@@ -110,21 +110,21 @@ export async function fetchHighProbabilityMarkets(
             combinedMarkets.push(...markets);
         }
 
-        console.log(
-            `📊 [HIGH-PROB] Total markets fetched before deduplication: ${combinedMarkets.length}`
-        );
+        // console.log(
+        //     `📊 [HIGH-PROB] Total markets fetched before deduplication: ${combinedMarkets.length}`
+        // );
 
         // Remove duplicates based on market ID (same as before)
         const uniqueMarkets = combinedMarkets.filter(
             (market, index, self) => index === self.findIndex((m) => m.id === market.id)
         );
 
-        console.log(`📊 [HIGH-PROB] Unique markets after deduplication: ${uniqueMarkets.length}`);
+        // console.log(`📊 [HIGH-PROB] Unique markets after deduplication: ${uniqueMarkets.length}`);
 
         // Filter and sort high probability markets
         const highProbMarkets = filterHighProbabilityMarkets(uniqueMarkets, filters);
 
-        console.log(`🎯 [HIGH-PROB] Qualifying markets after filtering: ${highProbMarkets.length}`);
+        // console.log(`🎯 [HIGH-PROB] Qualifying markets after filtering: ${highProbMarkets.length}`);
 
         // Translate market titles if language is not English
         if (language !== "en") {
@@ -135,7 +135,7 @@ export async function fetchHighProbabilityMarkets(
                     market.description = translated.description;
                 }
             });
-            console.log(`🌐 [HIGH-PROB] Markets translated to ${language}`);
+            // console.log(`🌐 [HIGH-PROB] Markets translated to ${language}`);
         }
 
         // Return up to the requested limit

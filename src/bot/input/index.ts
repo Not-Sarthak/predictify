@@ -57,7 +57,7 @@ export async function handleUserTextMessage(ctx: Context) {
             await handleCloseOpenPosition(ctx, marketId, Number(textMessage));
             break;
         case "marketTerm":
-            await handleMarketTermTextMessage(ctx, textMessage);
+            await handleMarketTermTextMessage(ctx, textMessage, userId);
             break;
         case "walletMonitor":
             await handleWalletMontiorTextMessage(ctx, textMessage, userId);

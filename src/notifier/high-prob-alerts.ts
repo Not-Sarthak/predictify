@@ -85,12 +85,18 @@ function isOnCooldown(lastNotificationTime: number): boolean {
 /**
  * Generate alert message for new high-probability markets
  */
-function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" | "degen"): string {
+function generateAlertMessage(
+    markets: HighProbMarket[],
+    tradingMode: "normal" | "degen",
+    timeFilter: string
+): { text: string; reply_markup: any } {
     const modeText = tradingMode === "normal" ? "Normal (≥95%)" : "Degen (≥85%)";
     const count = markets.length;
 
     let message = `🚨 **High-Probability Market Alert** 🚨\n\n`;
     message += `Found **${count}** new market${count > 1 ? "s" : ""} matching your **${modeText}** criteria:\n\n`;
+
+    const inlineKeyboard: any[] = [];
 
     markets.slice(0, 3).forEach((market, index) => {
         const probability = Math.round(market.probability * 100);
@@ -101,6 +107,14 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
         message += `   • Probability: **${probability}%** (${market.bestOutcome.toUpperCase()})\n`;
         message += `   • Time Left: **${hoursLeft}h**\n`;
         message += `   • ${t("volume")}: **$${(market.volume || 0).toLocaleString()}**\n\n`;
+
+        // Add a button for this market
+        inlineKeyboard.push([
+            {
+                text: `💰 Trade Market #${index + 1}`,
+                callback_data: `highprob:market:${market.id}:${tradingMode === "normal" ? "turtle" : "degen"}:${timeFilter}`,
+            },
+        ]);
     });
 
     if (count > 3) {
@@ -109,7 +123,12 @@ function generateAlertMessage(markets: HighProbMarket[], tradingMode: "normal" |
 
     message += `Use /highprob to view all markets and start trading! 📈`;
 
-    return message;
+    return {
+        text: message,
+        reply_markup: {
+            inline_keyboard: inlineKeyboard,
+        },
+    };
 }
 
 /**
@@ -137,8 +156,44 @@ export async function checkAndSendAlerts(): Promise<void> {
             // Get user's filter preferences
             const userFilters = await getUserFilters(parseInt(userId));
 
-            // Fetch markets based on user's preferences
-            const markets = await fetchHighProbabilityMarkets(userFilters);
+            // Determine which timeframes to check for this user.
+            // First try per-user saved timeframes, fall back to the user's current timeFilter.
+            let timeframes: Array<"1h" | "4h" | "24h" | "48h"> = [userFilters.timeFilter];
+            try {
+                const tfRaw = await redisClient.hGet(
+                    `user:highprob_alert_timeframes:${userId}`,
+                    "timeframes"
+                );
+                if (tfRaw) {
+                    const parsed = JSON.parse(tfRaw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        // Sanitize values to allowed set
+                        const allowed = new Set(["1h", "4h", "24h", "48h"]);
+                        timeframes = parsed.filter((t: any) => allowed.has(t));
+                        if (timeframes.length === 0) timeframes = [userFilters.timeFilter];
+                    }
+                }
+            } catch (e) {
+                console.warn(
+                    "Could not parse user timeframes, falling back to single timeframe",
+                    e
+                );
+                timeframes = [userFilters.timeFilter];
+            }
+
+            // Fetch markets for each timeframe (in parallel) and combine unique results
+            const fetchPromises = timeframes.map((tf) => {
+                const filtersForTf = { ...userFilters, timeFilter: tf };
+                return fetchHighProbabilityMarkets(filtersForTf);
+            });
+            const marketsByTf = await Promise.all(fetchPromises);
+            const combinedMarkets = marketsByTf.flat();
+            // Deduplicate by market id
+            const marketsMap = new Map<string, (typeof combinedMarkets)[0]>();
+            combinedMarkets.forEach((m) => {
+                if (!marketsMap.has(m.id)) marketsMap.set(m.id, m);
+            });
+            const markets = Array.from(marketsMap.values());
 
             // Filter out markets we've already notified about
             const newMarkets = markets.filter(
@@ -151,9 +206,14 @@ export async function checkAndSendAlerts(): Promise<void> {
 
             // Send alert
             try {
-                const alertMessage = generateAlertMessage(newMarkets, userFilters.tradingMode);
-                await bot.telegram.sendMessage(userId, alertMessage, {
+                const alertMessage = generateAlertMessage(
+                    newMarkets,
+                    userFilters.tradingMode,
+                    userFilters.timeFilter
+                );
+                await bot.telegram.sendMessage(userId, alertMessage.text, {
                     parse_mode: "Markdown",
+                    ...alertMessage.reply_markup,
                 });
 
                 // Update notification tracking
