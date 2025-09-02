@@ -1,6 +1,6 @@
 import { Markup } from "telegraf";
 import { getUserLanguage } from "../../../helpers/user-language";
-import { t } from "../../../i18n";
+import { t, type SupportedLanguage } from "../../../i18n";
 
 // Static buttons for non-user-specific contexts (these should be avoided in favor of translated versions)
 export const BACK_TO_MAIN_MENU_BUTTON = Markup.button.callback(
@@ -16,8 +16,7 @@ export const BRIDGE_BUTTON = Markup.button.callback(
 );
 
 // Translated button generators
-export async function getBackToMainMenuButton(userId: number) {
-    const language = await getUserLanguage(userId);
+export function getBackToMainMenuButton(language: SupportedLanguage) {
     return Markup.button.callback(t("backToMainMenu", language), "back_to_main_menu");
 }
 

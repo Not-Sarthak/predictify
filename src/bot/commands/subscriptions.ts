@@ -1,7 +1,4 @@
-import {
-    SUBSCRIPTIONS_MENU_BUTTONS,
-    generateTranslatedSubscriptionMenuButtons,
-} from "../ui/buttons";
+import { generateTranslatedSubscriptionMenuButtons } from "../ui/buttons";
 import { Markup, type Context } from "telegraf";
 import { getUserIdFromCtx } from "../utils";
 import { getUserLanguage } from "../../helpers/user-language";
@@ -11,8 +8,9 @@ export async function handleSubscriptionsCommand(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
     const t = getMessages(language);
-    const translatedButtons = await generateTranslatedSubscriptionMenuButtons(userId);
+
+    const translatedButtons = generateTranslatedSubscriptionMenuButtons(language);
     const keyboard = Markup.inlineKeyboard(translatedButtons);
 
-    return ctx.reply(`📋 ${t.chooseSubscriptionOption}:`, keyboard);
+    ctx.reply(`📋 ${t.chooseSubscriptionOption}:`, keyboard);
 }
