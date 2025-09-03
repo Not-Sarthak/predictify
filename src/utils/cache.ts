@@ -11,7 +11,11 @@ export async function getOrSetCache<T>(
     }
 
     const fresh = await fetchFn();
-    await redisClient.setEx(key, ttlSeconds, JSON.stringify(fresh));
+
+    if (fresh !== null && fresh !== undefined) {
+        await redisClient.setEx(key, ttlSeconds, JSON.stringify(fresh));
+    }
+
     return fresh;
 }
 

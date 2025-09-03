@@ -28,9 +28,22 @@ export async function handleLanguageSettings(ctx: Context) {
     const message = `${t("languageSettings")}\n\n${t("switchLanguage")}:`;
 
     if (ctx.updateType === "callback_query") {
-        return ctx.editMessageText(message, {
-            reply_markup: keyboard.reply_markup,
-        });
+        try {
+            return await ctx.editMessageText(message, {
+                reply_markup: keyboard.reply_markup,
+            });
+        } catch (error: any) {
+            // Handle "message is not modified" error gracefully
+            if (
+                error?.response?.error_code === 400 &&
+                error?.response?.description?.includes("message is not modified")
+            ) {
+                // Message content is the same, just answer the callback query
+                return ctx.answerCbQuery();
+            }
+            // Re-throw other errors
+            throw error;
+        }
     }
 
     return ctx.reply(message, {
@@ -43,10 +56,16 @@ export async function handleLanguageSettings(ctx: Context) {
  */
 export async function handleLanguageSelection(ctx: Context, language: string) {
     const userId = getUserIdFromCtx(ctx);
+    const currentLanguage = await getUserLanguage(userId);
 
     // Validate language
     if (!SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
         return ctx.answerCbQuery("❌ Invalid language selection");
+    }
+
+    // Check if user selected the same language they already have
+    if (language === currentLanguage) {
+        return ctx.answerCbQuery("✅ Language already selected");
     }
 
     // Update user's language preference

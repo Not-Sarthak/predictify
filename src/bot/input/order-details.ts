@@ -449,14 +449,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 await ctx.replyWithPhoto({ source: imgBuffer });
             }
 
-            if (orderType === "gtc") {
-                await db("Users")
-                    .update({
-                        // Remove total_balance field as it doesn't exist in the schema
-                    })
-                    .eq("id", userId);
-            }
-
             if (orderType !== "fok_sell") {
                 await transferFeeToTreasury({
                     userWallet: new ethers.Wallet(decryptedPrivateKey),

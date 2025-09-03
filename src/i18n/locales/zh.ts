@@ -308,7 +308,7 @@ export const zh: LocaleMessages = {
 
     // High Probability Strategy Buttons
     degenStrategy: "🔥 激进策略 (70-85%)",
-    turtleStrategy: "🐢 保守策略 (85.5-95%)",
+    turtleStrategy: "🐢 保守策略 (85.5-97.5%)",
     addToWatchlist: "❤️ 添加到我的观察列表",
     marketYes: "⚡ 市价 是",
     marketNo: "⚡ 市价 否",
@@ -358,7 +358,7 @@ export const zh: LocaleMessages = {
 
     // Strategy descriptions
     aggressiveDescription: "针对70-85%概率的市场进行高交易量机会交易",
-    conservativeDescription: "针对85.5-95%概率的市场进行更安全、低风险的交易",
+    conservativeDescription: "针对85.5-97.5%概率的市场进行更安全、低风险的交易",
     selectStrategyPrompt: "选择策略开始：",
 
     // Position messages
@@ -485,7 +485,7 @@ export const zh: LocaleMessages = {
 
     // Strategy button texts
     degenStrategyButton: "🔥 激进策略 (70-85%)",
-    turtleStrategyButton: "🐢 保守策略 (85.5-95%)",
+    turtleStrategyButton: "🐢 保守策略 (85.5-97.5%)",
 
     // Profile page texts
     yourPolymarketProfile: "您的Polymarket档案",

@@ -128,6 +128,7 @@ export async function handleCallbackQuery(ctx: Context) {
 
     const userId = getUserIdFromCtx(ctx);
     const userIdStr = userId.toString();
+    const language = await getUserLanguage(userId);
 
     /**
      * Handle Callbacks based on Data Value
@@ -463,17 +464,17 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data === "trade_top_markets_view") {
-        return handleViewTopMarketsCallback(ctx);
+        return handleViewTopMarketsCallback(ctx, language);
     }
 
     if (data.startsWith("view_top_markets:")) {
         const marketCategory = data.split(":")[1].toLowerCase();
-        return handleViewTopMarketsByCategory(ctx, marketCategory);
+        return handleViewTopMarketsByCategory(ctx, marketCategory, undefined, undefined, language);
     }
 
     if (data.startsWith("filter_top_market:")) {
         const [category, filter, offset] = data.split(":").slice(1);
-        return handleViewTopMarketsByCategory(ctx, category, filter, Number(offset) || 0);
+        return handleViewTopMarketsByCategory(ctx, category, filter, Number(offset) || 0, language);
     }
 
     if (data.startsWith("view_markets:")) {

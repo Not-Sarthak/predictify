@@ -86,7 +86,7 @@ export async function handleStrategySelection(
 
         // Set strategy-specific probability ranges
         const minProb = strategy === "degen" ? 70 : 85.5;
-        const maxProb = strategy === "degen" ? 85 : 95;
+        const maxProb = strategy === "degen" ? 85 : 97.5;
 
         const filters: HighProbFilters = {
             ...userFilters,
@@ -158,7 +158,7 @@ export async function sendStrategyMarkets(
     const strategyEmoji = strategy === "degen" ? "🔥" : "🐢";
     const strategyName = strategy === "degen" ? "Degen" : "Turtle";
     const minProb = strategy === "degen" ? 70 : 85.5;
-    const maxProb = strategy === "degen" ? 85 : 95;
+    const maxProb = strategy === "degen" ? 85 : 97.5;
 
     let message = `${strategyEmoji} **${strategyName} Strategy** (${minProb}-${maxProb}%)\n\n`;
     message += `📊 **Found ${markets.length} qualifying markets** (${timeFilter})\n\n`;
@@ -171,21 +171,29 @@ export async function sendStrategyMarkets(
         const volumeValue = market.volume24hr || market.volume || market.liquidity || 0;
         const volume = formatDollarVolume(volumeValue);
 
-        // Better date handling
-        let endTime = t("notAvailable", language);
-        if (market.endDate) {
-            try {
-                const date = new Date(market.endDate);
-                if (!isNaN(date.getTime())) {
-                    endTime = date.toLocaleDateString();
+        // Format time left consistently with other displays
+        let timeDisplay = "N/A";
+        if (
+            market.hoursUntilExpiry &&
+            market.hoursUntilExpiry > 0 &&
+            market.hoursUntilExpiry <= 168
+        ) {
+            const hoursLeft = Math.round(market.hoursUntilExpiry);
+            if (hoursLeft < 24) {
+                timeDisplay = `${hoursLeft}h`;
+            } else {
+                const daysLeft = Math.floor(hoursLeft / 24);
+                const remainingHours = hoursLeft % 24;
+                if (remainingHours === 0) {
+                    timeDisplay = `${daysLeft}d`;
+                } else {
+                    timeDisplay = `${daysLeft}d ${remainingHours}h`;
                 }
-            } catch (e) {
-                endTime = t("notAvailable", language);
             }
         }
 
         message += `**${i + 1}.** ${escapeMarkdown(market.question || market.title || "Unknown Market")}\n`;
-        message += `   💹 ${prob}% • 💧 ${volume} • ⏰ ${endTime}\n\n`;
+        message += `   💹 ${prob}% • 💧 ${volume} • ⏰ ${timeDisplay}\n\n`;
     }
 
     // Create time filter toggle buttons

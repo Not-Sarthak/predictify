@@ -59,6 +59,10 @@ export async function updateUserLanguage(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         await redisClient.set(`user:language:${userId}`, language);
+
+        // Clear the in-memory cache so next call to getUserLanguage fetches fresh data
+        userLanguageCache.delete(userId);
+
         return { success: true };
     } catch (error) {
         console.error("Error updating user language:", error);
