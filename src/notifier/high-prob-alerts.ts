@@ -217,7 +217,7 @@ export async function checkAndSendAlerts(): Promise<void> {
                 );
                 await bot.telegram.sendMessage(userId, alertMessage.text, {
                     parse_mode: "Markdown",
-                    ...alertMessage.reply_markup,
+                    reply_markup: alertMessage.reply_markup,
                 });
 
                 // Update notification tracking

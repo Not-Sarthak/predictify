@@ -357,7 +357,8 @@ Your wallet's live. Let's degen.`,
 
     // Strategy descriptions
     aggressiveDescription: "Target markets with 70-85% probability for higher volume opportunities",
-    conservativeDescription: "Target markets with 85.5-95% probability for safer, lower-risk plays",
+    conservativeDescription:
+        "Target markets with 85.5-97.5% probability for safer, lower-risk plays",
     selectStrategyPrompt: "Select a strategy to get started:",
 
     // Position messages
