@@ -11,6 +11,7 @@ import { ethers } from "ethers";
 import type { HighProbMarket } from "./market-filters";
 import type { ApiKeyCreds } from "../../types/polymarket/api-key";
 import { updateUserVolume } from "../../helpers/update-user-volume";
+import { sendOrderToSQS, type OrderMessage } from "../../lib/sqs";
 import {
     updateUserMarketsTraded,
     updateUserTransactionsExecuted,
@@ -212,6 +213,31 @@ async function executeSingleTrade({
             updateUserMarketsTraded(userId, user?.markets_traded || 0),
             updateUserTransactionsExecuted(userId, user?.txns_executed || 0),
         ]);
+
+        // Send successful order to SQS
+        try {
+            const orderData: OrderMessage = {
+                userId: userId.toString(),
+                username: user?.telegram_username,
+                orderId: orderResponse.response.orderID || "",
+                orderType: "fok",
+                side: market.bestOutcome,
+                marketId: market.id,
+                marketQuestion: market.question,
+                amount,
+                shares,
+                executionPrice: market.bestPrice,
+                txHash: orderResponse.response.transactionsHashes?.[0],
+                timestamp: new Date().toISOString(),
+                status: "matched",
+                outcome: market.bestOutcome,
+            };
+
+            await sendOrderToSQS(orderData);
+        } catch (error) {
+            console.error("Failed to send batch trade order to SQS:", error);
+            // Don't fail the trade if SQS fails
+        }
 
         return {
             marketId: market.id,
