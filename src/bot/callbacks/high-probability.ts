@@ -403,8 +403,30 @@ export async function handleAutoSplitSetup(
         message += `**Top Markets Preview:**\n`;
         topMarkets.slice(0, 3).forEach((market, index) => {
             const probability = Math.round(market.probability * 100);
+            const hoursLeft = Math.round(market.hoursUntilExpiry);
+
+            // Format time display consistently
+            let timeDisplay = "N/A";
+            if (
+                market.hoursUntilExpiry &&
+                market.hoursUntilExpiry > 0 &&
+                market.hoursUntilExpiry <= 168
+            ) {
+                if (hoursLeft < 24) {
+                    timeDisplay = `${hoursLeft}h`;
+                } else {
+                    const daysLeft = Math.floor(hoursLeft / 24);
+                    const remainingHours = hoursLeft % 24;
+                    if (remainingHours === 0) {
+                        timeDisplay = `${daysLeft}d`;
+                    } else {
+                        timeDisplay = `${daysLeft}d ${remainingHours}h`;
+                    }
+                }
+            }
+
             message += `${index + 1}. ${escapeMarkdown(market.question.substring(0, 50))}...\n`;
-            message += `   🎯 ${market.bestOutcome.toUpperCase()} @ ${probability}% • +${market.expectedReturn.toFixed(1)}%\n\n`;
+            message += `   🎯 ${market.bestOutcome.toUpperCase()} @ ${probability}% • ⏰ ${timeDisplay} • +${market.expectedReturn.toFixed(1)}%\n\n`;
         });
 
         if (topMarkets.length > 3) {
@@ -507,8 +529,28 @@ async function sendManualSelectionMarkets(
         const isSelected = selectedMarkets.includes(market.id);
         const indicator = isSelected ? "✅" : "⭕";
 
+        // Format time display consistently with the main market list
+        let timeDisplay = "N/A";
+        if (
+            market.hoursUntilExpiry &&
+            market.hoursUntilExpiry > 0 &&
+            market.hoursUntilExpiry <= 168
+        ) {
+            if (hoursLeft < 24) {
+                timeDisplay = `${hoursLeft}h`;
+            } else {
+                const daysLeft = Math.floor(hoursLeft / 24);
+                const remainingHours = hoursLeft % 24;
+                if (remainingHours === 0) {
+                    timeDisplay = `${daysLeft}d`;
+                } else {
+                    timeDisplay = `${daysLeft}d ${remainingHours}h`;
+                }
+            }
+        }
+
         message += `${indicator} **${marketNum}.** ${escapeMarkdown(market.question.substring(0, 60))}${market.question.length > 60 ? "..." : ""}\n`;
-        message += `🎯 **${market.bestOutcome.toUpperCase()}** @ ${probability}% • ⏰ ${hoursLeft}h • 📈 +${expectedReturn}%\n\n`;
+        message += `🎯 **${market.bestOutcome.toUpperCase()}** @ ${probability}% • ⏰ ${timeDisplay} • 📈 +${expectedReturn}%\n\n`;
     });
 
     if (selectedMarkets.length > 0) {
