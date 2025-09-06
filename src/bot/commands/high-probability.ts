@@ -135,7 +135,7 @@ export async function handleStrategySelection(
             );
         }
 
-        return sendStrategyMarkets(ctx, markets, strategy, timeFilter);
+        return sendStrategyMarkets(ctx, markets, strategy, timeFilter, 0);
     } catch (error) {
         await ctx.deleteMessage(msg.message_id);
         console.error("Error handling strategy selection:", error);
@@ -147,10 +147,14 @@ export async function sendStrategyMarkets(
     ctx: Context,
     markets: HighProbMarket[],
     strategy: "degen" | "turtle",
-    timeFilter: "1h" | "4h" | "24h" | "48h"
+    timeFilter: "1h" | "4h" | "24h" | "48h",
+    offset: number = 0,
+    editMessage: boolean = false
 ) {
     const LIMIT = 8;
-    const currentMarkets = markets.slice(0, LIMIT);
+    const start = offset;
+    const end = offset + LIMIT;
+    const currentMarkets = markets.slice(start, end);
     const userId = getUserIdFromCtx(ctx);
     const userFilters = await getUserFilters(userId);
     const language = await getUserLanguage(userId);
@@ -161,7 +165,15 @@ export async function sendStrategyMarkets(
     const maxProb = strategy === "degen" ? 85 : 97.5;
 
     let message = `${strategyEmoji} **${strategyName} Strategy** (${minProb}-${maxProb}%)\n\n`;
-    message += `📊 **Found ${markets.length} qualifying markets** (${timeFilter})\n\n`;
+    message += `📊 **Found ${markets.length} qualifying markets** (${timeFilter})\n`;
+
+    // Show pagination info if there are multiple pages
+    if (markets.length > LIMIT) {
+        const currentPage = Math.floor(start / LIMIT) + 1;
+        const totalPages = Math.ceil(markets.length / LIMIT);
+        message += `📄 **Page ${currentPage} of ${totalPages}**\n`;
+    }
+    message += `\n`;
 
     // Display markets with numbers
     for (let i = 0; i < currentMarkets.length; i++) {
@@ -192,7 +204,8 @@ export async function sendStrategyMarkets(
             }
         }
 
-        message += `**${i + 1}.** ${escapeMarkdown(market.question || market.title || "Unknown Market")}\n`;
+        const marketNum = start + i + 1;
+        message += `**${marketNum}.** ${escapeMarkdown(market.question || market.title || "Unknown Market")}\n`;
         message += `   💹 ${prob}% • 💧 ${volume} • ⏰ ${timeDisplay}\n\n`;
     }
 
@@ -216,10 +229,10 @@ export async function sendStrategyMarkets(
         ),
     ];
 
-    // Create numbered market buttons
+    // Create numbered market buttons with correct numbering
     const marketButtons = currentMarkets.map((market, idx) =>
         Markup.button.callback(
-            `#${idx + 1}`,
+            `#${start + idx + 1}`,
             `highprob:market:${market.id}:${strategy}:${timeFilter}`
         )
     );
@@ -228,6 +241,25 @@ export async function sendStrategyMarkets(
     const marketButtonRows = [];
     for (let i = 0; i < marketButtons.length; i += 4) {
         marketButtonRows.push(marketButtons.slice(i, i + 4));
+    }
+
+    // Create pagination buttons
+    const paginationButtons = [];
+    if (start > 0) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "⬅️ Previous",
+                `highprob:strategy_page:${strategy}:${timeFilter}:${start - LIMIT}`
+            )
+        );
+    }
+    if (end < markets.length) {
+        paginationButtons.push(
+            Markup.button.callback(
+                "Next ➡️",
+                `highprob:strategy_page:${strategy}:${timeFilter}:${end}`
+            )
+        );
     }
 
     // Create filter and action buttons
@@ -239,7 +271,7 @@ export async function sendStrategyMarkets(
     const alertSettings = await getUserAlertSettings(userId.toString());
     const alertStatus = alertSettings.enabled ? t("alertsOn", language) : t("alertsOff", language);
 
-    const keyboard = Markup.inlineKeyboard([
+    const keyboardRows = [
         // Split time buttons into two rows
         [timeButtons[0], timeButtons[1]],
         [timeButtons[2], timeButtons[3]],
@@ -250,6 +282,15 @@ export async function sendStrategyMarkets(
             ),
         ],
         ...marketButtonRows,
+    ];
+
+    // Add pagination buttons if needed
+    if (paginationButtons.length > 0) {
+        keyboardRows.push(paginationButtons);
+    }
+
+    // Add final action buttons
+    keyboardRows.push(
         [
             Markup.button.callback(
                 cryptoStatus,
@@ -260,8 +301,32 @@ export async function sendStrategyMarkets(
                 `highprob:strategy_alerts:${strategy}:${timeFilter}`
             ),
         ],
-        [Markup.button.callback("🔙 Back", "highprob:menu")],
-    ]);
+        [Markup.button.callback("🔙 Back", "highprob:menu")]
+    );
+
+    const keyboard = Markup.inlineKeyboard(keyboardRows);
+
+    if (editMessage) {
+        try {
+            return await ctx.editMessageText(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            });
+        } catch (error: any) {
+            // Handle "message is not modified" error gracefully
+            if (
+                error?.response?.error_code === 400 &&
+                error?.response?.description?.includes("message is not modified")
+            ) {
+                return ctx.answerCbQuery();
+            }
+            // For other errors, fall back to sending a new message
+            return ctx.reply(message, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard.reply_markup,
+            });
+        }
+    }
 
     return ctx.reply(message, {
         parse_mode: "Markdown",
