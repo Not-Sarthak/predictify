@@ -14,7 +14,6 @@ import {
     setCopyTradeLock,
     releaseCopyTradeLock,
 } from "./position-validator";
-import { updateUserVolume } from "../helpers/update-user-volume";
 import {
     updateUserMarketsTraded,
     updateUserTransactionsExecuted,
@@ -232,10 +231,6 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 orderType: OrderType.FOK,
             });
         }
-
-        // Update user's total volume
-        const volumeToAdd = trade.size;
-        await updateUserVolume(Number(userId), volumeToAdd);
 
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
         await redisClient.set(

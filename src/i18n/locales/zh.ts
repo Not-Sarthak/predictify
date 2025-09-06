@@ -173,7 +173,7 @@ export const zh: LocaleMessages = {
     pnl: "盈亏",
     entry: "入场",
     exit: "出场",
-    shares: "份额",
+    shares: "• 份额",
     marketValue: "市值",
     unrealizedPnl: "未实现盈亏",
     realizedPnl: "已实现盈亏",

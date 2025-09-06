@@ -13,6 +13,9 @@ TODO:
 
 ---
 
-1. admin dashboard: Total user, Total volume, Total market order traded, Total limit order traded
-2. Tag Bot and Give Info
-3. Twitter Bot
+1. Tag Bot and Give Info
+2. Twitter Bot
+
+---
+
+- Bridge Integration (Mayan)
