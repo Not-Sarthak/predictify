@@ -111,10 +111,6 @@ function generateAlertMessage(
         // Add buttons for this market - Trade and Go to Market
         inlineKeyboard.push([
             {
-                text: `💰 Trade Market #${index + 1}`,
-                callback_data: `highprob:market:${market.id}:${tradingMode === "normal" ? "turtle" : "degen"}:${timeFilter}`,
-            },
-            {
                 text: `📊 Go to Market #${index + 1}`,
                 callback_data: `market_details:${market.id}`,
             },

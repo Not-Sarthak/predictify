@@ -76,6 +76,12 @@ export async function handleHighProbCallback(ctx: Context, action: string, param
                 const timeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "48h";
                 return handleStrategySelection(ctx, strategy, timeFilter);
 
+            case "strategy_page":
+                const pageStrategy = params?.[0] as "degen" | "turtle";
+                const pageTimeFilter = (params?.[1] as "1h" | "4h" | "24h" | "48h") || "48h";
+                const pageOffset = parseInt(params?.[2] || "0");
+                return handleStrategyPage(ctx, pageStrategy, pageTimeFilter, pageOffset);
+
             case "market":
                 const marketId = params?.[0];
                 const marketStrategy = params?.[1] as "degen" | "turtle";
@@ -295,6 +301,48 @@ export async function handleViewHighProbMarket(
                 [Markup.button.callback("🔙 Back", `highprob:strategy:${strategy}:${timeFilter}`)],
             ]).reply_markup,
         });
+    }
+}
+
+export async function handleStrategyPage(
+    ctx: Context,
+    strategy: "degen" | "turtle",
+    timeFilter: "1h" | "4h" | "24h" | "48h",
+    offset: number
+) {
+    const msg = await ctx.reply("🔍 Loading markets...");
+
+    try {
+        const userId = getUserIdFromCtx(ctx);
+        const userFilters = await getUserFilters(userId);
+
+        // Set strategy-specific probability ranges
+        const filters: HighProbFilters = {
+            ...userFilters,
+            timeFilter,
+            tradingMode: strategy === "degen" ? "normal" : "degen", // Map: degen->normal (70-85%), turtle->degen (85.5-95%)
+        };
+
+        const language = await getUserLanguage(userId);
+        const markets = await fetchHighProbabilityMarkets(filters, 50, language);
+
+        await ctx.deleteMessage(msg.message_id);
+
+        if (markets.length === 0) {
+            return ctx.reply("❌ No markets found.", {
+                reply_markup: Markup.inlineKeyboard([
+                    [Markup.button.callback("🔙 Back", "highprob:menu")],
+                ]).reply_markup,
+            });
+        }
+
+        // Import the sendStrategyMarkets function from commands
+        const { sendStrategyMarkets } = await import("../commands/high-probability");
+        return sendStrategyMarkets(ctx, markets, strategy, timeFilter, offset, true);
+    } catch (error) {
+        await ctx.deleteMessage(msg.message_id);
+        console.error("Error handling strategy page:", error);
+        return ctx.reply("❌ Error loading markets. Please try again later.");
     }
 }
 

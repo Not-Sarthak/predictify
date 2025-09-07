@@ -25,7 +25,7 @@ export async function formatMarketMessage(
 ): Promise<string> {
     const language = await getUserLanguage(userId);
 
-    const volume = market.volume || market.volumeUSD || 0;
+    const volume = parseFloat(market.volume) || 0;
 
     // Translate the market question/title
     const translatedTitle = translateMarketTitle(market.question || market.title, language);
