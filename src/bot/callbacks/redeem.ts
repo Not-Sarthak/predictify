@@ -23,9 +23,11 @@ export async function handleRedeemPosition(ctx: Context, conditionId: string) {
 
     const position = await getUserPositionByMarket(userAddress, decodedConditionId);
 
-    if (!position || position.size <= 0) {
-        await ctx.answerCbQuery("❌ No position found");
-        return ctx.reply("❌ You Don't Have Any Shares in this Market to Redeem.");
+    // Only allow showing redeem UI when the position is redeemable and market is resolved
+    // (current price equals 1 for the winning outcome) and the user has a positive size.
+    if (!position || position.size <= 0 || !position.redeemable || position.curPrice !== 1) {
+        await ctx.answerCbQuery("❌ No redeemable position found");
+        return ctx.reply("❌ You don't have any redeemable shares in this market.");
     }
 
     await ctx.answerCbQuery("Redeem Position?");
@@ -66,11 +68,14 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
             `https://data-api.polymarket.com/positions?user=${user.wallet_address}`
         );
 
-        const [position] = userPositions.data.filter((pos) => pos.redeemable && pos.curPrice);
+        // Find the position for the specific market that is redeemable and resolved
+        const [position] = userPositions.data.filter(
+            (pos) => pos.redeemable && pos.curPrice === 1 && pos.conditionId === decodedConditionId
+        );
 
         if (!position) {
             await ctx.deleteMessage(message_id);
-            return ctx.reply("❌ Position not found.");
+            return ctx.reply("❌ No redeemable position found for this market.");
         }
 
         const result = await redeemPositions({
