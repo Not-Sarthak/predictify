@@ -14,6 +14,7 @@ import {
     handleViewHighProbMarkets,
     handleHighProbHelp,
     handleStrategySelection,
+    sendStrategyMarkets,
 } from "../commands/high-probability";
 import {
     getAlertStatusMessage,
@@ -337,7 +338,7 @@ export async function handleStrategyPage(
         }
 
         // Import the sendStrategyMarkets function from commands
-        const { sendStrategyMarkets } = await import("../commands/high-probability");
+
         return sendStrategyMarkets(ctx, markets, strategy, timeFilter, offset, true);
     } catch (error) {
         await ctx.deleteMessage(msg.message_id);
