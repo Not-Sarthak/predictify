@@ -495,7 +495,7 @@ export const zh: LocaleMessages = {
     yourReferralCode: "您的推荐码:",
     viewOnPolymarket: "🔗 在Polymarket查看",
     notAssigned: "未分配",
-
+    health: "健康",
     // High-probability market messages
     noMarketsFoundMatching: "未找到匹配的市场",
     possibleReasons: "可能的原因:",
@@ -534,7 +534,7 @@ export const zh: LocaleMessages = {
     cmdAnalytics: "查看活跃用户分析（仅限管理员）",
     cmdDetailed: "查看详细分析仪表板（仅限管理员）",
     cmdRedeem: "從已解決的市場部位贖回",
-
+    cmdHealth: "检查机器人的运行状态",
     // Hourly Market Specific
     priceToBeat: "目标价格",
     currentPrice: "当前价格",

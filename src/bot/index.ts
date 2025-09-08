@@ -13,6 +13,7 @@ import {
     handleRefCommand,
     handleDetailedAnalytics,
     handleNotifyAllCommand,
+    handleHealthCommand,
 } from "./commands";
 import { handleUserTextMessage } from "./input";
 import { handleCallbackQuery } from "./callbacks";
@@ -78,6 +79,7 @@ bot.command("statistics", handleBotStatistics);
 bot.command("predict", handleDetailedAnalytics);
 bot.command("redeem", handleViewRedeemablePositions);
 bot.command("notify", handleNotifyAllCommand);
+bot.command("health", handleHealthCommand);
 
 // Text Input Handler
 bot.on(message("text"), handleUserTextMessage);

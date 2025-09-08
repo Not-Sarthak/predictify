@@ -365,6 +365,7 @@ Your wallet's live. Let's degen.`,
     noOpenPositions: "⚠️ No Open Positions",
     noOpenPositionsFound: "✅ No open positions found",
     noRedeemablePositionsFound: "⚠️ No Redeemable Positions",
+    health: "Health",
 
     // High Probability Market Data
     foundMarkets: "Found Markets",
@@ -662,7 +663,7 @@ Your wallet's live. Let's degen.`,
     cmdAnalytics: "View active user analytics (Admin only)",
     cmdDetailed: "View detailed analytics dashboard (Admin only)",
     cmdRedeem: "Redeem from resolved markets positions",
-
+    cmdHealth: "Check the bot's health status",
     // Subscription action messages
     subscriptionAdded: "📬 You'll Now Receive Alerts for:",
     subscriptionRemoved: "🗑️ Alerts Removed For:",
