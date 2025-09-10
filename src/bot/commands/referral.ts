@@ -22,6 +22,26 @@ export async function handleRefCommand(ctx: Context) {
 
         const stats = await getReferralStats(userId, botUsername);
 
+        // Validate stats object structure to prevent errors with anomalous data
+        if (!stats || typeof stats !== "object") {
+            throw new Error("Invalid stats object received");
+        }
+
+        // Ensure referredUsers is always an array
+        if (!Array.isArray(stats.referredUsers)) {
+            stats.referredUsers = [];
+        }
+
+        // Ensure numeric values are valid
+        stats.totalReferred =
+            typeof stats.totalReferred === "number" && !isNaN(stats.totalReferred)
+                ? stats.totalReferred
+                : 0;
+        stats.totalEarnings =
+            typeof stats.totalEarnings === "number" && !isNaN(stats.totalEarnings)
+                ? stats.totalEarnings
+                : 0;
+
         // Check if we got fallback data (indicates an error occurred)
         if (stats.referralLink === "N/A") {
             await ctx.reply(
@@ -51,11 +71,19 @@ export async function handleRefCommand(ctx: Context) {
 
         let message = `🎯 **Referral Dashboard**\n\n`;
 
-        // Overview stats
-        message += `📊 **Overview:**\n`;
-        message += `• Total Referred Users: **${stats.totalReferred}**\n`;
-        message += `• Total Earnings: **$${stats.totalEarnings.toFixed(4)}**\n`;
-        message += `• Your Referral Link: \`${stats.referralLink}\`\n\n`;
+        try {
+            // Overview stats
+            message += `📊 **Overview:**\n`;
+            message += `• Total Referred Users: **${stats.totalReferred}**\n`;
+            message += `• Total Earnings: **$${stats.totalEarnings.toFixed(4)}**\n`;
+            message += `• Your Referral Link: \`${stats.referralLink}\`\n\n`;
+        } catch (overviewError) {
+            console.error("Error building overview stats:", overviewError);
+            message += `📊 **Overview:**\n`;
+            message += `• Total Referred Users: **${stats.totalReferred || 0}**\n`;
+            message += `• Total Earnings: **$0.0000**\n`;
+            message += `• Your Referral Link: \`${stats.referralLink || "N/A"}\`\n\n`;
+        }
 
         // How it works
         message += `💡 **How Referrals Work:**\n`;
@@ -64,20 +92,53 @@ export async function handleRefCommand(ctx: Context) {
         message += `• You earn **25%** of treasury fees from their trades\n`;
         message += `• No limits - the more they trade, the more you earn!\n\n`;
 
-        // Referred users section
-        if (stats.referredUsers.length > 0) {
-            message += `👥 **Your Referred Users:**\n`;
-            stats.referredUsers.slice(0, 10).forEach((user, index) => {
-                message += `${index + 1}. @${user.username}\n`;
-                message += `   • Joined: ${user.joinDate}\n`;
-                message += `   • Total Volume: $${user.totalVolume.toFixed(2)}\n\n`;
-            });
+        // Referred users section - wrapped in try-catch for anomaly handling
+        try {
+            if (stats.referredUsers.length > 0) {
+                message += `👥 **Your Referred Users:**\n`;
 
-            if (stats.referredUsers.length > 10) {
-                message += `... and **${stats.referredUsers.length - 10}** more users!\n\n`;
+                // Filter out users with invalid data and safely format the rest
+                const validUsers = stats.referredUsers.filter((user) => {
+                    try {
+                        return user && typeof user === "object" && user.username;
+                    } catch {
+                        return false;
+                    }
+                });
+
+                const usersToShow = validUsers.slice(0, 10);
+                usersToShow.forEach((user, index) => {
+                    try {
+                        const username = user.username ? `@${user.username}` : `User #${index + 1}`;
+                        const joinDate = user.joinDate || "Unknown";
+                        const totalVolume =
+                            user.totalVolume && typeof user.totalVolume === "number"
+                                ? user.totalVolume.toFixed(2)
+                                : "0.00";
+
+                        message += `${index + 1}. ${username}\n`;
+                        message += `   • Joined: ${joinDate}\n`;
+                        message += `   • Total Volume: $${totalVolume}\n\n`;
+                    } catch (userError) {
+                        console.error(`Error formatting user ${index}:`, userError, user);
+                        // Skip this user and continue with the next one
+                        message += `${index + 1}. User #${index + 1}\n`;
+                        message += `   • Joined: Unknown\n`;
+                        message += `   • Total Volume: $0.00\n\n`;
+                    }
+                });
+
+                if (stats.referredUsers.length > 10) {
+                    message += `... and **${stats.referredUsers.length - 10}** more users!\n\n`;
+                }
+            } else {
+                message += `👥 **Your Referred Users:**\nNo users referred yet. Start sharing your link!\n\n`;
             }
-        } else {
-            message += `👥 **Your Referred Users:**\nNo users referred yet. Start sharing your link!\n\n`;
+        } catch (usersError) {
+            console.error("Error processing referred users list:", usersError);
+            message += `👥 **Your Referred Users:**\n`;
+            message += `Found ${stats.referredUsers?.length || 0} users, but having trouble displaying them.\n`;
+            message += `This might be due to data processing issues. Your referrals are still tracked!\n\n`;
         }
 
         message += `🚀 **Start Earning:**\n`;
