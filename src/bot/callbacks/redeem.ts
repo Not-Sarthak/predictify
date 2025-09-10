@@ -7,7 +7,7 @@ import { getUserDetails } from "../../helpers/get-user-details";
 import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
 import { decodeMarketId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
-import { redeemPositions } from "../../utils/polymarket/redeem";
+import { redeemPositions, redeemNegRiskPositions } from "../../utils/polymarket/redeem";
 import axios from "axios";
 
 export async function handleRedeemPosition(ctx: Context, conditionId: string) {
@@ -32,8 +32,9 @@ export async function handleRedeemPosition(ctx: Context, conditionId: string) {
 
     await ctx.answerCbQuery("Redeem Position?");
 
+    const marketType = position.negativeRisk ? " (NegRisk)" : "";
     const message =
-        `💰 **Redeem Position**\n\n` +
+        `💰 **Redeem Position**${marketType}\n\n` +
         `Market: **${position.title}**\n` +
         `Shares: **${position.size.toFixed(2)}**\n` +
         `Outcome: **${position.outcome}**\n\n` +
@@ -78,10 +79,29 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
             return ctx.reply("❌ No redeemable position found for this market.");
         }
 
-        const result = await redeemPositions({
-            privateKey: decryptPrivateKey(user.private_key),
-            conditionId: decodedConditionId,
-        });
+        let result;
+
+        // Check if this is a NegRisk market and use appropriate redeem function
+        if (position.negativeRisk) {
+            // For NegRisk markets, we need to specify amounts for both yes and no tokens
+            // Since we're redeeming a winning position, we redeem the full amount for the winning outcome
+            // and 0 for the losing outcome
+            const yesAmount = position.outcome === "Yes" ? position.size.toString() : "0";
+            const noAmount = position.outcome === "No" ? position.size.toString() : "0";
+
+            result = await redeemNegRiskPositions({
+                privateKey: decryptPrivateKey(user.private_key),
+                conditionId: decodedConditionId,
+                yesAmount,
+                noAmount,
+            });
+        } else {
+            // Use regular redeem for non-NegRisk markets
+            result = await redeemPositions({
+                privateKey: decryptPrivateKey(user.private_key),
+                conditionId: decodedConditionId,
+            });
+        }
 
         await ctx.deleteMessage(message_id);
 
