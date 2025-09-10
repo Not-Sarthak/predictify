@@ -10,6 +10,7 @@ export * from "./high-probability";
 export * from "./referral";
 export * from "./detailed-analytics";
 export * from "./notify-all";
+export * from "./health";
 export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
     {
         command: "start",
@@ -62,6 +63,10 @@ export const getBotCommands = (locale: string = "zh"): BotCommand[] => [
     {
         command: "redeem",
         description: t("cmdRedeem", locale as any),
+    },
+    {
+        command: "health",
+        description: t("cmdHealth", locale as any),
     },
 ];
 // Bot Interaction Commands (default Chinese)

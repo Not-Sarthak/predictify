@@ -17,7 +17,8 @@ export interface LocaleMessages {
     portfolio: string;
     walletFunds: string;
     viewProfile: string;
-
+    health: string;
+    cmdHealth: string;
     // Settings
     settings: string;
     language: string;
