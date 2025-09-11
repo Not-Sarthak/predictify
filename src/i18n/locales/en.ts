@@ -52,17 +52,11 @@ Your wallet's live. Let's degen.`,
 
     // Terms of Service
     termsTitle: "🔒 **Terms of Service Agreement**",
-    termsContent: `By using this service, you represent and confirm that:
-
-• You are not a resident, national, or agent of, and are not located in, any restricted or prohibited jurisdiction under applicable laws or by regulatory sanctions
-
-• You are not using a VPN, proxy, or other anonymization service to conceal your geographic location
-
-• You understand this is a trading bot for prediction markets and involves financial risk
-
-• You acknowledge that all trading decisions are made at your own risk
-
-Please read and accept these terms to continue using the bot.`,
+    termsContent: `By using this service, you agree to Polymarket's [Terms of Use](https://polymarket.com/tos) and attest that you are not 
+    (i) a U.S. person;
+    (ii) located in the United States or other restricted jurisdictions; 
+    (iii) using a VPN or other measures to circumvent or attempt to circumvent restrictions.
+    Please read and accept these terms to continue using the bot.`,
     acceptTerms: "✅ Accept",
     rejectTerms: "❌ Reject",
     termsRejected:

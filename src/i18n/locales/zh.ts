@@ -115,17 +115,11 @@ export const zh: LocaleMessages = {
 
     // Terms of Service
     termsTitle: "🔒 **服务条款协议**",
-    termsContent: `通过使用此服务，您声明并确认：
-
-• 您不是受适用法律或监管制裁的任何限制或禁止司法管辖区的居民、国民或代理人，也不位于这些司法管辖区
-
-• 您没有使用VPN、代理或其他匿名化服务来隐瞒您的地理位置
-
-• 您了解这是一个用于预测市场的交易机器人，涉及金融风险
-
-• 您承认所有交易决策均由您自担风险
-
-请阅读并接受这些条款以继续使用该机器人。`,
+    termsContent: `使用此服务，即表示您同意 Polymarket 的[使用条款](https://polymarket.com/tos)，并证明您并非
+    (i) 美国公民；
+    (ii) 位于美国或其他受限制的司法管辖区；
+    (iii) 使用 VPN 或其他措施规避或试图规避限制。
+    请阅读并接受这些条款，以便继续使用该机器人`,
     acceptTerms: "✅ 接受",
     rejectTerms: "❌ 拒绝",
     termsRejected:
