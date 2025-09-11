@@ -49,6 +49,13 @@ export interface LocaleMessages {
     welcome: string;
     walletReset: string;
     orderCancelled: string;
+
+    // Terms of Service
+    termsTitle: string;
+    termsContent: string;
+    acceptTerms: string;
+    rejectTerms: string;
+    termsRejected: string;
     internalServerError: string;
     userNotFound: string;
 
