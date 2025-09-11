@@ -49,6 +49,24 @@ export const en: LocaleMessages = {
     welcome: `Welcome to Predictify
 We trade headlines for breakfast. 📰⚔
 Your wallet's live. Let's degen.`,
+
+    // Terms of Service
+    termsTitle: "🔒 **Terms of Service Agreement**",
+    termsContent: `By using this service, you represent and confirm that:
+
+• You are not a resident, national, or agent of, and are not located in, any restricted or prohibited jurisdiction under applicable laws or by regulatory sanctions
+
+• You are not using a VPN, proxy, or other anonymization service to conceal your geographic location
+
+• You understand this is a trading bot for prediction markets and involves financial risk
+
+• You acknowledge that all trading decisions are made at your own risk
+
+Please read and accept these terms to continue using the bot.`,
+    acceptTerms: "✅ Accept",
+    rejectTerms: "❌ Reject",
+    termsRejected:
+        "❌ You must accept the terms of service to use this bot.\n\nIf you change your mind, you can start again by sending /start",
     walletReset: "✅ Wallet Reset Successfully",
     orderCancelled: "✅ Order Cancelled!",
     internalServerError: "❌ Internal Server Error",
