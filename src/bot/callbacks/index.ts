@@ -109,6 +109,7 @@ import { handleConfirmRedeem, handleRedeemPosition } from "./redeem";
 import { stopAllTpSlWatchers, stopPriceAlertWatcher } from "../../notifier/ws/price-watcher";
 import { handleRefreshReferralStats } from "../commands/referral";
 import { handleConfirmNotification, handleCancelNotification } from "./notification";
+import { handleAcceptTerms, handleRejectTerms } from "./terms";
 
 /**
  * TODO:FIX
@@ -153,6 +154,15 @@ export async function handleCallbackQuery(ctx: Context) {
     if (data.startsWith("cancel_notification:")) {
         const userId = data.split(":")[1];
         return handleCancelNotification(ctx, userId);
+    }
+
+    if (data.startsWith("accept_terms:")) {
+        const referrerUsername = data.split(":")[1] || undefined;
+        return handleAcceptTerms(ctx, referrerUsername);
+    }
+
+    if (data === "reject_terms") {
+        return handleRejectTerms(ctx);
     }
 
     if (data === "main_menu") {
