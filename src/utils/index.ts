@@ -1,3 +1,4 @@
+export * from "./bigint-serializer";
 export * from "./cache";
 export * from "./capitalize";
 export * from "./create-legacy-wallet";
