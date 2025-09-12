@@ -2,6 +2,7 @@ import { Contract, ethers } from "ethers";
 import { getContractConfig } from "@polymarket/clob-client";
 import { env } from "../../config";
 import { CHAIN_ID } from "../../shared/constants";
+import { logWithBigInt } from "../bigint-serializer";
 
 const CTF_EXCHANGE_ABI = [
     {
@@ -102,7 +103,7 @@ export async function debugNegRiskRedeem({
             },
         };
 
-        console.log("NegRisk Debug Info:", JSON.stringify(debugInfo, null, 2));
+        logWithBigInt("NegRisk Debug Info:", debugInfo);
         return debugInfo;
     } catch (error: any) {
         console.error("Debug error:", error);
@@ -154,7 +155,7 @@ export async function redeemNegRiskPositions({
         const wallet = new ethers.Wallet(privateKey, provider);
         const contractConfig = getContractConfig(CHAIN_ID);
 
-        console.log("NegRisk Redeem Debug Info:", {
+        logWithBigInt("NegRisk Redeem Debug Info:", {
             wallet: wallet.address,
             conditionId,
             yesAmount,
