@@ -8,6 +8,7 @@ import { getUserPositionByMarket } from "../../utils/polymarket/get-user-positio
 import { decodeMarketId } from "../../utils/encoding";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { redeemPositions, redeemNegRiskPositions } from "../../utils/polymarket/redeem";
+import { setNegativeRiskAllowance } from "../../utils/polymarket/set-negative-risk-allowance";
 import axios from "axios";
 
 export async function handleRedeemPosition(ctx: Context, conditionId: string) {
@@ -79,15 +80,32 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
             return ctx.reply("❌ No redeemable position found for this market.");
         }
 
+        // Additional validation for position size
+        if (position.size <= 0) {
+            await ctx.deleteMessage(message_id);
+            return ctx.reply("❌ Position size is 0 or negative, cannot redeem.");
+        }
+
         let result;
 
         // Check if this is a NegRisk market and use appropriate redeem function
         if (position.negativeRisk) {
-            // For NegRisk markets, we need to specify amounts for both yes and no tokens
-            // Since we're redeeming a winning position, we redeem the full amount for the winning outcome
-            // and 0 for the losing outcome
+            // For NegRisk markets, ensure allowances are set first
+            try {
+                await setNegativeRiskAllowance(decryptPrivateKey(user.private_key));
+            } catch (allowanceError) {
+                console.error("Failed to set NegRisk allowances:", allowanceError);
+                // Continue anyway, the error might be more specific in the redeem call
+            }
+
+            // For NegRisk markets, only redeem the tokens the user actually has
+            // The user only has tokens for the outcome they bet on
             const yesAmount = position.outcome === "Yes" ? position.size.toString() : "0";
             const noAmount = position.outcome === "No" ? position.size.toString() : "0";
+
+            console.log(
+                `NegRisk Redemption - Position: ${position.outcome}, Size: ${position.size}, YES: ${yesAmount}, NO: ${noAmount}`
+            );
 
             result = await redeemNegRiskPositions({
                 privateKey: decryptPrivateKey(user.private_key),
@@ -109,11 +127,28 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
             return ctx.reply(
                 `✅ **Position Redeemed Successfully!**\n\n` +
                     `Your USDC has been credited to your wallet.\n\n` +
-                    `[View on Polymarket](https://polygonscan.com/tx/${result.transactionHash})`,
+                    `[View on Polygonscan](https://polygonscan.com/tx/${result.transactionHash})`,
                 { parse_mode: "Markdown" }
             );
         } else {
-            return ctx.reply(`❌ Redemption failed: ${result.error || "Unknown error"}`);
+            const errorMsg = result.error || "Unknown error";
+            console.error("Redemption failed:", errorMsg);
+
+            // Provide more specific error messages based on the error type
+            if (errorMsg.includes("Insufficient")) {
+                return ctx.reply(
+                    `❌ **Redemption Failed**\n\n` +
+                        `${errorMsg}\n\n` +
+                        `This might happen if:\n` +
+                        `• The market is not fully resolved yet\n` +
+                        `• Token balances don't match the API data\n` +
+                        `• Network congestion or gas issues\n\n` +
+                        `Please try again in a few minutes.`,
+                    { parse_mode: "Markdown" }
+                );
+            } else {
+                return ctx.reply(`❌ Redemption failed: ${errorMsg}`);
+            }
         }
     } catch (error) {
         console.error("Error redeeming position:", error);

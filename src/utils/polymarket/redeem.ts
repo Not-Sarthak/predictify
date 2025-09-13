@@ -180,21 +180,26 @@ export async function redeemNegRiskPositions({
 
         // Check if user has sufficient token balances
         const { balances, requestedAmounts } = debugInfo;
-        const hasYesTokens = BigInt(balances.yesTokens) >= BigInt(requestedAmounts.yesAmount);
-        const hasNoTokens = BigInt(balances.noTokens) >= BigInt(requestedAmounts.noAmount);
 
-        if (!hasYesTokens && requestedAmounts.yesAmount > 0) {
-            return {
-                success: false,
-                error: `Insufficient YES tokens. Have: ${ethers.formatEther(balances.yesTokens)}, Need: ${yesAmount}`,
-            };
+        // Only check balances for amounts > 0
+        if (BigInt(requestedAmounts.yesAmount) > 0) {
+            const hasYesTokens = BigInt(balances.yesTokens) >= BigInt(requestedAmounts.yesAmount);
+            if (!hasYesTokens) {
+                return {
+                    success: false,
+                    error: `Insufficient YES tokens. Have: ${ethers.formatEther(balances.yesTokens)}, Need: ${yesAmount}`,
+                };
+            }
         }
 
-        if (!hasNoTokens && requestedAmounts.noAmount > 0) {
-            return {
-                success: false,
-                error: `Insufficient NO tokens. Have: ${ethers.formatEther(balances.noTokens)}, Need: ${noAmount}`,
-            };
+        if (BigInt(requestedAmounts.noAmount) > 0) {
+            const hasNoTokens = BigInt(balances.noTokens) >= BigInt(requestedAmounts.noAmount);
+            if (!hasNoTokens) {
+                return {
+                    success: false,
+                    error: `Insufficient NO tokens. Have: ${ethers.formatEther(balances.noTokens)}, Need: ${noAmount}`,
+                };
+            }
         }
 
         if (!debugInfo.allowances.ctfToNegRiskExchange) {
@@ -211,7 +216,25 @@ export async function redeemNegRiskPositions({
             wallet
         );
 
-        const amounts = [ethers.parseUnits(yesAmount, 18), ethers.parseUnits(noAmount, 18)];
+        // Parse amounts to wei
+        const yesAmountWei = ethers.parseUnits(yesAmount, 18);
+        const noAmountWei = ethers.parseUnits(noAmount, 18);
+
+        // Only include non-zero amounts in the redeem call
+        // If both amounts are > 0, redeem both; otherwise redeem only the non-zero one
+        let amounts;
+        if (yesAmountWei > 0 && noAmountWei > 0) {
+            amounts = [yesAmountWei, noAmountWei];
+        } else if (yesAmountWei > 0) {
+            amounts = [yesAmountWei, 0n];
+        } else if (noAmountWei > 0) {
+            amounts = [0n, noAmountWei];
+        } else {
+            return {
+                success: false,
+                error: "No tokens to redeem - both amounts are 0",
+            };
+        }
 
         console.log(
             "Redeem amounts (Wei):",
@@ -232,9 +255,17 @@ export async function redeemNegRiskPositions({
     } catch (error: any) {
         console.error("Error redeeming NegRisk positions:", error);
         let errorMessage = error.message || "Failed to redeem NegRisk positions";
-        if (error.reason) errorMessage = `Contract error: ${error.reason}`;
-        else if (error.code === "CALL_EXCEPTION")
+
+        // Provide more specific error messages based on error type
+        if (error.reason) {
+            errorMessage = `Contract error: ${error.reason}`;
+        } else if (error.code === "CALL_EXCEPTION") {
             errorMessage = "Transaction would fail - check token balances and market status";
+        } else if (error.message?.includes("insufficient")) {
+            errorMessage = "Insufficient token balance or allowances not set";
+        } else if (error.message?.includes("gas")) {
+            errorMessage = "Gas estimation failed - transaction may not be valid";
+        }
 
         return { success: false, error: errorMessage };
     }
