@@ -197,7 +197,7 @@ export async function handleViewRedeemablePositions(ctx: Context) {
     );
 
     if (filteredUserPositions.length === 0) {
-        return ctx.reply(t("noOpenPositions", language));
+        return ctx.reply(t("noRedeemablePositionsFound", language));
     }
 
     const { text, markup } = await formatSingleRedeemablePositionMessage(

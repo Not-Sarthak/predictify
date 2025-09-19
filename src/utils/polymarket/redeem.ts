@@ -178,37 +178,6 @@ export async function redeemNegRiskPositions({
             };
         }
 
-        // Check if user has sufficient token balances
-        const { balances, requestedAmounts } = debugInfo;
-
-        // Only check balances for amounts > 0
-        if (BigInt(requestedAmounts.yesAmount) > 0) {
-            const hasYesTokens = BigInt(balances.yesTokens) >= BigInt(requestedAmounts.yesAmount);
-            if (!hasYesTokens) {
-                return {
-                    success: false,
-                    error: `Insufficient YES tokens. Have: ${ethers.formatEther(balances.yesTokens)}, Need: ${yesAmount}`,
-                };
-            }
-        }
-
-        if (BigInt(requestedAmounts.noAmount) > 0) {
-            const hasNoTokens = BigInt(balances.noTokens) >= BigInt(requestedAmounts.noAmount);
-            if (!hasNoTokens) {
-                return {
-                    success: false,
-                    error: `Insufficient NO tokens. Have: ${ethers.formatEther(balances.noTokens)}, Need: ${noAmount}`,
-                };
-            }
-        }
-
-        if (!debugInfo.allowances.ctfToNegRiskExchange) {
-            return {
-                success: false,
-                error: "Conditional tokens not approved for NegRisk Exchange. Please set allowances first.",
-            };
-        }
-
         // Use the NegRisk exchange contract for NegRisk markets
         const negRiskContract = new Contract(
             contractConfig.negRiskAdapter,
@@ -216,25 +185,10 @@ export async function redeemNegRiskPositions({
             wallet
         );
 
-        // Parse amounts to wei
         const yesAmountWei = ethers.parseUnits(yesAmount, 18);
         const noAmountWei = ethers.parseUnits(noAmount, 18);
 
-        // Only include non-zero amounts in the redeem call
-        // If both amounts are > 0, redeem both; otherwise redeem only the non-zero one
-        let amounts;
-        if (yesAmountWei > 0 && noAmountWei > 0) {
-            amounts = [yesAmountWei, noAmountWei];
-        } else if (yesAmountWei > 0) {
-            amounts = [yesAmountWei, 0n];
-        } else if (noAmountWei > 0) {
-            amounts = [0n, noAmountWei];
-        } else {
-            return {
-                success: false,
-                error: "No tokens to redeem - both amounts are 0",
-            };
-        }
+        const amounts = [yesAmountWei, noAmountWei];
 
         console.log(
             "Redeem amounts (Wei):",
@@ -245,7 +199,6 @@ export async function redeemNegRiskPositions({
 
         const tx = await negRiskContract.redeemPositions(conditionId, amounts, {
             gasLimit: (gasEstimate * 120n) / 100n, // +20% buffer
-            gasPrice: ethers.parseUnits("100", "gwei"),
         });
 
         console.log("Transaction sent:", tx.hash);
