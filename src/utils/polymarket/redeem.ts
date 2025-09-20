@@ -147,46 +147,40 @@ export async function redeemNegRiskPositions({
 }: {
     privateKey: string;
     conditionId: string;
-    yesAmount: string;
-    noAmount: string;
+    yesAmount?: string; // optional now
+    noAmount?: string;
 }): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    console.log("--- PARAMETERS ---");
+    console.log("CONDITION ID: ", conditionId);
+    console.log("YES AMOUNT : ", yesAmount);
+    console.log("NO AMOUNT: ", noAmount);
+
     try {
         const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const wallet = new ethers.Wallet(privateKey, provider);
         const contractConfig = getContractConfig(CHAIN_ID);
 
-        logWithBigInt("NegRisk Redeem Debug Info:", {
-            wallet: wallet.address,
-            conditionId,
-            yesAmount,
-            noAmount,
-            negRiskExchange: contractConfig.negRiskExchange,
-        });
-
-        // Pre-flight validation: check actual token balances
-        const debugInfo = await debugNegRiskRedeem({
-            privateKey,
-            conditionId,
-            yesAmount,
-            noAmount,
-        });
-
-        if (debugInfo.error) {
-            return {
-                success: false,
-                error: `Pre-flight check failed: ${debugInfo.error}`,
-            };
-        }
-
-        // Use the NegRisk exchange contract for NegRisk markets
         const negRiskContract = new Contract(
             contractConfig.negRiskAdapter,
             NEGRISK_REDEEM_ABI,
             wallet
         );
 
-        const yesAmountWei = ethers.parseUnits(yesAmount, 18);
-        const noAmountWei = ethers.parseUnits(noAmount, 18);
+        const yesBalance: bigint = await negRiskContract.balanceOf(wallet.address, conditionId, 1);
+        const noBalance: bigint = await negRiskContract.balanceOf(wallet.address, conditionId, 2);
+
+        console.log("YES BALANCE: ", yesBalance);
+        console.log("NO BALANCE: ", noBalance);
+
+        if (yesBalance === 0n && noBalance === 0n) {
+            return { success: false, error: "No redeemable NegRisk positions found" };
+        }
+
+        let yesAmountWei = yesAmount ? ethers.parseUnits(yesAmount, 18) : yesBalance;
+        let noAmountWei = noAmount ? ethers.parseUnits(noAmount, 18) : noBalance;
+
+        if (yesAmountWei > yesBalance) yesAmountWei = yesBalance;
+        if (noAmountWei > noBalance) noAmountWei = noBalance;
 
         const amounts = [yesAmountWei, noAmountWei];
 
@@ -197,9 +191,13 @@ export async function redeemNegRiskPositions({
 
         const gasEstimate = await negRiskContract.redeemPositions.estimateGas(conditionId, amounts);
 
+        console.log("GAS ESTIMATE: ", gasEstimate);
+
         const tx = await negRiskContract.redeemPositions(conditionId, amounts, {
             gasLimit: (gasEstimate * 120n) / 100n, // +20% buffer
         });
+
+        console.log("Transaction: ", tx);
 
         console.log("Transaction sent:", tx.hash);
         const receipt = await tx.wait();
@@ -209,7 +207,6 @@ export async function redeemNegRiskPositions({
         console.error("Error redeeming NegRisk positions:", error);
         let errorMessage = error.message || "Failed to redeem NegRisk positions";
 
-        // Provide more specific error messages based on error type
         if (error.reason) {
             errorMessage = `Contract error: ${error.reason}`;
         } else if (error.code === "CALL_EXCEPTION") {

@@ -48,7 +48,7 @@ class PolymarketUserTradeWatcher {
             auth: this.auth,
         };
         this.socket.send(JSON.stringify(msg));
-        console.log("[START] New Limit Order WS Connection:", `${this.userId}:${this.marketId}`);
+        // console.log("[START] New Limit Order WS Connection:", `${this.userId}:${this.marketId}`);
     }
 
     private async onMessage(event: MessageEvent) {
@@ -93,7 +93,7 @@ class PolymarketUserTradeWatcher {
                 await stopUserTradeWatcher(this.userId, this.marketId);
             }
 
-            console.log("[WS] Message received:", data);
+            // console.log("[WS] Message received:", data);
         } catch (err) {
             console.error("[WS] Failed to parse or handle message:", err);
         }
@@ -103,12 +103,12 @@ class PolymarketUserTradeWatcher {
         console.error("[WS] WebSocket error:", event);
     }
 
-    private onClose(event: CloseEvent) {
-        console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+    private onClose(_event: CloseEvent) {
+        // console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
 
         if (!this.hasTriggered) {
             this.reconnectTimeout = setTimeout(() => {
-                console.log(`[WS] Reconnecting user watcher for ${this.userId}:${this.marketId}`);
+                // console.log(`[WS] Reconnecting user watcher for ${this.userId}:${this.marketId}`);
                 this.socket = new WebSocket(POLYMARKET_WS_USER_URL);
                 this.registerHandlers();
             }, this.reconnectDelay);
