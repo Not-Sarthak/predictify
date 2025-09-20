@@ -30,6 +30,16 @@ const NEGRISK_REDEEM_ABI = [
         stateMutability: "nonpayable",
         type: "function",
     },
+    {
+        inputs: [
+            { internalType: "address", name: "_owner", type: "address" },
+            { internalType: "uint256", name: "_id", type: "uint256" },
+        ],
+        name: "balanceOf",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+    },
 ];
 
 const CTF_EXCHANGE_ADDRESS = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045";
