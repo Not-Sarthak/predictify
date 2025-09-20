@@ -70,10 +70,10 @@ export class PolymarketMarketTradeWatcher {
                 assets_ids: [this.assetId],
             })
         );
-        console.log(
-            `[START] New ${this.config.type === "alert" ? "Price Alert" : this.config.type === "take_profit" ? "Take Profit" : "Stop Loss"} WS Connection:`,
-            this.assetId
-        );
+        // console.log(
+        //     `[START] New ${this.config.type === "alert" ? "Price Alert" : this.config.type === "take_profit" ? "Take Profit" : "Stop Loss"} WS Connection:`,
+        //     this.assetId
+        // );
     }
 
     private async onMessage(event: MessageEvent) {
@@ -180,14 +180,14 @@ export class PolymarketMarketTradeWatcher {
         console.error("[WS] WebSocket error:", event);
     }
 
-    private onClose(event: CloseEvent) {
-        console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+    private onClose(_event: CloseEvent) {
+        // console.warn(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
 
         if (!this.hasTriggered) {
             this.reconnectTimeout = setTimeout(() => {
-                console.log(
-                    `[WS] Reconnecting watcher for ${this.userId}:${this.marketId}:${this.assetId}`
-                );
+                // console.log(
+                //     `[WS] Reconnecting watcher for ${this.userId}:${this.marketId}:${this.assetId}`
+                // );
                 this.socket = new WebSocket(POLYMARKET_WS_MARKET_URL);
                 this.registerHandlers();
             }, this.reconnectDelay);
