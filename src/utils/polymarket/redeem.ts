@@ -34,6 +34,7 @@ const NEGRISK_REDEEM_ABI = [
 
 const CTF_EXCHANGE_ADDRESS = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045";
 const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+const NEGRISK_ADAPTER_ADDRESS = "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296";
 
 // Debug function to check token balances and allowances
 export async function debugNegRiskRedeem({
@@ -142,64 +143,51 @@ export async function redeemPositions({
 export async function redeemNegRiskPositions({
     privateKey,
     conditionId,
-    yesAmount,
-    noAmount,
+    asset,
+    oppositeAsset,
+    outcomeIndex,
 }: {
     privateKey: string;
     conditionId: string;
-    yesAmount?: string; // optional now
-    noAmount?: string;
+    asset: string;
+    oppositeAsset: string;
+    outcomeIndex: number;
 }): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    console.log("--- PARAMETERS ---");
+    console.log("----- NEGRISK REDEEM PARAMETERS -----");
     console.log("CONDITION ID: ", conditionId);
-    console.log("YES AMOUNT : ", yesAmount);
-    console.log("NO AMOUNT: ", noAmount);
+    console.log("ASSET: ", asset);
+    console.log("OPPOSITE ASSET: ", oppositeAsset);
+    console.log("OUTCOME INDEX: ", outcomeIndex);
 
     try {
         const provider = new ethers.JsonRpcProvider(env.MAINNET_RPC_URL);
         const wallet = new ethers.Wallet(privateKey, provider);
-        const contractConfig = getContractConfig(CHAIN_ID);
+        const negRiskContract = new Contract(NEGRISK_ADAPTER_ADDRESS, NEGRISK_REDEEM_ABI, wallet);
 
-        const negRiskContract = new Contract(
-            contractConfig.negRiskAdapter,
-            NEGRISK_REDEEM_ABI,
-            wallet
+        const assetBalance: bigint = await negRiskContract.balanceOf(wallet.address, asset);
+        const oppositeAssetBalance: bigint = await negRiskContract.balanceOf(
+            wallet.address,
+            oppositeAsset
         );
 
-        const yesBalance: bigint = await negRiskContract.balanceOf(wallet.address, conditionId, 1);
-        const noBalance: bigint = await negRiskContract.balanceOf(wallet.address, conditionId, 2);
+        console.log("YES BALANCE: ", assetBalance);
+        console.log("NO BALANCE: ", oppositeAssetBalance);
 
-        console.log("YES BALANCE: ", yesBalance);
-        console.log("NO BALANCE: ", noBalance);
-
-        if (yesBalance === 0n && noBalance === 0n) {
+        if (assetBalance === 0n && oppositeAssetBalance === 0n) {
             return { success: false, error: "No redeemable NegRisk positions found" };
         }
 
-        let yesAmountWei = yesAmount ? ethers.parseUnits(yesAmount, 18) : yesBalance;
-        let noAmountWei = noAmount ? ethers.parseUnits(noAmount, 18) : noBalance;
+        const amounts = outcomeIndex
+            ? [oppositeAssetBalance, assetBalance]
+            : [assetBalance, oppositeAssetBalance];
 
-        if (yesAmountWei > yesBalance) yesAmountWei = yesBalance;
-        if (noAmountWei > noBalance) noAmountWei = noBalance;
+        console.log("AMOUNTS: ", amounts);
 
-        const amounts = [yesAmountWei, noAmountWei];
-
-        console.log(
-            "Redeem amounts (Wei):",
-            amounts.map((a) => a.toString())
-        );
-
-        const gasEstimate = await negRiskContract.redeemPositions.estimateGas(conditionId, amounts);
-
-        console.log("GAS ESTIMATE: ", gasEstimate);
-
-        const tx = await negRiskContract.redeemPositions(conditionId, amounts, {
-            gasLimit: (gasEstimate * 120n) / 100n, // +20% buffer
-        });
+        const tx = await negRiskContract.redeemPositions(conditionId, amounts);
 
         console.log("Transaction: ", tx);
+        console.log("[NEGRISK REDEEM] Transaction Hash:", tx.hash);
 
-        console.log("Transaction sent:", tx.hash);
         const receipt = await tx.wait();
 
         return { success: true, transactionHash: receipt.hash };

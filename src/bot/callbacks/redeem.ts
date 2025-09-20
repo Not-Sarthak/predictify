@@ -98,20 +98,15 @@ export async function handleConfirmRedeem(ctx: Context, conditionId: string) {
                 // Continue anyway, the error might be more specific in the redeem call
             }
 
-            // For NegRisk markets, only redeem the tokens the user actually has
-            // The user only has tokens for the outcome they bet on
-            const yesAmount = position.outcome === "Yes" ? position.size.toString() : "0";
-            const noAmount = position.outcome === "No" ? position.size.toString() : "0";
-
-            console.log(
-                `NegRisk Redemption - Position: ${position.outcome}, Size: ${position.size}, YES: ${yesAmount}, NO: ${noAmount}`
-            );
+            const asset = position.asset;
+            const oppositeAsset = position.oppositeAsset;
 
             result = await redeemNegRiskPositions({
                 privateKey: decryptPrivateKey(user.private_key),
                 conditionId: decodedConditionId,
-                yesAmount,
-                noAmount,
+                asset,
+                oppositeAsset,
+                outcomeIndex: position.outcomeIndex,
             });
         } else {
             // Use regular redeem for non-NegRisk markets
