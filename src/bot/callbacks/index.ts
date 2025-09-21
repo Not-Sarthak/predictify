@@ -48,6 +48,7 @@ import {
     handleSetWalletPercentage,
 } from "./autotrade";
 import {
+    handleConfirmResetWallet,
     handleResetWallet,
     handleSwapFundsCallback,
     handleSwapFundsQuoteCallback,
@@ -379,6 +380,10 @@ export async function handleCallbackQuery(ctx: Context) {
 
     if (data === "reset_wallet") {
         return handleResetWallet(ctx);
+    }
+
+    if (data === "confirm_reset_wallet") {
+        return handleConfirmResetWallet(ctx);
     }
 
     // Handle language settings callbacks

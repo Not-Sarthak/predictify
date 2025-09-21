@@ -35,6 +35,22 @@ export const en: LocaleMessages = {
     withdrawUsdc: "💵 Withdraw USDC",
     swapFunds: "🔁 Swap USDC to USDCe",
     resetWallet: "🔄️ Reset Wallet",
+    confirmResetWallet: "✅ Confirm Reset Wallet",
+    confirmResetMsg: `⚠️⚠️ *Confirm Wallet Reset* ⚠️⚠️
+
+You are about to reset your wallet. Please read this carefully before proceeding:
+
+- *Irreversible Action*: Resetting your wallet will permanently delete all wallet data, including addresses, balances, transaction history, and any locally stored information. This action cannot be undone.
+
+- *Private Keys*: Before proceeding, you must export and securely store all private keys associated with your wallet. Failure to do so may result in permanent loss of access to your funds.
+
+- *User Responsibility*: By confirming this action, you acknowledge and agree that:
+  - You are solely responsible for exporting and securing your private keys.
+  - Any loss of funds or wallet data due to failure to export or securely store private keys is entirely your responsibility.
+  - The service and its developers are not liable for any losses, damages, or issues arising from this action.
+  - You are performing this action voluntarily, with full understanding of the consequences.
+
+- *Confirmation*: If you understand and accept the risks outlined above, you may proceed. Otherwise, cancel this action to preserve your wallet.`,
     bridgeFunds: "🌉 Bridge Funds",
 
     // Trading

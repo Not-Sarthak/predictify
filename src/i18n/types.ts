@@ -35,6 +35,8 @@ export interface LocaleMessages {
     withdrawUsdc: string;
     swapFunds: string;
     resetWallet: string;
+    confirmResetWallet: string;
+    confirmResetMsg: string;
     bridgeFunds: string;
 
     // Trading

@@ -1,4 +1,4 @@
-import { WALLET_SETTINGS_MENU } from "../ui/buttons";
+import { CLOSE_BUTTON, WALLET_SETTINGS_MENU } from "../ui/buttons";
 import { getUserIdFromCtx } from "../utils";
 import { getUserUSDCBalance } from "../../helpers/get-user-balance";
 import { getUserDetails } from "../../helpers/get-user-details";
@@ -24,6 +24,21 @@ export async function handleWalletSettingsMenu(ctx: Context) {
 }
 
 export async function handleResetWallet(ctx: Context) {
+    const userId = getUserIdFromCtx(ctx);
+    const language = await getUserLanguage(userId);
+
+    const msg = t("confirmResetMsg", language);
+
+    return ctx.reply(msg, {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback(t("confirmResetWallet", language), "confirm_reset_wallet")],
+            [CLOSE_BUTTON],
+        ]).reply_markup,
+    });
+}
+
+export async function handleConfirmResetWallet(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
 

@@ -39,7 +39,7 @@ export async function generateTranslatedTradeMenuButtons(userId: number) {
             Markup.button.callback(t("closePositionBtn", language), "trade_position_close"),
         ],
         [Markup.button.callback(t("highProbabilityMarkets", language), "strategies:highprob")],
-        [await getBackToMainMenuButton(userId)],
+        [getBackToMainMenuButton(language)],
     ];
 }
 
