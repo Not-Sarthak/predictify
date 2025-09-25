@@ -1,6 +1,7 @@
 import { swapFromSolana } from "@mayanfinance/swap-sdk";
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 import type { Quote } from "../types";
+import { decodePrivateKey } from "../../crypto";
 
 export async function createMayanBridgeOrder(
     quote: Quote,
@@ -13,9 +14,7 @@ export async function createMayanBridgeOrder(
         const connection = new Connection(solanaRpcUrl, "confirmed");
 
         // Create keypair from private key
-        const keypair = Keypair.fromSecretKey(
-            typeof privateKey === "string" ? Buffer.from(privateKey, "base64") : privateKey
-        );
+        const keypair = decodePrivateKey(privateKey);
 
         // Sign transaction function
         const signSolanaTransaction = async (tx: any) => {

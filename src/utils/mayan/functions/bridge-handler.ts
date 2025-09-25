@@ -55,7 +55,6 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         console.log("Max Bridgeable Amount:", maxBridgeable);
 
         if (maxBridgeable < MIN_BRIDGE_AMOUNTS.SOL) {
-            const language = await getUserLanguage(userIdNumber);
             const totalNeeded = MIN_BRIDGE_AMOUNTS.SOL + MIN_BRIDGE_AMOUNTS.RESERVE;
             await ctx.reply(
                 `❌ **Insufficient SOL for Bridge**\n\n` +
@@ -282,17 +281,13 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
     const language = await getUserLanguage(userIdNumber);
 
     try {
-        await ctx.answerCbQuery();
-
         const storedQuote = bridgeQuotes.get(quoteKey);
-
         if (!storedQuote) {
             await ctx.reply("❌ Bridge quote expired. Please start over.");
             return;
         }
 
         const processingMsg = await ctx.reply("⏳ Processing Bridge Transaction...");
-
         const user = await getUserDetails(userIdNumber);
 
         if (!user || !user.solana_address) {
