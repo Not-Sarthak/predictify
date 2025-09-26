@@ -30,6 +30,7 @@
     "typescript-eslint": "^8.35.1"
   },
   "dependencies": {
+    "@mayanfinance/swap-sdk": "^11.1.0",
     "@polymarket/clob-client": "^4.18.0",
     "@resvg/resvg-js": "^2.6.2",
     "@solana/web3.js": "^1.98.2",
