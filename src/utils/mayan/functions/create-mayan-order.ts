@@ -1,7 +1,8 @@
-import { swapFromSolana } from "@mayanfinance/swap-sdk";
-import { Connection } from "@solana/web3.js";
+import { swapFromSolana, type SolanaTransactionSigner } from "@mayanfinance/swap-sdk";
+import { Connection, VersionedTransaction } from "@solana/web3.js";
 import type { Quote } from "../types";
 import { decodePrivateKey } from "../../crypto";
+import { Transaction } from "@solana/web3.js";
 
 export async function createMayanBridgeOrder(
     quote: Quote,
@@ -16,11 +17,17 @@ export async function createMayanBridgeOrder(
         // Create keypair from private key
         const keypair = decodePrivateKey(privateKey);
 
-        // Sign transaction function
-        const signSolanaTransaction = async (tx: any) => {
-            tx.sign(keypair);
-            return tx;
-        };
+        const signer: SolanaTransactionSigner = (async (
+            trx: Transaction | VersionedTransaction
+        ): Promise<any> => {
+            if (trx instanceof Transaction) {
+                trx.sign(keypair);
+                return trx;
+            } else {
+                trx.sign([keypair]);
+                return trx;
+            }
+        }) as SolanaTransactionSigner;
 
         // Execute the swap
         const result = await swapFromSolana(
@@ -28,7 +35,7 @@ export async function createMayanBridgeOrder(
             originWalletAddress,
             destinationWalletAddress,
             undefined, // referrerAddresses - optional
-            signSolanaTransaction,
+            signer,
             connection
         );
 

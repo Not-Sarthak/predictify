@@ -61,6 +61,6 @@ export const POLYGON_TOKENS = {
 } as const;
 
 export const MIN_BRIDGE_AMOUNTS = {
-    SOL: 0.01, // Minimum SOL to bridge
+    SOL: 0.0127, // Minimum SOL to bridge
     RESERVE: 0.01, // Reserve amount for fees
 } as const;

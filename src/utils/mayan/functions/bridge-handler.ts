@@ -22,7 +22,6 @@ import { clearCache } from "../../cache";
 import type { BridgeQuoteData, MayanBridgeInput } from "../types";
 import { SUPPORTED_CHAINS, SOLANA_TOKENS, POLYGON_TOKENS, MIN_BRIDGE_AMOUNTS } from "../types";
 
-const MIN_BALANCE = 0.015;
 const SLIPPAGE_BPS = 300; // 3% slippage
 
 const bridgeQuotes = new Map<string, BridgeQuoteData>();
@@ -41,18 +40,16 @@ export async function handleBridgeFunds(ctx: Context): Promise<void> {
         // Clear cache and fetch fresh SOL balance
         await clearCache(`user:${userId}:sol_balance`);
         const solBalance = await getSOLBalance(user!.solana_address);
-        console.log("User SOL Balance:", solBalance);
 
-        if (solBalance <= MIN_BALANCE) {
+        if (solBalance <= MIN_BRIDGE_AMOUNTS.SOL) {
             await ctx.reply(
-                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedAtLeast", language)} ${MIN_BALANCE.toFixed(4)} ${t("solToBridge", language)}`
+                `❌ ${t("insufficientSolBalance", language)} ${t("youHaveSol", language)} ${solBalance.toFixed(4)} ${t("butNeedAtLeast", language)} ${MIN_BRIDGE_AMOUNTS.SOL.toFixed(4)} ${t("solToBridge", language)}`
             );
             return;
         }
 
         // Calculate max bridgeable amount (balance - reserve for fees)
         const maxBridgeable = Math.max(0, solBalance - MIN_BRIDGE_AMOUNTS.RESERVE);
-        console.log("Max Bridgeable Amount:", maxBridgeable);
 
         if (maxBridgeable < MIN_BRIDGE_AMOUNTS.SOL) {
             const totalNeeded = MIN_BRIDGE_AMOUNTS.SOL + MIN_BRIDGE_AMOUNTS.RESERVE;
@@ -181,7 +178,6 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
         };
 
         const quote = await getMayanQuote(bridgeParams);
-        console.log("Mayan Quote:", quote);
 
         // Validate quote response
         if (!quote || !quote.expectedAmountOut) {
