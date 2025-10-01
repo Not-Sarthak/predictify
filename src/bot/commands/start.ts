@@ -1,16 +1,10 @@
 import { Markup, type Context } from "telegraf";
 
-import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
+import { getUserIdFromCtx } from "../utils";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { generateWelcomeMessage } from "../ui/messages";
 import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
-import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
-import { CHAIN_ID, HOST } from "../../shared/constants";
-import { encryptPrivateKey } from "../../utils/crypto";
-import { db } from "../../lib/supabase";
-import { generateRandomString } from "../../utils/encoding";
 import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
-import { trackReferralRelationship } from "../../utils/referral/referral-tracker";
 import { getUserLanguage } from "../../helpers/user-language";
 import { getUserWalletAddresses } from "../utils/database/get-user-addresses";
 import { getOrSetCache } from "../../utils";

@@ -72,8 +72,7 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
     }
 
     try {
-        const formattedAmount = totalCost.toFixed(6);
-        txHash = await setUSDCAllowance(wallet, formattedAmount);
+        txHash = await setUSDCAllowance(wallet);
     } catch (error) {
         console.error("Error Setting USDC Allowance: ", error);
         return {

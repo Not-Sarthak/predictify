@@ -39,7 +39,7 @@ export async function buyOrderGTC(orderRequest: BuyOrderGTCRequest) {
     }
 
     try {
-        await setUSDCAllowance(wallet, totalCost.toString());
+        await setUSDCAllowance(wallet);
     } catch (error) {
         console.error("Error setting USDC Allowance: ", error);
         return {
