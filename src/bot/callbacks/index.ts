@@ -96,7 +96,7 @@ import {
 import { getUserDetails } from "../../helpers/get-user-details";
 import type { ApiKeyCreds } from "../../types/polymarket";
 import { createLegacyWallet } from "../../utils";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { ethers } from "ethers";
 import { ClobClient } from "@polymarket/clob-client";
 import { CHAIN_ID, HOST } from "../../shared/constants";
@@ -564,7 +564,7 @@ export async function handleCallbackQuery(ctx: Context) {
         const user = await getUserDetails(userId);
         if (!user) return;
 
-        const creds: ApiKeyCreds = JSON.parse(user.api_credentials) as ApiKeyCreds;
+        const creds: ApiKeyCreds = decryptApiCredentials(user.api_credentials);
 
         const legacyWallet = createLegacyWallet(
             new ethers.Wallet(decryptPrivateKey(user.private_key))

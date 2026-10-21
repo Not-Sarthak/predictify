@@ -7,9 +7,10 @@ export const envSchema = z.object({
 
     SECRET_TOKEN: z.string().min(16, "SECRET_TOKEN is required"),
 
+    // Read as hex in utils/crypto.ts, and AES-256 needs a 32-byte key
     PRIVATE_KEY_ENCRYPTION_KEY: z
         .string()
-        .min(32, "PRIVATE_KEY_ENCRYPTION_KEY must be a 32-char string"),
+        .regex(/^[0-9a-fA-F]{64}$/, "PRIVATE_KEY_ENCRYPTION_KEY must be 64 hex characters"),
 
     WEBHOOK_DOMAIN: z.string().url("WEBHOOK_DOMAIN must be a valid URL"),
 

@@ -13,7 +13,7 @@ import {
 } from "../../utils/polymarket-order/market-buy-order";
 import { feeTransaction, transferFeeToTreasury } from "../../utils/fees/fee";
 import { ethers } from "ethers";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
 import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
 import { getUserAddressFromId } from "../../helpers/get-user-address-from-id";
@@ -91,7 +91,7 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
 
     const { private_key, api_credentials } = userDetails;
     const decryptedPrivateKey = decryptPrivateKey(private_key);
-    const apiCreds: ApiKeyCreds = JSON.parse(api_credentials);
+    const apiCreds: ApiKeyCreds = decryptApiCredentials(api_credentials);
 
     const sentMessage = await ctx.reply("⏳ Placing your order...");
     let orderResponse;
@@ -374,7 +374,7 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
             if (orderType === "gtc" && orderResponse.response.status !== "matched") {
                 startUserTradeWatcher(
                     userId.toString(),
-                    JSON.parse(userDetails.api_credentials),
+                    decryptApiCredentials(userDetails.api_credentials),
                     marketId
                 );
             }

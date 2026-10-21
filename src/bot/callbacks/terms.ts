@@ -3,7 +3,7 @@ import { db } from "../../lib/supabase";
 import { getUserIdFromCtx } from "../utils";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
-import { encryptPrivateKey } from "../../utils/crypto";
+import { encryptApiCredentials, encryptPrivateKey } from "../../utils/crypto";
 import { generateRandomString } from "../../utils/encoding";
 import { trackReferralRelationship } from "../../utils/referral/referral-tracker";
 import { getUserLanguage } from "../../helpers/user-language";
@@ -67,7 +67,7 @@ export async function handleAcceptTerms(ctx: Context, referrerUsername?: string)
                 telegram_username: userName,
                 wallet_address: address,
                 private_key: encryptPrivateKey(privateKey),
-                api_credentials: JSON.stringify(apiCreds),
+                api_credentials: encryptApiCredentials(apiCreds),
                 solana_address: solanaAddress,
                 solana_private_key: encryptPrivateKey(solanaPrivateKey),
                 referred_code: referredCode,

@@ -4,7 +4,7 @@ import { getLockedBalance } from "../../utils/polymarket/get-locked-balance";
 import { getTokenId } from "../../helpers/get-token-id";
 import { marketBuyOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { feeTransaction, transferFeeToTreasury } from "../../utils/fees/fee";
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { ethers } from "ethers";
@@ -89,7 +89,7 @@ export async function executeBatchTrades(request: BatchTradeRequest): Promise<Ba
         }
 
         const decryptedPrivateKey = decryptPrivateKey(userDetails.private_key);
-        const apiCreds: ApiKeyCreds = JSON.parse(userDetails.api_credentials);
+        const apiCreds: ApiKeyCreds = decryptApiCredentials(userDetails.api_credentials);
 
         const successfulTrades: TradeResult[] = [];
         const failedTrades: TradeResult[] = [];

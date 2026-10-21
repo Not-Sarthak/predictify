@@ -3,7 +3,7 @@ import type { ApiKeyCreds } from "../../types/polymarket";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { CHAIN_ID, HOST } from "../../shared/constants";
 import { createLegacyWallet } from "../../utils/create-legacy-wallet";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { ClobClient } from "@polymarket/clob-client";
 import { ethers } from "ethers";
 import { redisClient } from "../../lib/redis";
@@ -12,7 +12,7 @@ export async function getUnmatchedOpenOrders(userId: number, trackedOrderIds: st
     const user = await getUserDetails(userId);
     if (!user) return;
 
-    const creds: ApiKeyCreds = JSON.parse(user.api_credentials) as ApiKeyCreds;
+    const creds: ApiKeyCreds = decryptApiCredentials(user.api_credentials);
 
     const legacyWallet = createLegacyWallet(new ethers.Wallet(decryptPrivateKey(user.private_key)));
     const clobClient = new ClobClient(HOST, CHAIN_ID, legacyWallet as any, creds);

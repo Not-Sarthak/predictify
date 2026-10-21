@@ -4,7 +4,7 @@ import { getUserUSDCBalance } from "../../helpers/get-user-balance";
 import { getUserDetails } from "../../helpers/get-user-details";
 import { db } from "../../lib/supabase";
 import { CHAIN_ID, HOST } from "../../shared/constants";
-import { decryptPrivateKey, encryptPrivateKey } from "../../utils/crypto";
+import { encryptApiCredentials, decryptPrivateKey, encryptPrivateKey } from "../../utils/crypto";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { executeSwap, getQuote } from "../../utils/uniswap";
 import { ethers } from "ethers";
@@ -52,7 +52,7 @@ export async function handleConfirmResetWallet(ctx: Context) {
                 private_key: encryptPrivateKey(privateKey),
                 solana_address: solanaAddress,
                 solana_private_key: encryptPrivateKey(solanaPrivateKey),
-                api_credentials: JSON.stringify(apiCreds),
+                api_credentials: encryptApiCredentials(apiCreds),
             })
             .eq("id", userId);
 

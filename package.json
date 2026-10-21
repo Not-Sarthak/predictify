@@ -14,6 +14,7 @@
     "set:wh": "bun run scripts/set-telegram-webhook.ts",
     "test": "bun test",
     "test:sqs": "bun run scripts/test-sqs.ts",
+    "migrate:api-creds": "bun run scripts/encrypt-api-credentials.ts",
     "prepare": "husky"
   },
   "devDependencies": {

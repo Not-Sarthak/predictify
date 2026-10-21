@@ -5,7 +5,7 @@ import { db } from "../../lib/supabase";
 import { getUserIdFromCtx, getUsernameFromCtx } from "../utils";
 import { generateAPIKeyAndWallet } from "../../utils/polymarket/generate-user";
 import { CHAIN_ID, HOST } from "../../shared/constants";
-import { encryptPrivateKey } from "../../utils/crypto";
+import { encryptApiCredentials, encryptPrivateKey } from "../../utils/crypto";
 import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user-balance";
 import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { generateRandomString } from "../../utils/encoding";
@@ -56,7 +56,7 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
             telegram_username: userName,
             wallet_address: address,
             private_key: encryptPrivateKey(privateKey),
-            api_credentials: JSON.stringify(apiCreds),
+            api_credentials: encryptApiCredentials(apiCreds),
             solana_address: solanaAddress,
             solana_private_key: encryptPrivateKey(solanaPrivateKey),
             referred_code: referralCode,

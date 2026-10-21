@@ -1,7 +1,7 @@
 import { env } from "../config";
 import { getUserDetails } from "../helpers/get-user-details";
 import { redisClient } from "../lib/redis";
-import { decryptPrivateKey } from "../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../utils/crypto";
 import { marketBuyOrder, marketSellOrder } from "../utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
 import axios from "axios";
@@ -190,7 +190,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             // The order helpers return their failure instead of throwing
             const { error } = await marketBuyOrder({
                 privateKey: decryptPrivateKey(user.private_key),
-                creds: JSON.parse(user.api_credentials),
+                creds: decryptApiCredentials(user.api_credentials),
                 tokenId: trade.asset,
                 amount,
                 side: Side.BUY,
@@ -230,7 +230,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
 
             const { error } = await marketSellOrder({
                 privateKey: decryptPrivateKey(user.private_key),
-                creds: JSON.parse(user.api_credentials),
+                creds: decryptApiCredentials(user.api_credentials),
                 tokenId: trade.asset,
                 amount: trade.size,
                 orderType: OrderType.FOK,

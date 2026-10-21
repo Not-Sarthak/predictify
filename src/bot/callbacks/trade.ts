@@ -34,7 +34,7 @@ import { generateClosePositionButton } from "../ui/buttons/trade";
 import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
 import { decodeMarketId, encodeMarketConditionId } from "../../utils/encoding";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { getUserLanguage } from "../../helpers/user-language";
 import { getMessages, type SupportedLanguage } from "../../i18n/translate";
 import {
@@ -1032,7 +1032,7 @@ export async function handleCloseOpenPosition(
 
     const sellOrder = await marketSellOrder({
         privateKey: decryptPrivateKey(data.private_key),
-        creds: JSON.parse(data.api_credentials),
+        creds: decryptApiCredentials(data.api_credentials),
         tokenId: userMarketDetails.asset,
         amount: sellAmount,
         orderType: OrderType.FOK,
@@ -1139,7 +1139,7 @@ export async function handleConfirmOrder(ctx: Context, textMsg: string) {
         const orderBookData = await getMarketOrderBook({
             tokenId: [clobTokenIds[0], clobTokenIds[1]],
             privateKey: decryptPrivateKey(user.private_key),
-            creds: JSON.parse(user.api_credentials),
+            creds: decryptApiCredentials(user.api_credentials),
         });
 
         const orderBook = side === "YES" ? orderBookData.yesResponse : orderBookData.noResponse;
@@ -1256,7 +1256,7 @@ export async function handleCancelOrderCallback(ctx: Context, orderId: string) {
         return ctx.reply("❌ User does not exist");
     }
 
-    const api_creds: ApiKeyCreds = JSON.parse(user.api_credentials);
+    const api_creds: ApiKeyCreds = decryptApiCredentials(user.api_credentials);
 
     try {
         const response = await cancelOrder({

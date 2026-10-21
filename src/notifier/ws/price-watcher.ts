@@ -11,7 +11,7 @@ import { getUserDetails } from "../../helpers/get-user-details";
 import { getUserPosition } from "../../utils/polymarket/get-user-position";
 import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { redisClient } from "../../lib/redis";
 import { evaluateTrigger } from "./triggers";
 import {
@@ -149,7 +149,7 @@ export class PolymarketMarketTradeWatcher {
                 // FAK sells whatever the book can absorb now instead of resting at a stale price
                 const { response, error } = await marketSellOrder({
                     privateKey: decryptPrivateKey(user.private_key),
-                    creds: JSON.parse(user.api_credentials),
+                    creds: decryptApiCredentials(user.api_credentials),
                     tokenId: this.assetId,
                     amount: sharesToSell,
                     orderType: OrderType.FAK,

@@ -8,7 +8,11 @@ import { getUserDetails } from "../../helpers/get-user-details";
 import { CHAIN_ID, HOST, POLYMARKET_WS_USER_URL } from "../../shared/constants";
 import { capitalize, createLegacyWallet } from "../../utils";
 import { generatePnlCard } from "../../utils/card-generator";
-import { decryptPrivateKey } from "../../utils/crypto";
+import {
+    decryptApiCredentials,
+    decryptPrivateKey,
+    encryptApiCredentials,
+} from "../../utils/crypto";
 import { transferFeeToTreasury } from "../../utils/fees/fee";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
 import { getUserPosition } from "../../utils/polymarket/get-user-position";
@@ -192,7 +196,7 @@ class PolymarketUserTradeWatcher {
 async function storeUserTradeWatcherInRedis(userId: string, marketId: string, auth: ApiKeyCreds) {
     const redisKey = `${TRADE_WATCHER_KEY_PREFIX}${userId}`;
     const field = marketId;
-    const value = JSON.stringify({ marketId, auth });
+    const value = JSON.stringify({ marketId, auth: encryptApiCredentials(auth) });
 
     await redisClient.hSet(redisKey, field, value);
 }
@@ -206,7 +210,12 @@ export async function restoreUserTradeWatchers() {
 
         for (const [marketId, configStr] of Object.entries(entries)) {
             const config = JSON.parse(configStr);
-            startUserTradeWatcher(userId, config.auth, marketId);
+
+            // Entries written before credentials were encrypted hold the plain object
+            const auth =
+                typeof config.auth === "string" ? decryptApiCredentials(config.auth) : config.auth;
+
+            startUserTradeWatcher(userId, auth, marketId);
         }
     }
 }

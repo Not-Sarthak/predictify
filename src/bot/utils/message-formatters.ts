@@ -3,7 +3,7 @@ import type { Symbols } from "../../utils/binance/binance";
 import { getMarketOrderBook } from "../../utils/polymarket/get-markets";
 import type { UserPositionResponse } from "../../types/polymarket/user-position";
 import { getUserDetails } from "../../helpers/get-user-details";
-import { decryptPrivateKey } from "../../utils/crypto";
+import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { createPaginationKeyboard, createRedeemablePaginationKeyboard } from "../ui/messages";
 import type { SupportedLanguage } from "../../i18n";
 import { getMessages } from "../../i18n";
@@ -143,7 +143,7 @@ export async function formatOrderBook(tokenIds: string[], userId: string) {
 
         const language = await getUserLanguage(Number(userId));
         const { private_key, api_credentials } = userDetails;
-        const apiCreds = JSON.parse(api_credentials);
+        const apiCreds = decryptApiCredentials(api_credentials);
 
         const { yesResponse, noResponse } = await getMarketOrderBook({
             tokenId: tokenIds,
