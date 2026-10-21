@@ -87,13 +87,14 @@ export async function transferFeeToTreasury(params: TreasuryFeeTransferParams) {
         let referralTx = null;
 
         if (referrerTreasuryAddress && referralCommission > 0) {
-            const currentNonce = await connectedWallet.getNonce();
+            // Chain the nonce off the treasury transfer: re-reading it after sending races the
+            // first transfer being mined and can skip a nonce, leaving this one stuck forever
             referralTx = await usdcContract.transfer(
                 referrerTreasuryAddress,
                 ethers.parseUnits(referralCommission.toFixed(6), 6),
                 {
                     ...gasConfig,
-                    nonce: currentNonce + 1,
+                    nonce: mainTx.nonce + 1,
                 }
             );
             transactions.push(referralTx);
