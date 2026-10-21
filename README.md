@@ -27,8 +27,8 @@ telegram ──webhook──▶ bot/            commands, callbacks, text input
 watcher/          polls copied wallets every 5s and mirrors their trades
 notifier/         12-hourly new market digest, 10-minute high-probability alerts
 redis             input state, order context, watcher registry, locks
-supabase          users, encrypted keys, trades, referrals, stats
-sqs               manually placed orders, for downstream processing
+supabase          users, encrypted keys and api credentials, trades, referrals, stats
+sqs               every order the bot places, for downstream processing
 ```
 
 Watchers are persisted in Redis and restored on boot, so a deploy doesn't drop anyone's alerts,
@@ -54,6 +54,11 @@ The parts that move money are written for the cases where something goes wrong h
   client can forge.
 - **A double tap can't repeat an action.** Bridge quotes are taken before the first await and
   expire after two minutes, and admin broadcasts are claimed with `GETDEL`.
+- **Counters are incremented in Postgres**, in a single `UPDATE`, so concurrent orders can't
+  overwrite each other's volume, fees or trade counts.
+- **Resetting a wallet archives the old keys first**, and only goes ahead if the archive write
+  succeeds.
+- **CLOB API credentials are encrypted at rest** with the same AES-256-GCM key as the wallet keys.
 
 ## Running it
 
@@ -64,6 +69,9 @@ bun run dev             # watch mode
 bun run set:wh          # point the telegram webhook at WEBHOOK_DOMAIN
 ```
 
+Schema changes live in `supabase/migrations`. After applying them to an existing database, run
+`bun run migrate:api-creds` once to encrypt API credentials that were stored before encryption.
+
 `bun run build` bundles to `dist/` with tsup, and the Dockerfile builds with Bun and runs on Node.
 Pushes to `dev` build and push the image and deploy staging; pushes to `main` restart production on
 the latest image.
@@ -71,7 +79,7 @@ the latest image.
 ## Checks
 
 ```sh
-bun test            # trigger and fill logic
+bun test            # triggers, fills, credential encryption
 bun run typecheck
 bun run lint
 bun run format:check
