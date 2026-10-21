@@ -16,49 +16,23 @@ It ran with 2.5k+ users and $100k+ in volume.
 ## How it fits together
 
 ```
-telegram ──webhook──▶ bot/            commands, callbacks, text input
+telegram ──webhook──▶ bot/
                         │
-                        ├─▶ utils/polymarket-order    clob orders
-                        ├─▶ utils/mayan, debridge     solana → polygon funding
-                        └─▶ notifier/ws               one websocket per watch
-                                ├─ price-watcher        market channel: alerts, tp/sl
-                                └─ limit-order-watcher  user channel: limit order fills
+                        ├─▶ utils/polymarket-order
+                        ├─▶ utils/mayan, debridge
+                        └─▶ notifier/ws
+                                ├─ price-watcher
+                                └─ limit-order-watcher
 
-watcher/          polls copied wallets every 5s and mirrors their trades
-notifier/         12-hourly new market digest, 10-minute high-probability alerts
-redis             input state, order context, watcher registry, locks
-supabase          users, encrypted keys and api credentials, trades, referrals, stats
-sqs               every order the bot places, for downstream processing
+watcher/
+notifier/
+redis
+supabase
+sqs
 ```
 
 Watchers are persisted in Redis and restored on boot, so a deploy doesn't drop anyone's alerts,
 stops or open limit orders.
-
-## Failure handling
-
-The parts that move money are written for the cases where something goes wrong halfway:
-
-- **Placing an order is single-flight per user.** A Redis lock is held for the whole placement, so
-  two messages sent in quick succession can't both read the order context and place it twice.
-- **Replacing a limit order validates the new one first**, then cancels the old one.
-- **Take profit and stop loss trigger off the best bid** and execute as a FAK market sell. They are
-  level-based rather than crossing-based, so a price that moved through the level while the bot was
-  down still triggers on the first book after the watcher is restored. A failed sell is reported to
-  the user instead of being announced as executed.
-- **Price alerts fire on a touch or a cross**, so a jump straight past the level still alerts.
-- **Limit orders are followed through partial fills.** Each confirmed trade is de-duplicated in
-  Redis, the user is told their own share of it, and the watcher stays up until nothing in that
-  market is still open.
-- **Fees are charged on what fills.** A resting limit order is billed per fill, not at placement.
-- **The acting user always comes from the Telegram update**, never from callback data, which a
-  client can forge.
-- **A double tap can't repeat an action.** Bridge quotes are taken before the first await and
-  expire after two minutes, and admin broadcasts are claimed with `GETDEL`.
-- **Counters are incremented in Postgres**, in a single `UPDATE`, so concurrent orders can't
-  overwrite each other's volume, fees or trade counts.
-- **Resetting a wallet archives the old keys first**, and only goes ahead if the archive write
-  succeeds.
-- **CLOB API credentials are encrypted at rest** with the same AES-256-GCM key as the wallet keys.
 
 ## Running it
 
