@@ -9,23 +9,27 @@ This is a Telegram bot for Polymarket trading that provides automated trading, c
 ## Development Commands
 
 **Build & Development:**
+
 - `bun run build` - Build the project using tsup
 - `bun run dev` - Start development server with file watching
 - `node dist/index.js` or `bun run start` - Run the built application
 
 **Code Quality:**
+
 - `bun run lint` - Run ESLint on TypeScript files
 - `bun run lint:fix` - Fix ESLint issues automatically
 - `bun run format` - Format code with Prettier
 - `bun run format:check` - Check code formatting
 
 **Deployment:**
+
 - `bun run set:wh` - Set Telegram webhook (runs scripts/set-telegram-webhook.ts)
 - Docker build available via Dockerfile (multi-stage build with Bun → Node)
 
 ## Architecture Overview
 
 **Core Components:**
+
 - `/src/bot/` - Telegram bot handlers (commands, callbacks, input processing)
 - `/src/notifier/` - Background services for price alerts, high-probability market alerts, and WebSocket monitoring
 - `/src/watcher/` - Copy trading system and position monitoring
@@ -34,18 +38,21 @@ This is a Telegram bot for Polymarket trading that provides automated trading, c
 - `/src/helpers/` - User data and blockchain interaction utilities
 
 **Key Services:**
+
 - Redis for caching and session management (`/src/lib/redis.ts`)
 - Supabase for persistent data storage (`/src/lib/supabase.ts`)
 - Multi-language support via i18n system (`/src/i18n/`)
 - Card generation for portfolio visualization (`/src/utils/components/`)
 
 **Bot Architecture:**
+
 - Command handlers in `/src/bot/commands/`
 - Button callback handlers in `/src/bot/callbacks/`
 - Input processing and state management in `/src/bot/input/`
 - Middleware for authentication and bot rejection in `/src/bot/middlewares/`
 
 **Trading Features:**
+
 - Market orders and limit orders via Polymarket CLOB
 - Copy trading system that monitors wallets and replicates trades
 - Automated high-probability market alerts
@@ -55,12 +62,13 @@ This is a Telegram bot for Polymarket trading that provides automated trading, c
 ## Configuration
 
 Environment variables are validated via Zod schema in `src/config/env.schema.ts`. Required variables include:
+
 - Telegram bot token, Redis URL, Supabase credentials
 - Polymarket API endpoints and wallet private keys
 - Database timeout and retry settings for connectivity issues
 
 **Runtime:** Uses Bun for development, builds to Node.js for production
-**Package Manager:** pnpm (configured in package.json)
+**Package Manager:** Bun (`bun.lock`)
 **Database:** Supabase with typed schema in `/src/types/supabase/`
 
 ## Important Notes
