@@ -69,8 +69,8 @@ bun run dev             # watch mode
 bun run set:wh          # point the telegram webhook at WEBHOOK_DOMAIN
 ```
 
-Schema changes live in `supabase/migrations`. After applying them to an existing database, run
-`bun run migrate:api-creds` once to encrypt API credentials that were stored before encryption.
+Run `bun run migrate:api-creds` once against an existing database to encrypt API credentials that
+were stored before encryption.
 
 `bun run build` bundles to `dist/` with tsup, and the Dockerfile builds with Bun and runs on Node.
 Pushes to `dev` build and push the image and deploy staging; pushes to `main` restart production on
