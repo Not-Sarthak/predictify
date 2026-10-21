@@ -138,6 +138,8 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
 
     if (!user) return;
 
+    let lockAcquired = false;
+
     try {
         if (!user.is_copytrading_enabled) return;
 
@@ -176,7 +178,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             }
         }
 
-        const lockAcquired = await setCopyTradeLock(Number(userId), trade.asset);
+        lockAcquired = await setCopyTradeLock(Number(userId), trade.asset);
         if (!lockAcquired) {
             console.log(`Concurrent Trade In Progress For User ${userId}`);
             return;
@@ -185,7 +187,8 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
         const amount = parseFloat(trade.value.toFixed(6));
 
         if (trade.side === "BUY") {
-            await marketBuyOrder({
+            // The order helpers return their failure instead of throwing
+            const { error } = await marketBuyOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: JSON.parse(user.api_credentials),
                 tokenId: trade.asset,
@@ -193,6 +196,8 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 side: Side.BUY,
                 orderType: OrderType.FOK,
             });
+            if (error) throw error instanceof Error ? error : new Error(String(error));
+
             await Promise.all([
                 updateUserMarketsTraded(Number(userId), user.markets_traded),
                 updateUserTransactionsExecuted(Number(userId), user.txns_executed),
@@ -223,13 +228,14 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 }
             }
 
-            await marketSellOrder({
+            const { error } = await marketSellOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: JSON.parse(user.api_credentials),
                 tokenId: trade.asset,
                 amount: trade.size,
                 orderType: OrderType.FOK,
             });
+            if (error) throw error instanceof Error ? error : new Error(String(error));
         }
 
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
@@ -305,7 +311,8 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 `Value: $${trade.value.toFixed(2)} USDC`
         );
     } finally {
-        await releaseCopyTradeLock(Number(userId), trade.asset);
+        // Only release a lock this call holds; otherwise it would free a concurrent trade's lock
+        if (lockAcquired) await releaseCopyTradeLock(Number(userId), trade.asset);
     }
 };
 
