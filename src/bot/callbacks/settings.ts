@@ -42,11 +42,33 @@ export async function handleConfirmResetWallet(ctx: Context) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
 
-    const { address, privateKey, solanaAddress, solanaPrivateKey, apiCreds } =
-        await generateAPIKeyAndWallet({ host: HOST, chainId: CHAIN_ID });
-
     try {
-        const { error } = await db("Users")
+        const user = await getUserDetails(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Archive the current keys first: whatever the old wallets still hold would otherwise be
+        // lost for good, so the reset doesn't go ahead unless the archive write succeeds
+        const { error: archiveError } = await db("Wallet_Archive").insert({
+            user_id: userId,
+            wallet_address: user.wallet_address,
+            private_key: user.private_key,
+            solana_address: user.solana_address,
+            solana_private_key: user.solana_private_key,
+            api_credentials: user.api_credentials,
+        });
+
+        if (archiveError) {
+            throw new Error(archiveError.message, { cause: archiveError.cause });
+        }
+
+        const { address, privateKey, solanaAddress, solanaPrivateKey, apiCreds } =
+            await generateAPIKeyAndWallet({ host: HOST, chainId: CHAIN_ID });
+
+        // Only replace the wallet that was just archived; a concurrent reset that got there first
+        // would otherwise have its new, unarchived wallet overwritten
+        const { data: updated, error } = await db("Users")
             .update({
                 wallet_address: address,
                 private_key: encryptPrivateKey(privateKey),
@@ -54,10 +76,16 @@ export async function handleConfirmResetWallet(ctx: Context) {
                 solana_private_key: encryptPrivateKey(solanaPrivateKey),
                 api_credentials: encryptApiCredentials(apiCreds),
             })
-            .eq("id", userId);
+            .eq("id", userId)
+            .eq("wallet_address", user.wallet_address)
+            .select("id");
 
         if (error) {
             throw new Error(error.message, { cause: error.cause });
+        }
+
+        if (!updated?.length) {
+            throw new Error("Wallet changed during reset");
         }
     } catch (error) {
         console.error("Failed to update user wallet details in db: ", error);

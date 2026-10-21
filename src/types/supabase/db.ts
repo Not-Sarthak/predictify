@@ -236,6 +236,47 @@ export type Database = {
                 };
                 Relationships: [];
             };
+            Wallet_Archive: {
+                Row: {
+                    api_credentials: string | null;
+                    archived_at: string;
+                    id: string;
+                    private_key: string;
+                    solana_address: string | null;
+                    solana_private_key: string | null;
+                    user_id: number;
+                    wallet_address: string;
+                };
+                Insert: {
+                    api_credentials?: string | null;
+                    archived_at?: string;
+                    id?: string;
+                    private_key: string;
+                    solana_address?: string | null;
+                    solana_private_key?: string | null;
+                    user_id: number;
+                    wallet_address: string;
+                };
+                Update: {
+                    api_credentials?: string | null;
+                    archived_at?: string;
+                    id?: string;
+                    private_key?: string;
+                    solana_address?: string | null;
+                    solana_private_key?: string | null;
+                    user_id?: number;
+                    wallet_address?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "Wallet_Archive_user_id_fkey";
+                        columns: ["user_id"];
+                        isOneToOne: false;
+                        referencedRelation: "Users";
+                        referencedColumns: ["id"];
+                    },
+                ];
+            };
             Weekly_Active_Users: {
                 Row: {
                     created_at: string | null;
