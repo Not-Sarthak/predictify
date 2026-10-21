@@ -279,7 +279,30 @@ export type Database = {
             [_ in never]: never;
         };
         Functions: {
-            [_ in never]: never;
+            increment_user_stats: {
+                Args: {
+                    p_user_id: number;
+                    p_amount_deposited?: number;
+                    p_fees_total?: number;
+                    p_markets_traded?: number;
+                    p_txns_executed?: number;
+                    p_total_volume?: number;
+                    p_total_pnl?: number;
+                    p_number_of_referrals?: number;
+                };
+                Returns: undefined;
+            };
+            record_user_activity: {
+                Args: {
+                    p_user_id: number;
+                    p_year: number;
+                    p_week_number: number;
+                    p_week_start: string;
+                    p_month_number: number;
+                    p_month_start: string;
+                };
+                Returns: undefined;
+            };
         };
         Enums: {
             [_ in never]: never;

@@ -210,8 +210,8 @@ async function executeSingleTrade({
         await Promise.all([
             trackManualTrade(userId, tokenId, "BUY", shares),
             updateUserVolume(userId, shares),
-            updateUserMarketsTraded(userId, user?.markets_traded || 0),
-            updateUserTransactionsExecuted(userId, user?.txns_executed || 0),
+            updateUserMarketsTraded(userId),
+            updateUserTransactionsExecuted(userId),
         ]);
 
         // Send successful order to SQS

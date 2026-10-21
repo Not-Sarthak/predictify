@@ -1,4 +1,5 @@
 import { db } from "../../lib/supabase";
+import { incrementUserStats } from "../../bot/utils/database/update-user-data";
 import { env } from "../../config/env";
 
 export interface ReferralStats {
@@ -75,11 +76,7 @@ export async function trackReferralRelationship(
 
         // Update referrer's count
         await retryDatabaseOperation(async () => {
-            const { error } = await db("Users")
-                .update({
-                    number_of_referrals: (referrer.number_of_referrals || 0) + 1,
-                })
-                .eq("id", referrer.id);
+            const error = await incrementUserStats(referrer.id, { numberOfReferrals: 1 });
 
             if (error) {
                 throw new Error("Failed to update referrer count");
@@ -117,7 +114,7 @@ export async function calculateReferralEarnings(
 
         const referrer = await retryDatabaseOperation(async () => {
             const { data, error } = await db("Users")
-                .select("id, fees_total")
+                .select("id")
                 .eq("telegram_username", user.referred_code!)
                 .single();
 
@@ -134,11 +131,7 @@ export async function calculateReferralEarnings(
         const referralFee = treasuryFee * 0.25;
 
         await retryDatabaseOperation(async () => {
-            const { error } = await db("Users")
-                .update({
-                    fees_total: (referrer.fees_total || 0) + referralFee,
-                })
-                .eq("id", referrer.id);
+            const error = await incrementUserStats(referrer.id, { feesTotal: referralFee });
 
             if (error) {
                 throw new Error("Failed to update referral earnings");

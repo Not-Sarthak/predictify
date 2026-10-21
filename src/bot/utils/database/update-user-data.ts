@@ -1,20 +1,44 @@
-import { db } from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import { feeTransaction } from "../../../utils/fees/fee";
 
-export async function updateUserMarketsTraded(userId: number, prevMarketsTraded: number) {
-    await db("Users")
-        .update({
-            markets_traded: prevMarketsTraded + 1,
-        })
-        .eq("id", userId);
+interface UserStatIncrements {
+    amountDeposited?: number;
+    feesTotal?: number;
+    marketsTraded?: number;
+    txnsExecuted?: number;
+    totalVolume?: number;
+    totalPnl?: number;
+    numberOfReferrals?: number;
 }
 
-export async function updateUserTransactionsExecuted(userId: number, prevExecutedTxns: number) {
-    await db("Users")
-        .update({
-            txns_executed: prevExecutedTxns + 1,
-        })
-        .eq("id", userId);
+// The addition happens inside one UPDATE in postgres (see the increment_user_stats migration), so
+// concurrent writers can't overwrite each other's increments the way read-add-write did
+export async function incrementUserStats(userId: number, increments: UserStatIncrements) {
+    // Returns the error so callers that retry can tell a failed increment apart
+    const { error } = await supabase.rpc("increment_user_stats", {
+        p_user_id: userId,
+        p_amount_deposited: increments.amountDeposited,
+        p_fees_total: increments.feesTotal,
+        p_markets_traded: increments.marketsTraded,
+        p_txns_executed: increments.txnsExecuted,
+        p_total_volume: increments.totalVolume,
+        p_total_pnl: increments.totalPnl,
+        p_number_of_referrals: increments.numberOfReferrals,
+    });
+
+    if (error) {
+        console.error(`Error incrementing stats for user ${userId}:`, error);
+    }
+
+    return error;
+}
+
+export async function updateUserMarketsTraded(userId: number) {
+    await incrementUserStats(userId, { marketsTraded: 1 });
+}
+
+export async function updateUserTransactionsExecuted(userId: number) {
+    await incrementUserStats(userId, { txnsExecuted: 1 });
 
     // Update active user tracking when a transaction is executed
     await updateActiveUserTracking(userId);
@@ -22,22 +46,7 @@ export async function updateUserTransactionsExecuted(userId: number, prevExecute
 
 export async function updateUserDepositAndFees(userId: number, amount: number) {
     const { fee, finalAmount } = feeTransaction(amount);
-
-    try {
-        const { data } = await db("Users")
-            .select("amount_deposited, fees_total")
-            .eq("id", userId)
-            .single();
-
-        await db("Users")
-            .update({
-                amount_deposited: (data?.amount_deposited || 0) + finalAmount,
-                fees_total: (data?.fees_total || 0) + fee,
-            })
-            .eq("id", userId);
-    } catch (error) {
-        console.error("Error updating Amount Deposited & Fees: ", error);
-    }
+    await incrementUserStats(userId, { amountDeposited: finalAmount, feesTotal: fee });
 }
 
 /**
@@ -63,57 +72,16 @@ export async function updateActiveUserTracking(userId: number) {
     const monthNumber = now.getMonth() + 1;
 
     try {
-        // Update or insert weekly active user record
-        const { data: existingWeeklyRecord } = await db("Weekly_Active_Users")
-            .select("*")
-            .eq("user_id", userId)
-            .eq("year", year)
-            .eq("week_number", weekNumber)
-            .single();
+        const { error } = await supabase.rpc("record_user_activity", {
+            p_user_id: userId,
+            p_year: year,
+            p_week_number: weekNumber,
+            p_week_start: monday.toISOString(),
+            p_month_number: monthNumber,
+            p_month_start: monthStart.toISOString(),
+        });
 
-        if (existingWeeklyRecord) {
-            // Increment transaction count for existing week
-            await db("Weekly_Active_Users")
-                .update({
-                    transaction_count: (existingWeeklyRecord.transaction_count || 0) + 1,
-                })
-                .eq("id", existingWeeklyRecord.id);
-        } else {
-            // Create new weekly record
-            await db("Weekly_Active_Users").insert({
-                user_id: userId,
-                week_start: monday.toISOString(),
-                year: year,
-                week_number: weekNumber,
-                transaction_count: 1,
-            });
-        }
-
-        // Update or insert monthly active user record
-        const { data: existingMonthlyRecord } = await db("Monthly_Active_Users")
-            .select("*")
-            .eq("user_id", userId)
-            .eq("year", year)
-            .eq("month_number", monthNumber)
-            .single();
-
-        if (existingMonthlyRecord) {
-            // Increment transaction count for existing month
-            await db("Monthly_Active_Users")
-                .update({
-                    transaction_count: (existingMonthlyRecord.transaction_count || 0) + 1,
-                })
-                .eq("id", existingMonthlyRecord.id);
-        } else {
-            // Create new monthly record
-            await db("Monthly_Active_Users").insert({
-                user_id: userId,
-                month_start: monthStart.toISOString(),
-                year: year,
-                month_number: monthNumber,
-                transaction_count: 1,
-            });
-        }
+        if (error) throw error;
     } catch (error) {
         console.error("Error updating active user tracking:", error);
         // Don't throw error to avoid breaking transaction flow

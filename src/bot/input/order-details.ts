@@ -1,6 +1,5 @@
 import { Markup, type Context } from "telegraf";
 import { redisClient } from "../../lib/redis";
-import { db } from "../../lib/supabase";
 import { sendOrderToSQS, type OrderMessage } from "../../lib/sqs";
 import { getTokenId } from "../../helpers/get-token-id";
 import { getUserDetails } from "../../helpers/get-user-details";
@@ -302,8 +301,6 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
                   ? Number(orderContext.amount)
                   : Number(textMessage.trim());
 
-        const { data } = await db("Users").select("*").eq("id", userId).single();
-
         const txHash = orderResponse?.response.transactionsHashes
             ? orderResponse?.response.transactionsHashes[0]
             : null;
@@ -386,10 +383,10 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
                 orderType === "fok" ||
                 (orderType === "gtc" && orderResponse.response.status === "matched")
             ) {
-                await updateUserMarketsTraded(userId, data?.markets_traded || 0);
+                await updateUserMarketsTraded(userId);
             }
 
-            await updateUserTransactionsExecuted(userId, data?.txns_executed || 0);
+            await updateUserTransactionsExecuted(userId);
 
             const currentPrice =
                 side === "YES"

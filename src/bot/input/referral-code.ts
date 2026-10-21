@@ -11,6 +11,7 @@ import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { generateRandomString } from "../../utils/encoding";
 import { clearUserInputState } from "../input/state";
 import { getUserLanguage } from "../../helpers/user-language";
+import { incrementUserStats } from "../utils/database/update-user-data";
 
 export async function handleReferralCodeTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -71,11 +72,7 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
 
     // Update referrer's count (skip for special code "PRED")
     if (referralCode.toUpperCase() !== "PRED") {
-        await db("Users")
-            .update({
-                number_of_referrals: (referrer.number_of_referrals || 0) + 1,
-            })
-            .eq("id", referrer.id);
+        await incrementUserStats(referrer.id, { numberOfReferrals: 1 });
     }
 
     // Remove from awaiting set

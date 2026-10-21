@@ -29,6 +29,7 @@ import { getUserPosition, getUserPositionByMarket } from "../../utils/polymarket
 import { Markup, type Context } from "telegraf";
 import axios from "axios";
 import { db } from "../../lib/supabase";
+import { incrementUserStats } from "../utils/database/update-user-data";
 import { generateClosePositionButton } from "../ui/buttons/trade";
 import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
@@ -1014,7 +1015,6 @@ export async function handleCloseOpenPosition(
     const entryPercentage = parseFloat((userMarketDetails.avgPrice * 100).toFixed(2));
     const exitPercentage = parseFloat((userMarketDetails.curPrice * 100).toFixed(2));
 
-    const pnlDbFetchPromise = db("Users").select("total_pnl").eq("id", userId).single();
     const pnlCardPromise = generatePnlCard(
         pnlType,
         username,
@@ -1062,21 +1062,14 @@ export async function handleCloseOpenPosition(
 
     await redisClient.del(`user:order_context:${userId}`);
 
-    const [pnlCardBuffer, { data: pnlData, error: pnlDbErr }] = await Promise.all([
-        pnlCardPromise,
-        pnlDbFetchPromise,
-    ]);
+    // cashPnl is for the whole position, so a partial sell only realises its share of it
+    const realisedPnl =
+        userMarketDetails.cashPnl * Math.min(sellAmount / userMarketDetails.size, 1);
 
-    if (pnlDbErr || !pnlData) {
-        console.error("❌ Error fetching PnL data:", pnlDbErr);
-        ctx.reply("❌ Error updating your PnL details");
-    } else {
-        await db("Users")
-            .update({
-                total_pnl: (pnlData?.total_pnl || 0) + userMarketDetails.cashPnl,
-            })
-            .eq("id", userId);
-    }
+    const [pnlCardBuffer] = await Promise.all([
+        pnlCardPromise,
+        incrementUserStats(userId, { totalPnl: realisedPnl }),
+    ]);
 
     await ctx.deleteMessage(message_id);
 

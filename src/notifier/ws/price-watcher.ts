@@ -165,8 +165,8 @@ export class PolymarketMarketTradeWatcher {
                     );
                 } else {
                     await Promise.all([
-                        updateUserMarketsTraded(Number(this.userId), user.markets_traded),
-                        updateUserTransactionsExecuted(Number(this.userId), user.txns_executed),
+                        updateUserMarketsTraded(Number(this.userId)),
+                        updateUserTransactionsExecuted(Number(this.userId)),
                         bot.telegram.sendMessage(
                             this.userId,
                             generateTPorSLMessage({ type, ...basePayload, shares: sharesToSell }),

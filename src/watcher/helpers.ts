@@ -199,8 +199,8 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
             if (error) throw error instanceof Error ? error : new Error(String(error));
 
             await Promise.all([
-                updateUserMarketsTraded(Number(userId), user.markets_traded),
-                updateUserTransactionsExecuted(Number(userId), user.txns_executed),
+                updateUserMarketsTraded(Number(userId)),
+                updateUserTransactionsExecuted(Number(userId)),
             ]);
         } else {
             const validation = await validateSellPosition(
