@@ -32,6 +32,7 @@ import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { startUserTradeWatcher } from "../../notifier/ws/limit-order-watcher";
 import {
+    updateUserDepositAndFees,
     updateUserMarketsTraded,
     updateUserTransactionsExecuted,
 } from "../utils/database/update-user-data";
@@ -313,18 +314,7 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
             const isFilled = orderType !== "gtc" || orderResponse.response.status === "matched";
 
             if (orderType !== "fok_sell" && isFilled) {
-                const { fee, finalAmount } = feeTransaction(orderAmount);
-
-                try {
-                    await db("Users")
-                        .update({
-                            amount_deposited: (data?.amount_deposited || 0) + finalAmount,
-                            fees_total: (data?.fees_total || 0) + fee,
-                        })
-                        .eq("id", userId);
-                } catch (error) {
-                    console.error("Error updating Amount Deposited & Fees: ", error);
-                }
+                await updateUserDepositAndFees(userId, orderAmount);
             }
 
             const polygonScanMsg = txHash

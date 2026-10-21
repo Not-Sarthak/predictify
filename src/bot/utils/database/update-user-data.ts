@@ -1,4 +1,5 @@
 import { db } from "../../../lib/supabase";
+import { feeTransaction } from "../../../utils/fees/fee";
 
 export async function updateUserMarketsTraded(userId: number, prevMarketsTraded: number) {
     await db("Users")
@@ -17,6 +18,26 @@ export async function updateUserTransactionsExecuted(userId: number, prevExecute
 
     // Update active user tracking when a transaction is executed
     await updateActiveUserTracking(userId);
+}
+
+export async function updateUserDepositAndFees(userId: number, amount: number) {
+    const { fee, finalAmount } = feeTransaction(amount);
+
+    try {
+        const { data } = await db("Users")
+            .select("amount_deposited, fees_total")
+            .eq("id", userId)
+            .single();
+
+        await db("Users")
+            .update({
+                amount_deposited: (data?.amount_deposited || 0) + finalAmount,
+                fees_total: (data?.fees_total || 0) + fee,
+            })
+            .eq("id", userId);
+    } catch (error) {
+        console.error("Error updating Amount Deposited & Fees: ", error);
+    }
 }
 
 /**

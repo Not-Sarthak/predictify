@@ -1,3 +1,5 @@
+import type { UserFill } from "./ws/fills";
+
 export function handleCronError(err: unknown, context = "Unknown") {
     const timestamp = new Date().toISOString();
     const error = err instanceof Error ? err : new Error(JSON.stringify(err));
@@ -31,15 +33,19 @@ export function normalizeTitle(title: string): string {
     );
 }
 
-export function generateOrderFilledMessage(trade: any, question: string): string {
-    const matched = trade.maker_orders[0];
-    const isBuy = trade.side === "BUY";
-    const side = isBuy ? "Buy" : "Sell";
-    const amount = parseFloat(trade.size).toFixed(4);
-    const outcome = isBuy ? trade.outcome : matched.outcome;
-    const price = parseFloat(trade.price).toFixed(2);
+export function generateOrderFilledMessage(
+    fill: UserFill,
+    question: string,
+    transactionHash?: string
+): string {
+    const side = fill.side === "BUY" ? "Buy" : "Sell";
+    const amount = fill.shares.toFixed(4);
+    const outcome = fill.outcome;
+    const price = fill.price.toFixed(2);
 
-    const polygonScanMsg = `<b>Tx:</b> <a href="https://polygonscan.com/tx/${trade.transaction_hash}">View on Polygonscan</a>`;
+    const polygonScanMsg = transactionHash
+        ? `<b>Tx:</b> <a href="https://polygonscan.com/tx/${transactionHash}">View on Polygonscan</a>`
+        : "";
 
     return (
         `🎯 <b>Your Limit Order Was Filled!</b>\n\n` +
