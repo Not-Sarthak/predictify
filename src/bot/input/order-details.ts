@@ -36,7 +36,27 @@ import {
     updateUserTransactionsExecuted,
 } from "../utils/database/update-user-data";
 
+const ORDER_LOCK_MS = 60_000;
+
 export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: string) {
+    const userId = getUserIdFromCtx(ctx);
+
+    // One order at a time per user: two quick messages would otherwise both read the
+    // order context before it is cleared and place the same order twice
+    const lockKey = `user:order_lock:${userId}`;
+    const lockAcquired = await redisClient.set(lockKey, "1", { NX: true, PX: ORDER_LOCK_MS });
+    if (lockAcquired !== "OK") {
+        return ctx.reply("⏳ Your previous order is still being placed.");
+    }
+
+    try {
+        return await placeOrderFromDetails(ctx, textMessage);
+    } finally {
+        await redisClient.del(lockKey);
+    }
+}
+
+async function placeOrderFromDetails(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
     const language = await getUserLanguage(userId);
     const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
@@ -122,6 +142,17 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
     try {
         if (orderType === "gtc") {
+            const [priceStr, amountStr, _] = textMessage.trim().split(/\s+/);
+
+            const limitPrice = Number(priceStr);
+            const amount = Number(amountStr);
+            if (isNaN(limitPrice) || isNaN(amount) || limitPrice <= 0 || amount <= 0) {
+                return ctx.reply("❌ Invalid format. Use: `<price> <amount>`", {
+                    parse_mode: "Markdown",
+                });
+            }
+
+            // Only cancel the order being replaced once the new one is known to be valid
             if (cancel === "true") {
                 const response = await cancelOrder({
                     privateKey: decryptPrivateKey(userDetails.private_key),
@@ -134,23 +165,13 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 }
             }
 
-            const [priceStr, amountStr, _] = textMessage.trim().split(/\s+/);
-
-            const limitPrice = Number(priceStr);
-            const amount = Number(amountStr);
-            if (isNaN(limitPrice) || isNaN(amount) || limitPrice <= 0 || amount <= 0) {
-                return ctx.reply("❌ Invalid format. Use: `<price> <amount>`", {
-                    parse_mode: "Markdown",
-                });
-            }
-
             const currentPrice =
                 side === "YES"
                     ? JSON.parse(market.outcomePrices)[0]
                     : JSON.parse(market.outcomePrices)[1];
 
-            const isExecutableNow = currentPrice <= limitPrice;
-            executionPrice = isExecutableNow ? currentPrice : limitPrice;
+            const isExecutableNow = Number(currentPrice) <= limitPrice;
+            executionPrice = isExecutableNow ? Number(currentPrice) : limitPrice;
             shares = amount / executionPrice;
 
             const tokenId = await getTokenId(side.toLowerCase(), marketId);
@@ -189,6 +210,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     : JSON.parse(market.outcomePrices)[1];
 
             const { finalAmount } = feeTransaction(amount);
+            executionPrice = Number(currentPrice);
 
             orderResponse = await marketBuyOrder({
                 privateKey: decryptedPrivateKey,
@@ -201,7 +223,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
             if (orderResponse && !orderResponse.error) {
                 await trackManualTrade(userId, tokenId, "BUY", finalAmount / executionPrice);
-                await updateUserVolume(userId, finalAmount / currentPrice);
+                await updateUserVolume(userId, finalAmount / executionPrice);
             }
         } else if (orderType === "fok_sell") {
             const isAutoExecute = orderContext.autoExecute === "true";
@@ -272,39 +294,14 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
             );
         }
 
-        const amount =
+        const orderAmount =
             orderType === "gtc"
-                ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                : orderType === "fok_sell"
-                  ? orderContext.autoExecute === "true"
-                      ? Number(orderContext.amount)
-                      : Number(textMessage.trim())
+                ? Number(textMessage.trim().split(/\s+/)[1])
+                : orderType === "fok_sell" && orderContext.autoExecute === "true"
+                  ? Number(orderContext.amount)
                   : Number(textMessage.trim());
 
-        const { fee, finalAmount } = feeTransaction(amount);
         const { data } = await db("Users").select("*").eq("id", userId).single();
-
-        if (orderType !== "fok_sell") {
-            try {
-                await db("Users")
-                    .update({
-                        amount_deposited: (data?.amount_deposited || 0) + finalAmount,
-                        fees_total: (data?.fees_total || 0) + fee,
-                    })
-                    .eq("id", userId);
-            } catch (error) {
-                console.error("Error updating Amount Deposited & Fees: ", error);
-            }
-        }
-
-        const orderPlaceAmountToShow =
-            orderType === "gtc"
-                ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                : orderType === "fok_sell"
-                  ? orderContext.autoExecute === "true"
-                      ? Number(orderContext.amount)
-                      : Number(textMessage.trim())
-                  : Number(textMessage.trim());
 
         const txHash = orderResponse?.response.transactionsHashes
             ? orderResponse?.response.transactionsHashes[0]
@@ -312,6 +309,24 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
         const orderId = orderResponse?.response.orderID;
 
         if (orderResponse?.response.success) {
+            // A resting GTC hasn't spent anything yet; its fee is charged when it fills
+            const isFilled = orderType !== "gtc" || orderResponse.response.status === "matched";
+
+            if (orderType !== "fok_sell" && isFilled) {
+                const { fee, finalAmount } = feeTransaction(orderAmount);
+
+                try {
+                    await db("Users")
+                        .update({
+                            amount_deposited: (data?.amount_deposited || 0) + finalAmount,
+                            fees_total: (data?.fees_total || 0) + fee,
+                        })
+                        .eq("id", userId);
+                } catch (error) {
+                    console.error("Error updating Amount Deposited & Fees: ", error);
+                }
+            }
+
             const polygonScanMsg = txHash
                 ? `\n<a href="https://polygonscan.com/tx/${txHash}">${t("viewOnPolygonscan", language)}</a>\n`
                 : "\n";
@@ -320,13 +335,13 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 orderType === "fok_sell"
                     ? `✅ Your Sell Order was Placed!\n\n` +
                       `<b>${t("market", language)}:</b> ${market.question}\n` +
-                      `<b>Shares Sold:</b> ${orderPlaceAmountToShow}\n` +
+                      `<b>Shares Sold:</b> ${orderAmount}\n` +
                       `<b>Outcome:</b> ${position?.outcome || "Unknown"}\n` +
                       polygonScanMsg
                     : `${t("buyOrderPlaced", language)}\n\n` +
                       `<b>Status:</b> ${t("matched", language)}\n` +
                       `<b>${t("market", language)}:</b> ${market.question}\n` +
-                      `<b>${t("amount", language)}:</b> ${orderPlaceAmountToShow} | <b>Side:</b> ${side}\n` +
+                      `<b>${t("amount", language)}:</b> ${orderAmount} | <b>Side:</b> ${side}\n` +
                       polygonScanMsg;
 
             // Send order data to SQS queue
@@ -339,13 +354,13 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     side: orderType === "fok_sell" ? position?.outcome : side,
                     marketId,
                     marketQuestion: market.question,
-                    amount: orderPlaceAmountToShow,
+                    amount: orderAmount,
                     shares:
                         orderType === "gtc"
                             ? shares
                             : orderType === "fok_sell"
-                              ? orderPlaceAmountToShow
-                              : Math.floor(orderPlaceAmountToShow / executionPrice),
+                              ? orderAmount
+                              : Math.floor(orderAmount / executionPrice),
                     executionPrice: executionPrice || 0,
                     txHash: txHash || undefined,
                     timestamp: new Date().toISOString(),
@@ -386,11 +401,6 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
 
             await updateUserTransactionsExecuted(userId, data?.txns_executed || 0);
 
-            const amount =
-                orderType === "gtc"
-                    ? Number(textMessage.split(/\s+/)[0]) * Number(textMessage.split(/\s+/)[1])
-                    : Number(textMessage.trim());
-
             const currentPrice =
                 side === "YES"
                     ? JSON.parse(market.outcomePrices)[0]
@@ -402,7 +412,7 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                 day: "numeric",
                 year: "numeric",
             });
-            const toWin = amount / currentPrice;
+            const toWin = orderAmount / currentPrice;
             const odds = Number((currentPrice * 100).toFixed(2));
 
             await ctx.telegram.editMessageText(
@@ -442,17 +452,17 @@ export async function handleOrderDetailsTextMessage(ctx: Context, textMessage: s
                     closeDate,
                     toWin,
                     odds,
-                    amount,
+                    orderAmount,
                     userDetails.show_username_in_cards
                 );
 
                 await ctx.replyWithPhoto({ source: imgBuffer });
             }
 
-            if (orderType !== "fok_sell") {
+            if (orderType !== "fok_sell" && isFilled) {
                 await transferFeeToTreasury({
                     userWallet: new ethers.Wallet(decryptedPrivateKey),
-                    positionAmount: amount,
+                    positionAmount: orderAmount,
                     transactionType: "OPEN",
                     userId: userId,
                 });

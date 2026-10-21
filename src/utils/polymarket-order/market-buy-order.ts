@@ -93,7 +93,10 @@ export async function marketBuyOrder(marketBuyOrderRequest: MarketBuyOrderReques
             orderType: marketBuyOrderRequest.orderType,
         });
 
-        const response = await clobClient.postOrder(marketBuyOrder, OrderType.FOK);
+        const response = await clobClient.postOrder(
+            marketBuyOrder,
+            marketBuyOrderRequest.orderType
+        );
 
         if (response.error) {
             throw new Error(response.error);
