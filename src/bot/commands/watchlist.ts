@@ -24,7 +24,8 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
             return ctx.reply(t.errorFetchingWatchlist);
         }
 
-        const allWatchedMarkets = user.market_watchlist || [];
+        // market_watchlist is a json column holding an array of saved market objects
+        const allWatchedMarkets = (user.market_watchlist as any[] | null) ?? [];
 
         if (allWatchedMarkets.length === 0) {
             return ctx.reply(
@@ -140,7 +141,9 @@ export async function handleWatchlistCommand(ctx: Context, page: number = 0) {
             }
 
             const volumeStr = volume > 0 ? formatDollarVolume(volume) : "N/A";
-            const endDate = market.endDate ? formatDate(market.endDate) : t.unknownEndDate;
+            const endDate = market.endDate
+                ? formatDate(market.endDate, language)
+                : t.unknownEndDate;
             const title = market.question || market.title || t.unknownMarket;
 
             message += `${globalIndex}. **${escapeMarkdown(title)}**\n`;

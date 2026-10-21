@@ -10,6 +10,7 @@ import { getSOLBalance, getUserWrappedUSDCBalance } from "../../helpers/get-user
 import { generateTranslatedMainMenuButtons } from "../ui/buttons/translated";
 import { generateRandomString } from "../../utils/encoding";
 import { clearUserInputState } from "../input/state";
+import { getUserLanguage } from "../../helpers/user-language";
 
 export async function handleReferralCodeTextMessage(ctx: Context, textMessage: string) {
     const userId = getUserIdFromCtx(ctx);
@@ -84,7 +85,7 @@ export async function handleReferralCodeTextMessage(ctx: Context, textMessage: s
     const balance = await getUserWrappedUSDCBalance(address);
     const solBalance = solanaAddress ? await getSOLBalance(solanaAddress) : 0;
 
-    const translatedButtons = await generateTranslatedMainMenuButtons(userId);
+    const translatedButtons = generateTranslatedMainMenuButtons(await getUserLanguage(userId));
     const keyboard = Markup.inlineKeyboard(translatedButtons);
 
     // Send custom welcome message

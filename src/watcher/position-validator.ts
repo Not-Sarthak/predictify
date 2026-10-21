@@ -72,7 +72,7 @@ export async function validateSellPosition(
 export async function isTradeAlreadyProcessed(userId: number, tradeHash: string): Promise<boolean> {
     try {
         const { data } = await db("Auto_Trade")
-            .select("id", "status")
+            .select("id, status")
             .eq("user_id", userId)
             .eq("original_trade_hash", tradeHash)
             .limit(1);
