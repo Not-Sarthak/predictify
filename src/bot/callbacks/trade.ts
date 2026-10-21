@@ -50,11 +50,7 @@ import { generatePnlCard, generatePortfolioPositionCard } from "../../utils/card
 import { trackManualTrade } from "../../utils/trade-tracker";
 import { updateUserVolume } from "../../helpers/update-user-volume";
 import { stopWalletMonitoring } from "../../watcher/copy-trade";
-import {
-    startTpSlWatcher,
-    stopAllTpSlWatchers,
-    type PriceWatchConfig,
-} from "../../notifier/ws/price-watcher";
+import { stopAllTpSlWatchers } from "../../notifier/ws/price-watcher";
 import { DateTime } from "luxon";
 import { getCurrentTokenPrice, getTokenPriceAtMarketStart } from "../../utils/binance/binance";
 import { translateMarketTitle } from "../../utils/market-translation";
@@ -1051,40 +1047,16 @@ export async function handleCloseOpenPosition(
     await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);
 
     // Update user's total volume
-    await updateUserVolume(userId, userMarketDetails.size);
+    await updateUserVolume(userId, sellAmount);
 
-    const orderContext = await redisClient.hGetAll(`user:order_context:${userId}`);
-    const { sellType, originalSize } = orderContext;
-
-    let updatedConfig: PriceWatchConfig | null = null;
-
-    if (sellType === "50" || sellType === "custom") {
-        const remaining =
-            sellType === "custom" && originalSize
-                ? Number(originalSize) - (amountToSell || 0)
-                : Number(orderContext.remainingSize);
-
-        if (!isNaN(remaining) && remaining > 0) {
-            const oldWatcher = await redisClient.hGet(
-                `user:tp_sl_watchers:${userId}`,
-                `${decodedConditionId}:${userMarketDetails.asset}`
-            );
-
-            if (oldWatcher) {
-                const oldConfig = JSON.parse(oldWatcher);
-                updatedConfig = { ...oldConfig, size: remaining };
-            }
-        }
-    }
-
-    await stopAllTpSlWatchers(userId.toString(), conditionId);
-
-    if (updatedConfig) {
-        startTpSlWatcher(
+    // TP/SL sizes are a percentage of the shares held when they trigger, so a partial sell
+    // leaves them armed and only a full close removes them
+    if (sellAmount >= userMarketDetails.size) {
+        await stopAllTpSlWatchers(
             userId.toString(),
             decodedConditionId,
-            userMarketDetails.asset,
-            updatedConfig
+            "all",
+            userMarketDetails.asset
         );
     }
 

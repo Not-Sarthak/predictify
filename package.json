@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "set:wh": "bun run scripts/set-telegram-webhook.ts",
+    "test": "bun test",
     "test:sqs": "bun run scripts/test-sqs.ts",
     "prepare": "husky"
   },

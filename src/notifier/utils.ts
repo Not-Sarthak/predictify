@@ -84,15 +84,16 @@ export function generatePriceAlertMessage(params: {
 }
 
 export function generateTPorSLMessage(params: {
+    type: "take_profit" | "stop_loss";
     question: string;
     thresholdPrice: number;
     currentPrice: number;
     outcomeSide: string;
-    size: number;
+    shares: number;
 }): string {
-    const { thresholdPrice, currentPrice, question, outcomeSide, size } = params;
+    const { type, thresholdPrice, currentPrice, question, outcomeSide, shares } = params;
 
-    const isTakeProfit = currentPrice > thresholdPrice;
+    const isTakeProfit = type === "take_profit";
     const typeTitle = isTakeProfit
         ? "✅ <b>Take Profit Executed</b>"
         : "🛑 <b>Stop Loss Executed</b>";
@@ -107,8 +108,29 @@ export function generateTPorSLMessage(params: {
         `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` +
         `<b>Executed Price:</b> $${currentPrice.toFixed(4)}\n` +
         `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
-        `<b>Position Size:</b> ${size.toFixed(4)} shares\n\n` +
+        `<b>Shares Sold:</b> ${shares.toFixed(4)}\n\n` +
         `${actionLine}`
+    );
+}
+
+export function generateTPorSLFailedMessage(params: {
+    type: "take_profit" | "stop_loss";
+    question: string;
+    thresholdPrice: number;
+    currentPrice: number;
+    outcomeSide: string;
+}): string {
+    const { type, thresholdPrice, currentPrice, question, outcomeSide } = params;
+
+    const typeLabel = type === "take_profit" ? "Take Profit" : "Stop Loss";
+
+    return (
+        `⚠️ <b>${typeLabel} Triggered, but the Sell Failed</b>\n\n` +
+        `<b>Market:</b> ${question}\n` +
+        `<b>Outcome:</b> ${outcomeSide.toUpperCase()}\n` +
+        `<b>Trigger Price:</b> $${thresholdPrice.toFixed(4)}\n` +
+        `<b>Best Bid:</b> $${currentPrice.toFixed(4)}\n\n` +
+        `Your shares were not sold. Please close the position manually.`
     );
 }
 

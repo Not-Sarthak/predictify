@@ -2,13 +2,18 @@ import { Markup } from "telegraf";
 import { bot } from "../../bot";
 import { POLYMARKET_WS_MARKET_URL } from "../../shared/constants";
 import { getMarketByConditionId } from "../../utils/polymarket/get-markets";
-import { generatePriceAlertMessage, generateTPorSLMessage } from "../utils";
+import {
+    generatePriceAlertMessage,
+    generateTPorSLFailedMessage,
+    generateTPorSLMessage,
+} from "../utils";
 import { getUserDetails } from "../../helpers/get-user-details";
-import { getUserPositionByMarket } from "../../utils/polymarket/get-user-position";
-import { buyOrderGTC } from "../../utils/polymarket-order/buy-order-gtc";
-import { OrderType, Side } from "@polymarket/clob-client";
+import { getUserPosition } from "../../utils/polymarket/get-user-position";
+import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
+import { OrderType } from "@polymarket/clob-client";
 import { decryptPrivateKey } from "../../utils/crypto";
 import { redisClient } from "../../lib/redis";
+import { evaluateTrigger } from "./triggers";
 import {
     updateUserMarketsTraded,
     updateUserTransactionsExecuted,
@@ -19,11 +24,15 @@ export type PriceWatchConfig =
     | { type: "stop_loss"; price: number; outcome: string; size: number }
     | { type: "alert"; price: number; outcome: string };
 
-const EPSILON = 0.00001;
 const ALERT_REDIS_KEY_PREFIX = "user:price_alerts:";
 const TPSL_REDIS_KEY_PREFIX = "user:tp_sl_watchers:";
 
 const activeWatchers = new Map<string, PolymarketMarketTradeWatcher>();
+
+const alertField = (marketId: string, assetId: string) => `${marketId}:${assetId}`;
+
+const tpSlField = (marketId: string, assetId: string, type: string) =>
+    `${marketId}:${assetId}:${type}`;
 
 export class PolymarketMarketTradeWatcher {
     private socket: WebSocket;
@@ -32,7 +41,7 @@ export class PolymarketMarketTradeWatcher {
     private marketId: string;
     private config: PriceWatchConfig;
     public hasTriggered = false;
-    private lastBestAsk: number = Infinity;
+    private lastBestAsk: number | null = null;
     private reconnectTimeout: NodeJS.Timeout | null = null;
     private reconnectDelay = 3000;
 
@@ -82,36 +91,27 @@ export class PolymarketMarketTradeWatcher {
         try {
             const eventData = JSON.parse(event.data.toString());
             const data = eventData[0];
-            if (!data || data.event_type !== "book" || !Array.isArray(data.asks)) return;
-
-            const asks = data.asks.map((a: any) => parseFloat(a.price)).filter(isFinite);
-            if (!asks.length) return;
-
-            const currentAsk = Math.min(...asks);
+            if (!data || data.event_type !== "book") return;
 
             const { type, price } = this.config;
-            let shouldTrigger = false;
+            const { shouldTrigger, currentPrice, lastBestAsk } = evaluateTrigger(
+                this.config,
+                data,
+                this.lastBestAsk
+            );
 
-            if (type === "alert") {
-                shouldTrigger = Math.abs(currentAsk - price) < EPSILON;
-            } else if (type === "take_profit") {
-                shouldTrigger = this.lastBestAsk < price && currentAsk > price;
-            } else if (type === "stop_loss") {
-                shouldTrigger = this.lastBestAsk > price && currentAsk < price;
-            }
+            this.lastBestAsk = lastBestAsk;
 
-            this.lastBestAsk = currentAsk;
-
-            if (!shouldTrigger) return;
+            if (!shouldTrigger || currentPrice === undefined) return;
 
             this.hasTriggered = true;
 
-            const market = (await getMarketByConditionId(this.marketId))[0];
+            const market = await getMarketByConditionId(this.marketId);
 
             const basePayload = {
                 question: market?.question || "Unknown Market",
                 thresholdPrice: price,
-                currentPrice: currentAsk,
+                currentPrice,
                 outcomeSide: this.config.outcome,
             };
 
@@ -121,9 +121,14 @@ export class PolymarketMarketTradeWatcher {
                     generatePriceAlertMessage({ type, ...basePayload }),
                     {
                         parse_mode: "HTML",
-                        reply_markup: Markup.inlineKeyboard([
-                            Markup.button.callback("View this Market", `view_market:${market.id}`),
-                        ]).reply_markup,
+                        reply_markup: market
+                            ? Markup.inlineKeyboard([
+                                  Markup.button.callback(
+                                      "View this Market",
+                                      `view_market:${market.id}`
+                                  ),
+                              ]).reply_markup
+                            : undefined,
                     }
                 );
                 stopPriceAlertWatcher(this.userId, this.marketId, this.assetId);
@@ -131,41 +136,44 @@ export class PolymarketMarketTradeWatcher {
                 const user = await getUserDetails(Number(this.userId));
                 if (!user) return;
 
-                const position = await getUserPositionByMarket(user.wallet_address, this.marketId);
-                if (!position) {
-                    return stopAllTpSlWatchers(
-                        this.userId,
-                        this.marketId,
-                        type === "take_profit" ? "tp" : "sl"
-                    );
+                // A market has two outcome tokens, so match on the asset, not the condition id
+                const positions = await getUserPosition({ user: user.wallet_address });
+                const position = positions.find((p) => p.asset === this.assetId);
+
+                if (!position || position.size <= 0) {
+                    return stopTpSlWatcher(this.userId, this.marketId, this.assetId, type);
                 }
 
-                const sizeToExecute = (this.config.size / 100) * position.size;
+                const sharesToSell = (this.config.size / 100) * position.size;
 
-                const { response, error } = await buyOrderGTC({
-                    price: this.lastBestAsk,
-                    size: sizeToExecute,
-                    orderType: OrderType.GTC,
-                    tokenId: this.assetId,
-                    side: Side.SELL,
-                    feeRateBps: 0,
-                    apiCreds: JSON.parse(user.api_credentials),
+                // FAK sells whatever the book can absorb now instead of resting at a stale price
+                const { response, error } = await marketSellOrder({
                     privateKey: decryptPrivateKey(user.private_key),
+                    creds: JSON.parse(user.api_credentials),
+                    tokenId: this.assetId,
+                    amount: sharesToSell,
+                    orderType: OrderType.FAK,
                 });
 
                 if (!response || error) {
-                    console.error("ERROR EXECUTING TP/SL LIMIT ORDER: ", error);
-                }
+                    console.error("[WS] Failed to execute TP/SL sell:", error);
 
-                await Promise.all([
-                    updateUserMarketsTraded(Number(this.userId), user.markets_traded),
-                    updateUserTransactionsExecuted(Number(this.userId), user.txns_executed),
-                    bot.telegram.sendMessage(
+                    await bot.telegram.sendMessage(
                         this.userId,
-                        generateTPorSLMessage({ ...basePayload, size: this.config.size }),
+                        generateTPorSLFailedMessage({ type, ...basePayload }),
                         { parse_mode: "HTML" }
-                    ),
-                ]);
+                    );
+                } else {
+                    await Promise.all([
+                        updateUserMarketsTraded(Number(this.userId), user.markets_traded),
+                        updateUserTransactionsExecuted(Number(this.userId), user.txns_executed),
+                        bot.telegram.sendMessage(
+                            this.userId,
+                            generateTPorSLMessage({ type, ...basePayload, shares: sharesToSell }),
+                            { parse_mode: "HTML" }
+                        ),
+                    ]);
+                }
 
                 stopTpSlWatcher(this.userId, this.marketId, this.assetId, type);
             }
@@ -206,7 +214,10 @@ export class PolymarketMarketTradeWatcher {
                 ? `${ALERT_REDIS_KEY_PREFIX}${this.userId}`
                 : `${TPSL_REDIS_KEY_PREFIX}${this.userId}`;
 
-        const field = `${this.marketId}:${this.assetId}`;
+        const field =
+            this.config.type === "alert"
+                ? alertField(this.marketId, this.assetId)
+                : tpSlField(this.marketId, this.assetId, this.config.type);
 
         redisClient.hDel(redisKey, field).catch((err) => {
             console.error(`[Watcher] Failed to remove Redis key: ${redisKey} ${field}`, err);
@@ -262,8 +273,6 @@ export function stopTpSlWatcher(
 }
 
 export async function restorePriceWatchersFromRedis() {
-    activeWatchers.clear();
-
     const keys = await redisClient.keys(`${ALERT_REDIS_KEY_PREFIX}*`);
     for (const key of keys) {
         const userId = key.split(":")[2];
@@ -277,8 +286,6 @@ export async function restorePriceWatchersFromRedis() {
 }
 
 export async function restoreTpSlWatchersFromRedis() {
-    activeWatchers.clear();
-
     const keys = await redisClient.keys(`${TPSL_REDIS_KEY_PREFIX}*`);
     for (const key of keys) {
         const userId = key.split(":")[2];
@@ -298,7 +305,7 @@ export async function storePriceAlertInRedis(
     assetId: string
 ) {
     const key = `${ALERT_REDIS_KEY_PREFIX}${userId}`;
-    const field = `${marketId}:${assetId}`;
+    const field = alertField(marketId, assetId);
     const value = JSON.stringify({ ...config, marketId, assetId });
     await redisClient.hSet(key, field, value);
 }
@@ -310,7 +317,7 @@ export async function storeTpSlWatcherInRedis(
     assetId: string
 ) {
     const key = `${TPSL_REDIS_KEY_PREFIX}${userId}`;
-    const field = `${marketId}:${assetId}:${config.type}`;
+    const field = tpSlField(marketId, assetId, config.type);
     const value = JSON.stringify({ ...config, marketId, assetId });
     await redisClient.hSet(key, field, value);
 }
@@ -318,7 +325,8 @@ export async function storeTpSlWatcherInRedis(
 export async function stopAllTpSlWatchers(
     userId: string,
     marketId: string,
-    type: "tp" | "sl" | "all" = "all"
+    type: "tp" | "sl" | "all" = "all",
+    assetId?: string
 ) {
     const redisKey = `${TPSL_REDIS_KEY_PREFIX}${userId}`;
     const entries = await redisClient.hGetAll(redisKey);
@@ -329,8 +337,9 @@ export async function stopAllTpSlWatchers(
     };
 
     for (const [field, _] of Object.entries(entries)) {
-        const [storedMarketId, assetId, typeStr] = field.split(":");
+        const [storedMarketId, storedAssetId, typeStr] = field.split(":");
         if (storedMarketId !== marketId) continue;
+        if (assetId && storedAssetId !== assetId) continue;
 
         try {
             if (type === "all" || typeMap[type] === typeStr) {
@@ -338,7 +347,7 @@ export async function stopAllTpSlWatchers(
                 stopTpSlWatcher(
                     userId,
                     storedMarketId,
-                    assetId,
+                    storedAssetId,
                     typeStr as "take_profit" | "stop_loss"
                 );
             }
