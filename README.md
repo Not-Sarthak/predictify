@@ -58,5 +58,3 @@ bun run typecheck
 bun run lint
 bun run format:check
 ```
-
-CI runs all four on every push and pull request.
