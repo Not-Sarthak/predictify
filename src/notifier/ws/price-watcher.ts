@@ -14,6 +14,7 @@ import { OrderType } from "@polymarket/clob-client";
 import { decryptApiCredentials, decryptPrivateKey } from "../../utils/crypto";
 import { redisClient } from "../../lib/redis";
 import { evaluateTrigger } from "./triggers";
+import { sendOrderToSQS } from "../../lib/sqs";
 import {
     updateUserMarketsTraded,
     updateUserTransactionsExecuted,
@@ -165,6 +166,23 @@ export class PolymarketMarketTradeWatcher {
                     );
                 } else {
                     await Promise.all([
+                        sendOrderToSQS({
+                            userId: this.userId,
+                            username: user.telegram_username,
+                            orderId: response.orderID || "",
+                            orderType: "fak_sell",
+                            source: "tp_sl",
+                            side: this.config.outcome,
+                            marketId: this.marketId,
+                            marketQuestion: basePayload.question,
+                            amount: sharesToSell,
+                            shares: sharesToSell,
+                            executionPrice: currentPrice,
+                            txHash: response.transactionsHashes?.[0],
+                            timestamp: new Date().toISOString(),
+                            status: "matched",
+                            outcome: this.config.outcome,
+                        }),
                         updateUserMarketsTraded(Number(this.userId)),
                         updateUserTransactionsExecuted(Number(this.userId)),
                         bot.telegram.sendMessage(

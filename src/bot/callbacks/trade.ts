@@ -30,6 +30,7 @@ import { Markup, type Context } from "telegraf";
 import axios from "axios";
 import { db } from "../../lib/supabase";
 import { incrementUserStats } from "../utils/database/update-user-data";
+import { sendOrderToSQS } from "../../lib/sqs";
 import { generateClosePositionButton } from "../ui/buttons/trade";
 import { marketSellOrder } from "../../utils/polymarket-order/market-buy-order";
 import { OrderType } from "@polymarket/clob-client";
@@ -1042,6 +1043,24 @@ export async function handleCloseOpenPosition(
         await ctx.deleteMessage(message_id);
         return ctx.reply("⚠️ There was a problem closing your position.");
     }
+
+    await sendOrderToSQS({
+        userId: userId.toString(),
+        username,
+        orderId: sellOrder.response?.orderID || "",
+        orderType: "fok_sell",
+        source: "close_position",
+        side: userMarketDetails.outcome,
+        marketId: decodedConditionId,
+        marketQuestion: marketTitle,
+        amount: sellAmount,
+        shares: sellAmount,
+        executionPrice: userMarketDetails.curPrice,
+        txHash: sellOrder.response?.transactionsHashes?.[0],
+        timestamp: new Date().toISOString(),
+        status: "matched",
+        outcome: userMarketDetails.outcome,
+    });
 
     // Track this manual sell for copy trading system and update volume
     await trackManualTrade(userId, userMarketDetails.asset, "SELL", sellAmount);

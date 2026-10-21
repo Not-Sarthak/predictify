@@ -19,7 +19,9 @@ export interface OrderMessage {
     userId: string;
     username?: string;
     orderId: string;
-    orderType: "fok" | "gtc" | "fok_sell";
+    orderType: "fok" | "gtc" | "fok_sell" | "fak_sell";
+    // Where the order came from; consumers that only knew manual orders can ignore it
+    source?: "manual" | "high_prob" | "copy_trade" | "tp_sl" | "close_position";
     side?: string;
     marketId: string;
     marketQuestion: string;

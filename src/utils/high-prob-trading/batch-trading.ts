@@ -221,6 +221,7 @@ async function executeSingleTrade({
                 username: user?.telegram_username,
                 orderId: orderResponse.response.orderID || "",
                 orderType: "fok",
+                source: "high_prob",
                 side: market.bestOutcome,
                 marketId: market.id,
                 marketQuestion: market.question,

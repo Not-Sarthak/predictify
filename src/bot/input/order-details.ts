@@ -338,6 +338,7 @@ async function placeOrderFromDetails(ctx: Context, textMessage: string) {
                     username,
                     orderId: orderId || "",
                     orderType,
+                    source: "manual",
                     side: orderType === "fok_sell" ? position?.outcome : side,
                     marketId,
                     marketQuestion: market.question,

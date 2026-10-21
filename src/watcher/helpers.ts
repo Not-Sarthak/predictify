@@ -4,6 +4,7 @@ import { redisClient } from "../lib/redis";
 import { decryptApiCredentials, decryptPrivateKey } from "../utils/crypto";
 import { marketBuyOrder, marketSellOrder } from "../utils/polymarket-order/market-buy-order";
 import { OrderType, Side } from "@polymarket/clob-client";
+import { sendOrderToSQS } from "../lib/sqs";
 import axios from "axios";
 import { db } from "../lib/supabase";
 import {
@@ -185,10 +186,11 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
         }
 
         const amount = parseFloat(trade.value.toFixed(6));
+        let orderResponse: any;
 
         if (trade.side === "BUY") {
             // The order helpers return their failure instead of throwing
-            const { error } = await marketBuyOrder({
+            const { response, error } = await marketBuyOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: decryptApiCredentials(user.api_credentials),
                 tokenId: trade.asset,
@@ -197,6 +199,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 orderType: OrderType.FOK,
             });
             if (error) throw error instanceof Error ? error : new Error(String(error));
+            orderResponse = response;
 
             await Promise.all([
                 updateUserMarketsTraded(Number(userId)),
@@ -228,7 +231,7 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 }
             }
 
-            const { error } = await marketSellOrder({
+            const { response, error } = await marketSellOrder({
                 privateKey: decryptPrivateKey(user.private_key),
                 creds: decryptApiCredentials(user.api_credentials),
                 tokenId: trade.asset,
@@ -236,7 +239,26 @@ export const executeTrade = async (userId: string, trade: FormattedTrade) => {
                 orderType: OrderType.FOK,
             });
             if (error) throw error instanceof Error ? error : new Error(String(error));
+            orderResponse = response;
         }
+
+        await sendOrderToSQS({
+            userId,
+            username: user.telegram_username,
+            orderId: orderResponse?.orderID || "",
+            orderType: trade.side === "BUY" ? "fok" : "fok_sell",
+            source: "copy_trade",
+            side: trade.outcome,
+            marketId: trade.conditionId,
+            marketQuestion: trade.market,
+            amount: trade.side === "BUY" ? amount : trade.size,
+            shares: trade.side === "BUY" ? amount / trade.price : trade.size,
+            executionPrice: trade.price,
+            txHash: orderResponse?.transactionsHashes?.[0],
+            timestamp: new Date().toISOString(),
+            status: "matched",
+            outcome: trade.outcome,
+        });
 
         const redisKey = `copytrade:executed:${userId}:${Date.now()}`;
         await redisClient.set(
