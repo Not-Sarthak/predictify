@@ -147,13 +147,12 @@ export async function handleCallbackQuery(ctx: Context) {
         }
     }
 
+    // Callback data is client-controlled, so the acting user always comes from ctx
     if (data.startsWith("confirm_notification:")) {
-        const userId = data.split(":")[1];
         return handleConfirmNotification(ctx, userId);
     }
 
     if (data.startsWith("cancel_notification:")) {
-        const userId = data.split(":")[1];
         return handleCancelNotification(ctx, userId);
     }
 
@@ -353,8 +352,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("bridge_confirm:")) {
-        const userId = data.split(":")[1];
-        return handleBridgeConfirm(ctx, userId);
+        return handleBridgeConfirm(ctx, userIdStr);
     }
 
     if (data === "withdraw_sol") {
@@ -366,8 +364,7 @@ export async function handleCallbackQuery(ctx: Context) {
     }
 
     if (data.startsWith("bridge_status:")) {
-        const userId = data.split(":")[1];
-        return handleBridgeStatus(ctx, userId);
+        return handleBridgeStatus(ctx, userIdStr);
     }
 
     if (data === "swap_funds") {

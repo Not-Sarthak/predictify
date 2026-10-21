@@ -33,6 +33,7 @@ export interface BridgeQuoteData {
     usdcAllocation?: number;
     needsPOL?: boolean;
     polBridgeData?: any;
+    expiresAt: number;
 }
 
 // Chain and Token Constants

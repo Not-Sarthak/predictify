@@ -2,9 +2,13 @@ import type { Context } from "telegraf";
 import { redisClient } from "../../lib/redis";
 import { db } from "../../lib/supabase";
 import { bot } from "../index";
+import { ADMIN_USERS_ID } from "../../shared/constants/misc";
 
-export async function handleConfirmNotification(ctx: Context, userId: string) {
-    const message = await redisClient.get(`notification:message:${userId}`);
+export async function handleConfirmNotification(ctx: Context, userId: number) {
+    if (!ADMIN_USERS_ID.includes(userId)) return;
+
+    // GETDEL claims the message, so a double tap on Confirm can't broadcast it twice
+    const message = await redisClient.getDel(`notification:message:${userId}`);
     if (!message) {
         return ctx.editMessageText("❌ Message expired. Please try again.");
     }
@@ -49,15 +53,13 @@ export async function handleConfirmNotification(ctx: Context, userId: string) {
                 `📈 Delivered: ${successCount}\n` +
                 `❌ Failed: ${failCount}`
         );
-
-        await redisClient.del(`notification:message:${userId}`);
     } catch (error) {
         console.error("Error Sending Notification:", error);
         await ctx.editMessageText("❌ Failed To Send Notification");
     }
 }
 
-export async function handleCancelNotification(ctx: Context, userId: string) {
+export async function handleCancelNotification(ctx: Context, userId: number) {
     await redisClient.del(`notification:message:${userId}`);
     await ctx.editMessageText("❌ Notification cancelled");
 }

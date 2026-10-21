@@ -23,6 +23,7 @@ import type { BridgeQuoteData, MayanBridgeInput } from "../types";
 import { SUPPORTED_CHAINS, SOLANA_TOKENS, POLYGON_TOKENS, MIN_BRIDGE_AMOUNTS } from "../types";
 
 const SLIPPAGE_BPS = 300; // 3% slippage
+const QUOTE_TTL_MS = 2 * 60 * 1000;
 
 const bridgeQuotes = new Map<string, BridgeQuoteData>();
 
@@ -201,6 +202,7 @@ async function fetchAndShowQuote(ctx: Context): Promise<void> {
             usdcAllocation,
             needsPOL,
             polBridgeData,
+            expiresAt: Date.now() + QUOTE_TTL_MS,
         });
 
         // Generate quote message with POL information
@@ -277,8 +279,11 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
     const language = await getUserLanguage(userIdNumber);
 
     try {
+        // Take the quote out before any await so a double tap on Confirm can't submit twice
         const storedQuote = bridgeQuotes.get(quoteKey);
-        if (!storedQuote) {
+        bridgeQuotes.delete(quoteKey);
+
+        if (!storedQuote || storedQuote.expiresAt < Date.now()) {
             await ctx.reply("❌ Bridge quote expired. Please start over.");
             return;
         }
@@ -365,8 +370,6 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
 
         usdcTxSignature = bridgeResult.txHash;
 
-        bridgeQuotes.delete(quoteKey);
-
         // Generate success message
         let successMessage = `✅ **Bridge Transaction(s) Submitted**\n\n`;
 
@@ -404,7 +407,6 @@ export async function handleBridgeConfirm(ctx: Context, userId: string): Promise
             }
         );
     } catch (error) {
-        bridgeQuotes.delete(quoteKey);
         console.error("Bridge execution error:", error);
         await ctx.reply(
             `❌ Bridge Execution Failed: ${error instanceof Error ? error.message : "Unknown error"}`
